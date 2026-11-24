@@ -152,3 +152,17 @@ def test_sanitize_alert_removes_assets():
 def test_settings_file():
     cfg = vw.load_config()
     assert cfg["critical"] == 9.0 and isinstance(cfg["watchlist"], list)
+
+
+def test_control_characters_do_not_break_excel(tmp_path):
+    r = vw.parse_nvd(nvd_item(desc="SolarWinds Serv-U\x0b was found\x01 to be affected"), NOW)
+    assert "\x0b" not in r["desc"]
+    r["desc"] = "Texte avec caractère interdit \x0b ici"   # même si une source en introduit un plus tard
+    r["vendor"] = "Ven\x02dor"
+    classify.classify(r)
+    rec = rx.enrich(r, {"critical": 9}, NOW)
+    kpi = {"updated": vw.iso(NOW), "new_24h": 1, "new_7d": 1, "critical_7d": 0, "kev_7d": 0, "kev_version": "t"}
+    rx.build_xlsx(tmp_path / "x.xlsx", [rec], [{"cveID": "CVE-1", "shortDescription": "a\x0bb"}],
+                  [{"date": vw.iso(NOW), "cve": "CVE-1", "reasons": "x\x0b", "priority": 5, "channels": "ntfy", "message": "m\x0b"}],
+                  kpi, {"critical": 9, "tz": "America/Toronto"}, dt.timezone.utc, [], [])
+    assert (tmp_path / "x.xlsx").exists()

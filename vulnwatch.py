@@ -385,7 +385,7 @@ def parse_nvd(item: dict, now: dt.datetime) -> dict:
         "status": c.get("vulnStatus", ""),
         "watch": "",
         "first_seen": iso(now),
-        "desc": re.sub(r"\s+", " ", desc).strip(),
+        "desc": re.sub(r"[\x00-\x1f\x7f]+", " ", re.sub(r"\s+", " ", desc)).strip(),
         "ref_patch": ref_patch,
         "exploit_ref": exploit_ref,
         "source": source,
@@ -757,7 +757,14 @@ def build_outputs(site: Path, records: list[dict], kev_recent: list[dict], alert
     work = site.parent / (site.name + "_prive")
     work.mkdir(parents=True, exist_ok=True)
     private = work / "VulnWatch.xlsx"
-    build_xlsx(private, recs, kev_rows, alert_rows, kpi, xcfg, tz, inventory, meta.get("stats"))
+    try:
+        build_xlsx(private, recs, kev_rows, alert_rows, kpi, xcfg, tz, inventory, meta.get("stats"))
+    except Exception as e:  # noqa: BLE001
+        # Ne jamais bloquer la veille : on garde le classeur précédent, le reste est publié, et on le signale.
+        log(f"Excel : génération impossible ({type(e).__name__}: {e}). Le reste est publié.", "ERREUR")
+        meta.setdefault("health", {})["Excel"] = {"fails": 1, "last_error": str(e)[:200]}
+        if not private.exists():
+            raise
     if cfg["excel_password"]:
         encrypt_xlsx(private, site / "VulnWatch.xlsx", cfg["excel_password"])
         private_send = work / "VulnWatch-chiffre.xlsx"

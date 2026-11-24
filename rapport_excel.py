@@ -374,8 +374,16 @@ BOX = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
 LINK = Font(color="0563C1", underline="single")
 
 
+from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE  # noqa: E402
+
+
+def clean(v):
+    """Retire les caractères de contrôle invisibles qu'Excel refuse (présents dans certaines descriptions)."""
+    return ILLEGAL_CHARACTERS_RE.sub(" ", v) if isinstance(v, str) else v
+
+
 def _cell_value(r: dict, key: str, kind: str, tz):
-    v = r.get(key)
+    v = clean(r.get(key))
     if kind == "yesno":
         return "Oui" if v else "Non"
     if kind == "datetime":
@@ -503,9 +511,16 @@ def _sheet(wb, title, intro, tab_color=None):
 # --------------------------------------------------------------------------- classeur
 
 
+def _clean_rows(rows):
+    """Nettoie toutes les chaînes d'une liste d'enregistrements avant écriture dans Excel."""
+    return [{k: clean(v) for k, v in r.items()} for r in (rows or [])]
+
+
 def build_xlsx(path: Path, recs: list[dict], kev_rows: list[dict], alert_rows: list[dict],
                kpi: dict, cfg: dict, tz, inventory: list | None = None, history: list | None = None) -> None:
     now = dt.datetime.now(UTC)
+    recs, kev_rows, alert_rows = _clean_rows(recs), _clean_rows(kev_rows), _clean_rows(alert_rows)
+    inventory = _clean_rows(inventory) if inventory else inventory
     recs_p = _sort_prio(recs)
     d1 = now - dt.timedelta(days=1)
     wb = Workbook()

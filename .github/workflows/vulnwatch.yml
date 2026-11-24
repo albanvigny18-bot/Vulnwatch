@@ -94,6 +94,7 @@ jobs:
           python vulnwatch.py --state state --site public ${{ inputs.test_notification && '--test-notification --daily-report-now' || '' }}
 
       - name: Sauvegarder l'état (branche data, sans historique)
+        if: always() && hashFiles('state/state.json') != ''
         run: |
           cd state
           git init -q -b data
