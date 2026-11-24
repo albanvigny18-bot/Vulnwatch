@@ -89,10 +89,34 @@ Adresse : `https://albanvigny18-bot.github.io/Vulnwatch/VulnWatch.xlsx`. Le fich
 
 | Feuille | Contenu |
 |---|---|
-| **Tableau de bord** | Indicateurs (24 h, 7 jours, critiques, KEV, parc), 25 CVE à traiter en priorité, dernières alertes |
-| **Vulnérabilités** | Toutes les CVE des 30 derniers jours : *Nouveau (24 h)*, sévérité en couleurs, CVSS, EPSS, KEV, rançongiciel, parc, lien NVD |
-| **CISA KEV** | Les ajouts des 90 derniers jours, avec l'action requise et l'échéance |
-| **Journal des alertes** | Toutes les alertes, avec leur motif et les canaux utilisés |
+| **Tableau de bord** | 8 compteurs (P1, P2, exploitées, mon parc, nouvelles…), 3 graphiques (sévérité, priorité, nouvelles CVE par jour), fournisseurs les plus touchés, les 25 CVE à traiter en premier, dernières alertes |
+| **À traiter (P1-P2)** | Ta liste de travail : ce qui doit être corrigé, de la plus urgente à la moins urgente |
+| **Exploitées (KEV)** | CVE suivies qui sont activement exploitées selon la CISA |
+| **Mon parc** | CVE qui touchent tes fournisseurs ou produits |
+| **Nouvelles 24 h** | Ce qui est apparu depuis hier |
+| **Toutes les CVE** | La base complète, triée par priorité puis score de risque |
+| **Par fournisseur** | Synthèse par éditeur : volume, P1/P2, critiques, exploitées, pire CVSS, produits touchés |
+| **Catalogue KEV** | Les ajouts officiels de la CISA des 90 derniers jours, avec action requise et échéance |
+| **Journal des alertes** | Chaque alerte : date, motif, niveau, canaux |
+| **Guide** | La signification de chaque colonne et des niveaux de priorité |
+
+Chaque CVE est détaillée sur 32 colonnes. Elles sont **classées de la plus utile à la plus technique**, et les 12 premières suffisent pour décider :
+
+- **Pour décider** : CVE (lien cliquable), **Priorité P1 à P4**, **Action recommandée** (ex. « Corriger immédiatement (sous 48 h) »), **Score de risque 0-100**, Sévérité, CVSS, EPSS et son percentile, Exploitée (KEV), Exploit public, Rançongiciel, Mon parc, Nouveau (24 h).
+- **Le contexte** : Fournisseur, Produit, Type de faiblesse en français (ex. « Injection SQL »), Description.
+- **Comment on l'attaque** : Vecteur d'attaque (réseau, local…), Complexité, Privilèges requis, Interaction utilisateur, Impact sur la confidentialité, l'intégrité et la disponibilité.
+- **Le suivi** : Publiée le, Modifiée le, Âge, Échéance CISA, lien vers le correctif ou l'avis de l'éditeur, CWE, Statut NVD, Émetteur, Version et vecteur CVSS.
+
+Ce qui est rangé où :
+- les couleurs suivent la priorité et la sévérité ;
+- chaque en-tête a un filtre et un tri ;
+- la colonne CVE reste visible quand tu fais défiler vers la droite.
+
+**Les niveaux de priorité**
+- **P1, à corriger sous 48 h** : la faille est exploitée activement (KEV), OU elle est critique avec un EPSS d'au moins 10 %, OU elle est critique et touche ton parc.
+- **P2, à corriger sous 7 jours** : la faille est critique, OU son EPSS atteint au moins 50 %, OU elle a un CVSS d'au moins 7 et touche ton parc.
+- **P3, à planifier sous 30 jours** : CVSS d'au moins 7, OU EPSS d'au moins 10 %, OU la faille touche ton parc.
+- **P4, à surveiller** : tout le reste.
 
 ### Option B : ton propre classeur connecté, qui s'actualise tout seul (Excel sur PC ou Mac)
 1. Crée un classeur vide, puis va dans **Données → À partir du Web**.

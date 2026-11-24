@@ -27,11 +27,6 @@ from email.message import EmailMessage
 from pathlib import Path
 
 import requests
-from openpyxl import Workbook
-from openpyxl.formatting.rule import CellIsRule, FormulaRule
-from openpyxl.styles import Alignment, Font, PatternFill
-from openpyxl.utils import get_column_letter
-from openpyxl.worksheet.table import Table, TableStyleInfo
 
 try:
     from zoneinfo import ZoneInfo
@@ -264,6 +259,12 @@ def parse_nvd(item: dict, now: dt.datetime) -> dict:
                 break
         if vendor:
             break
+    refs = c.get("references", []) or []
+    ref_patch = next((x.get("url", "") for x in refs if "Patch" in (x.get("tags") or [])), "") or \
+        next((x.get("url", "") for x in refs if "Vendor Advisory" in (x.get("tags") or [])), "")
+    exploit_ref = next((x.get("url", "") for x in refs if "Exploit" in (x.get("tags") or [])), "")
+    src = c.get("sourceIdentifier", "") or ""
+    source = src.split("@")[-1] if "@" in src else src
     return {
         "id": c.get("id", ""),
         "published": iso(parse_dt(c.get("published"))),
@@ -285,6 +286,9 @@ def parse_nvd(item: dict, now: dt.datetime) -> dict:
         "watch": "",
         "first_seen": iso(now),
         "desc": re.sub(r"\s+", " ", desc).strip(),
+        "ref_patch": ref_patch,
+        "exploit_ref": exploit_ref,
+        "source": source,
     }
 
 
@@ -402,6 +406,7 @@ class Notifier:
 def daily_report_html(records: list[dict], kev_recent: list[dict], alerts: list[dict], cfg: dict) -> tuple[str, str]:
     """Rapport quotidien : synthèse 24 h en texte et HTML (le classeur est joint)."""
     now = dt.datetime.now(UTC)
+    records = [enrich(dict(r), {"critical": cfg["critical"]}, now) for r in records]
     d1 = now - dt.timedelta(days=1)
     new = [r for r in records if (parse_dt(r["published"]) or now) >= d1]
     crit = [r for r in new if (r["score"] or 0) >= cfg["critical"]]
@@ -438,28 +443,18 @@ def daily_report_html(records: list[dict], kev_recent: list[dict], alerts: list[
 
 # --------------------------------------------------------------------------- sorties
 
-COLS = [  # (clé, en-tête, largeur)
-    ("id", "CVE", 17), ("new", "Nouveau (24 h)", 10), ("severity", "Sévérité", 13), ("score", "Score CVSS", 11), ("epss", "EPSS", 9),
-    ("kev", "Exploitée (KEV)", 11), ("ransomware", "Rançongiciel", 12), ("watch", "Parc surveillé", 18),
-    ("vendor", "Fournisseur", 18), ("product", "Produit", 22), ("desc", "Description", 100),
-    ("published", "Publiée le", 17), ("modified", "Modifiée le", 17), ("kev_due", "Échéance CISA", 13),
-    ("cwe", "CWE", 14), ("cvss_version", "Version CVSS", 9), ("vector", "Vecteur CVSS", 44),
-    ("status", "Statut NVD", 18),
-]
-FILL = {
-    "red": PatternFill("solid", fgColor="C00000"), "orange": PatternFill("solid", fgColor="ED7D31"),
-    "yellow": PatternFill("solid", fgColor="FFD966"), "green": PatternFill("solid", fgColor="A9D08E"),
-    "blue": PatternFill("solid", fgColor="BDD7EE"),
-}
-WHITE_B = Font(color="FFFFFF", bold=True)
+from rapport_excel import DETAIL_COLS, build_xlsx, enrich  # noqa: E402
+
+PRIO_ORDER = {"P1": 0, "P2": 1, "P3": 2, "P4": 3}
 
 
 def priority_key(r: dict):
-    return (r["kev"], bool(r.get("watch")), r["score"] or 0, r["epss"] or 0)
+    """Tri du plus urgent au moins urgent (après enrich)."""
+    return (-PRIO_ORDER.get(r.get("priority"), 9), r.get("risk") or 0)
 
 
 def is_priority(r: dict) -> bool:
-    return r["kev"] or (r["score"] or 0) >= 7 or (r["epss"] or 0) >= 0.1 or bool(r.get("watch"))
+    return r.get("priority") in ("P1", "P2")
 
 
 def build_outputs(site: Path, records: list[dict], kev_recent: list[dict], alerts: list[dict],
@@ -467,13 +462,12 @@ def build_outputs(site: Path, records: list[dict], kev_recent: list[dict], alert
     site.mkdir(parents=True, exist_ok=True)
     tz = ZoneInfo(cfg["tz"]) if ZoneInfo else UTC
     now = dt.datetime.now(UTC)
-    pub = records
+    xcfg = {"critical": cfg["critical"], "tz": cfg["tz"], "retention_days": cfg["retention_days"], "kev_days": cfg["kev_days"]}
+    recs = [enrich(dict(r), xcfg, now) for r in records]
     if cfg["hide_watch"]:
-        pub = [{**r, "watch": "✓" if r.get("watch") else ""} for r in records]
-
-    recs = sorted(pub, key=lambda r: r["modified"], reverse=True)
-    for r in recs:
-        r["new"] = "Oui" if (parse_dt(r.get("first_seen")) or now) >= now - dt.timedelta(days=1) else ""
+        for r in recs:
+            r["watch"] = "✓" if r.get("watch") else ""
+    recs.sort(key=lambda r: r["modified"], reverse=True)
     d1, d7 = now - dt.timedelta(days=1), now - dt.timedelta(days=7)
 
     def pubdate(r):
@@ -487,14 +481,15 @@ def build_outputs(site: Path, records: list[dict], kev_recent: list[dict], alert
         "kev_7d": sum(1 for k in kev_recent if (parse_dt(k.get("dateAdded")) or now) >= d7.replace(hour=0, minute=0, second=0)),
         "watch_7d": sum(1 for r in recs if pubdate(r) >= d7 and r.get("watch")),
         "alerts_7d": sum(1 for a in alerts if (parse_dt(a["date"]) or now) >= d7 and a.get("channels") and not a["channels"].startswith("(")),
+        "p1": sum(1 for r in recs if r["priority"] == "P1"),
+        "p2": sum(1 for r in recs if r["priority"] == "P2"),
         "total": len(recs),
         "kev_version": meta.get("kev_version", ""),
         "critical_score": cfg["critical"],
         "health": meta.get("health", {}),
     }
-    prio = sorted([r for r in recs if is_priority(r)], key=priority_key, reverse=True)[:25]
     kev_rows = sorted(kev_recent, key=lambda k: k.get("dateAdded", ""), reverse=True)
-    alert_rows = sorted(alerts, key=lambda a: a["date"], reverse=True)[:500]
+    alert_rows = sorted(alerts, key=lambda a: a["date"], reverse=True)[:1000]
 
     # ---- JSON pour le tableau de bord web
     write_json(site / "data.json", {
@@ -506,21 +501,21 @@ def build_outputs(site: Path, records: list[dict], kev_recent: list[dict], alert
         "alerts": alert_rows[:200],
     }, compact=True)
 
-    # ---- CSV (source Power Query / Google Sheets)
+    # ---- CSV (source Power Query) : mêmes colonnes détaillées que l'Excel
     def local(s):
         d = parse_dt(s)
         return d.astimezone(tz).strftime("%Y-%m-%d %H:%M") if d else ""
 
     with (site / "vulns.csv").open("w", encoding="utf-8-sig", newline="") as f:
         w = csv.writer(f)
-        w.writerow([h for _, h, _ in COLS] + ["Lien"])
-        for r in recs:
+        w.writerow([h for _, h, _, _ in DETAIL_COLS] + ["Lien NVD"])
+        for r in sorted(recs, key=priority_key, reverse=True):
             row = []
-            for k, _, _ in COLS:
+            for k, _, _, kind in DETAIL_COLS:
                 v = r.get(k)
-                if k == "kev":
+                if kind == "yesno":
                     v = "Oui" if v else "Non"
-                elif k in ("published", "modified"):
+                elif kind == "datetime":
                     v = local(v)
                 elif v is None:
                     v = ""
@@ -528,7 +523,7 @@ def build_outputs(site: Path, records: list[dict], kev_recent: list[dict], alert
             w.writerow(row + [NVD_DETAIL + r["id"]])
     with (site / "alertes.csv").open("w", encoding="utf-8-sig", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["Date", "CVE", "Motifs", "Priorité", "Canaux", "Message", "Lien"])
+        w.writerow(["Date", "CVE", "Motifs", "Niveau", "Canaux", "Détail", "Lien NVD"])
         for a in alert_rows:
             w.writerow([local(a["date"]), a["cve"], a["reasons"], a["priority"], a["channels"], a["message"], NVD_DETAIL + a["cve"]])
     with (site / "kev.csv").open("w", encoding="utf-8-sig", newline="") as f:
@@ -539,185 +534,9 @@ def build_outputs(site: Path, records: list[dict], kev_recent: list[dict], alert
                         k.get("vulnerabilityName"), k.get("shortDescription"), k.get("requiredAction"),
                         k.get("dueDate"), k.get("knownRansomwareCampaignUse")])
 
-    # ---- Classeur Excel
-    build_xlsx(site / "VulnWatch.xlsx", recs, prio, kev_rows, alert_rows, kpi, cfg, tz)
+    # ---- Classeur Excel détaillé
+    build_xlsx(site / "VulnWatch.xlsx", recs, kev_rows, alert_rows, kpi, xcfg, tz)
     log(f"Sorties écrites dans {site}")
-
-
-def _table(ws, name: str, ncols: int, first_row: int, last_row: int, style="TableStyleMedium2"):
-    if last_row <= first_row:
-        return
-    ref = f"A{first_row}:{get_column_letter(ncols)}{last_row}"
-    t = Table(displayName=name, ref=ref)
-    t.tableStyleInfo = TableStyleInfo(name=style, showRowStripes=True)
-    ws.add_table(t)
-
-
-def _fmt_columns(ws, headers: list[str], first: int, last: int):
-    if last < first:
-        return
-    for i, h in enumerate(headers, start=1):
-        col = get_column_letter(i)
-        rng = f"{col}{first}:{col}{last}"
-        if h == "Sévérité":
-            for txt, fill, font in (("CRITIQUE", "red", WHITE_B), ("ÉLEVÉE", "orange", WHITE_B),
-                                    ("MOYENNE", "yellow", None), ("FAIBLE", "green", None)):
-                ws.conditional_formatting.add(rng, CellIsRule(operator="equal", formula=[f'"{txt}"'],
-                                                              fill=FILL[fill], font=font))
-        elif h == "Nouveau (24 h)":
-            ws.conditional_formatting.add(rng, CellIsRule(operator="equal", formula=['"Oui"'], fill=FILL["blue"],
-                                                          font=Font(bold=True)))
-        elif h in ("Exploitée (KEV)",):
-            ws.conditional_formatting.add(rng, CellIsRule(operator="equal", formula=['"Oui"'], fill=FILL["red"], font=WHITE_B))
-        elif h == "Rançongiciel":
-            ws.conditional_formatting.add(rng, CellIsRule(operator="equal", formula=['"Known"'], fill=FILL["red"], font=WHITE_B))
-        elif h == "Parc surveillé":
-            ws.conditional_formatting.add(rng, FormulaRule(formula=[f'LEN({col}{first})>0'], fill=FILL["blue"]))
-        elif h == "Score CVSS":
-            for row in ws[rng]:
-                row[0].number_format = "0.0"
-            ws.conditional_formatting.add(rng, CellIsRule(operator="greaterThanOrEqual", formula=["9"],
-                                                          font=Font(color="C00000", bold=True)))
-        elif h == "EPSS":
-            for row in ws[rng]:
-                row[0].number_format = "0.0%"
-            ws.conditional_formatting.add(rng, CellIsRule(operator="greaterThanOrEqual", formula=["0.1"],
-                                                          font=Font(color="C00000", bold=True)))
-        elif h in ("Publiée le", "Modifiée le", "Date"):
-            for row in ws[rng]:
-                row[0].number_format = "yyyy-mm-dd hh:mm"
-        elif h in ("Ajoutée le", "Échéance", "Échéance CISA"):
-            for row in ws[rng]:
-                row[0].number_format = "yyyy-mm-dd"
-
-
-def _write_rows(ws, start_row: int, headers: list[str], rows: list[list], widths: list[int] | None = None,
-                link_col: int | None = None):
-    for j, h in enumerate(headers, start=1):
-        ws.cell(row=start_row, column=j, value=h)
-    for i, row in enumerate(rows, start=start_row + 1):
-        for j, v in enumerate(row, start=1):
-            cell = ws.cell(row=i, column=j, value=v)
-            if link_col and j == link_col and v:
-                cell.hyperlink = NVD_DETAIL + str(v)
-                cell.font = Font(color="0563C1", underline="single")
-    if widths:
-        for j, wdt in enumerate(widths, start=1):
-            if wdt:
-                ws.column_dimensions[get_column_letter(j)].width = wdt
-    return start_row + len(rows)
-
-
-def build_xlsx(path: Path, recs, prio, kev_rows, alert_rows, kpi, cfg, tz):
-    def loc(s):
-        d = parse_dt(s)
-        return d.astimezone(tz).replace(tzinfo=None) if d else None
-
-    def dateval(s):
-        d = parse_dt(s)
-        return d.date() if d else None
-
-    def vuln_row(r):
-        out = []
-        for k, _, _ in COLS:
-            v = r.get(k)
-            if k == "kev":
-                v = "Oui" if v else "Non"
-            elif k in ("published", "modified"):
-                v = loc(v)
-            elif k == "kev_due":
-                v = dateval(v)
-            elif v == "":
-                v = None
-            out.append(v)
-        return out
-
-    wb = Workbook()
-
-    # Tableau de bord
-    ws = wb.active
-    ws.title = "Tableau de bord"
-    ws["A1"] = "VulnWatch — Veille des vulnérabilités"
-    ws["A1"].font = Font(size=16, bold=True)
-    upd = loc(kpi["updated"])
-    items = [
-        ("Dernière mise à jour", upd.strftime("%Y-%m-%d %H:%M") + f" ({cfg['tz']})"),
-        ("Nouvelles CVE (24 h)", kpi["new_24h"]),
-        ("Nouvelles CVE (7 jours)", kpi["new_7d"]),
-        (f"CVE critiques ≥ {cfg['critical']:g} (7 jours)", kpi["critical_7d"]),
-        ("Ajouts au catalogue CISA KEV (7 jours)", kpi["kev_7d"]),
-        ("CVE touchant le parc surveillé (7 jours)", kpi["watch_7d"]),
-        ("Alertes envoyées (7 jours)", kpi["alerts_7d"]),
-        ("CVE suivies", kpi["total"]),
-        ("Version du catalogue KEV", kpi["kev_version"]),
-        ("Sources", "NVD (NIST) · CISA KEV · FIRST EPSS"),
-    ]
-    if cfg["site_url"]:
-        items.append(("Tableau de bord web", cfg["site_url"]))
-    end = _write_rows(ws, 3, ["Indicateur", "Valeur"], [list(x) for x in items], [44, 34])
-    _table(ws, "Indicateurs", 2, 3, end)
-    for row in ws.iter_rows(min_row=4, max_row=end, min_col=2, max_col=2):
-        row[0].alignment = Alignment(horizontal="left")
-    p0 = end + 3
-    ws.cell(row=p0 - 1, column=1, value="À traiter en priorité (KEV, parc surveillé, CVSS ≥ 7, EPSS ≥ 10 %)").font = Font(size=13, bold=True)
-    ph = ["CVE", "Sévérité", "Score CVSS", "EPSS", "Exploitée (KEV)", "Parc surveillé", "Fournisseur", "Produit", "Description"]
-    prow = [[r["id"], r["severity"], r["score"], r["epss"], "Oui" if r["kev"] else "Non", r.get("watch") or None,
-             r["vendor"] or None, r["product"] or None, r["desc"]] for r in prio]
-    if not prow:
-        prow = [["Rien de prioritaire pour le moment."] + [None] * 8]
-    pend = _write_rows(ws, p0, ph, prow, [44, 34, 11, 9, 11, 18, 18, 22, 100], link_col=1)
-    _table(ws, "Priorites", len(ph), p0, pend, "TableStyleMedium3")
-    _fmt_columns(ws, ph, p0 + 1, pend)
-    ws.column_dimensions["A"].width = 44
-    a0 = pend + 4
-    ws.cell(row=a0 - 1, column=1, value="Dernières alertes (7 jours)").font = Font(size=13, bold=True)
-    lim = dt.datetime.now(UTC) - dt.timedelta(days=7)
-    last_alerts = [a for a in alert_rows if (parse_dt(a["date"]) or lim) > lim][:30]
-    ah0 = ["Date", "CVE", "Motifs", "Priorité", "Canaux"]
-    arow0 = [[loc(a["date"]), a["cve"], a["reasons"], a["priority"], a["channels"]] for a in last_alerts]
-    arow0 = arow0 or [[None, "Aucune alerte ces 7 derniers jours.", None, None, None]]
-    aend = _write_rows(ws, a0, ah0, arow0, None, link_col=2)
-    _table(ws, "DernieresAlertes", len(ah0), a0, aend, "TableStyleMedium4")
-    _fmt_columns(ws, ah0, a0 + 1, aend)
-    for r_ in range(a0 + 1, aend + 1):
-        if ws.cell(row=r_, column=4).value == 5:
-            for c_ in range(1, 6):
-                ws.cell(row=r_, column=c_).font = Font(color="C00000", bold=True)
-
-    # Vulnérabilités
-    ws = wb.create_sheet("Vulnérabilités")
-    headers = [h for _, h, _ in COLS]
-    rows = [vuln_row(r) for r in recs] or [["Aucune vulnérabilité pour le moment."] + [None] * (len(COLS) - 1)]
-    end = _write_rows(ws, 1, headers, rows, [w for _, _, w in COLS], link_col=1)
-    _table(ws, "Vulnerabilites", len(headers), 1, end)
-    _fmt_columns(ws, headers, 2, end)
-    ws.freeze_panes = "B2"
-
-    # CISA KEV
-    ws = wb.create_sheet("CISA KEV")
-    kh = ["CVE", "Ajoutée le", "Fournisseur", "Produit", "Nom", "Description", "Action requise", "Échéance", "Rançongiciel"]
-    krows = [[k.get("cveID"), dateval(k.get("dateAdded")), k.get("vendorProject"), k.get("product"),
-              k.get("vulnerabilityName"), k.get("shortDescription"), k.get("requiredAction"),
-              dateval(k.get("dueDate")), k.get("knownRansomwareCampaignUse")] for k in kev_rows]
-    krows = krows or [["Aucun ajout récent."] + [None] * 8]
-    end = _write_rows(ws, 1, kh, krows, [17, 12, 18, 22, 45, 90, 60, 12, 13], link_col=1)
-    _table(ws, "KEV", len(kh), 1, end, "TableStyleMedium7")
-    _fmt_columns(ws, kh, 2, end)
-    ws.freeze_panes = "B2"
-
-    # Journal des alertes
-    ws = wb.create_sheet("Journal des alertes")
-    ah = ["Date", "CVE", "Motifs", "Priorité", "Canaux", "Message"]
-    arows = [[loc(a["date"]), a["cve"], a["reasons"], a["priority"], a["channels"], a["message"]] for a in alert_rows]
-    arows = arows or [[None, "Aucune alerte pour le moment.", None, None, None, None]]
-    end = _write_rows(ws, 1, ah, arows, [17, 17, 50, 9, 24, 100], link_col=2)
-    _table(ws, "Alertes", len(ah), 1, end, "TableStyleMedium4")
-    _fmt_columns(ws, ah, 2, end)
-    ws.freeze_panes = "A2"
-
-    tmp = path.with_suffix(".tmp.xlsx")
-    wb.save(tmp)
-    tmp.replace(path)
 
 
 # --------------------------------------------------------------------------- moteur

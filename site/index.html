@@ -37,7 +37,7 @@ h1{font-size:20px;margin:0 0 2px}.sub{color:var(--mute);font-size:13px}
 .b{font-size:11.5px;font-weight:700;border-radius:6px;padding:2px 7px;color:#fff;white-space:nowrap}
 .s-CRITIQUE{background:var(--crit)}.s-ÉLEVÉE{background:var(--high)}.s-MOYENNE{background:var(--med)}.s-FAIBLE{background:var(--low)}
 .s-NON,.s-AUCUNE{background:var(--na)}.b-kev{background:var(--kev)}.b-ran{background:#000}.b-watch{background:var(--watch)}
-.b-new{background:#0891b2}.b-epss{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.p-P1{background:#c00000}.p-P2{background:#ed7d31}.p-P3{background:#bf8f00}.p-P4{background:#94a3b8}.b-new{background:#0891b2}.b-epss{background:transparent;color:var(--ink);border:1px solid var(--line)}
 .vp{color:var(--mute);font-size:13px;margin-top:4px}.desc{margin-top:5px;font-size:14px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .item.open .desc{-webkit-line-clamp:unset}.meta{color:var(--mute);font-size:12px;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .item.open .meta{-webkit-line-clamp:unset}
@@ -90,6 +90,7 @@ footer{color:var(--mute);font-size:12px;margin-top:24px;text-align:center}
   function vulnCard(r){
     var sev=r.severity||'NON ÉVALUÉE', cls='s-'+sev.split(' ')[0];
     var h='<div class="item"><div class="top"><a class="id" href="https://nvd.nist.gov/vuln/detail/'+esc(r.id)+'" target="_blank" rel="noopener">'+esc(r.id)+'</a>'+
+      (r.priority?'<span class="b p-'+r.priority+'">'+r.priority+'</span>':'')+
       '<span class="b '+cls+'">'+esc(sev)+(r.score!=null?' '+r.score.toFixed(1):'')+'</span>';
     if(r['new'])h+='<span class="b b-new">NOUVEAU</span>';
     if(r.kev)h+='<span class="b b-kev">EXPLOITÉE</span>';
@@ -99,7 +100,7 @@ footer{color:var(--mute);font-size:12px;margin-top:24px;text-align:center}
     h+='</div>';
     var vp=[r.vendor,r.product].filter(Boolean).join(' · ');
     if(vp)h+='<div class="vp">'+esc(vp)+'</div>';
-    h+='<div class="desc">'+esc(r.desc)+'</div><div class="meta">Publiée '+fmt(r.published)+' · modifiée '+fmt(r.modified)+
+    h+='<div class="desc">'+(r.action?'<b>'+esc(r.action)+'.</b> ':'')+esc(r.desc)+'</div><div class="meta">Publiée '+fmt(r.published)+' · modifiée '+fmt(r.modified)+
       (r.kev_due?' · échéance CISA '+esc(r.kev_due):'')+(r.cwe?' · '+esc(r.cwe):'')+'</div></div>';
     return h;
   }
@@ -126,8 +127,9 @@ footer{color:var(--mute);font-size:12px;margin-top:24px;text-align:center}
     return true;
   }
   function prioList(){
-    return D.vulns.filter(function(r){return r.kev||r.watch||(r.score||0)>=7||(r.epss||0)>=0.1})
-      .sort(function(a,b){return (b.kev-a.kev)||((!!b.watch)-(!!a.watch))||((b.score||0)-(a.score||0))||((b.epss||0)-(a.epss||0))});
+    var o={P1:0,P2:1,P3:2,P4:3};
+    return D.vulns.filter(function(r){return r.priority==='P1'||r.priority==='P2'||r.priority==='P3'})
+      .sort(function(a,b){return (o[a.priority]-o[b.priority])||((b.risk||0)-(a.risk||0))});
   }
   function render(){
     if(!D)return;
