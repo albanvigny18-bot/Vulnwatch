@@ -29,6 +29,7 @@ from pathlib import Path
 import requests
 
 import classify  # noqa: E402
+import explain  # noqa: E402
 import intel  # noqa: E402
 import tickets  # noqa: E402
 from collections import Counter  # noqa: E402
@@ -54,10 +55,52 @@ SEV_RANK = {"CRITIQUE": 4, "ÉLEVÉE": 3, "MOYENNE": 2, "FAIBLE": 1}
 
 # --------------------------------------------------------------------------- configuration
 
+# Correspondance variable d'environnement / variable GitHub -> clé du fichier reglages.yml.
+# Ordre de priorité : variable GitHub (si renseignée) > reglages.yml > valeur par défaut.
+SETTINGS_MAP = {
+    "CRITICAL_SCORE": ("seuils", "cvss_critique"), "EPSS_ALERT": ("seuils", "epss_alerte"),
+    "WATCHLIST_MIN_SCORE": ("seuils", "cvss_min_parc"),
+    "ALERT_ON_KEV": ("alertes", "failles_exploitees"), "ALERT_ON_CRITICAL": ("alertes", "failles_critiques"),
+    "SEND_DIGEST": ("alertes", "resume_horaire"), "MAX_ALERTS_PER_RUN": ("alertes", "maximum_par_passage"),
+    "QUIET_HOURS": ("alertes", "heures_calmes"), "DAILY_REPORT": ("alertes", "rapport_quotidien"),
+    "DAILY_REPORT_HOUR": ("alertes", "heure_du_rapport"), "EMAIL_MIN_PRIORITY": ("alertes", "courriel_niveau_minimum"),
+    "RETENTION_DAYS": ("historique", "jours_de_cve"), "KEV_HISTORY_DAYS": ("historique", "jours_catalogue_cisa"),
+    "INITIAL_DAYS": ("historique", "jours_premier_passage"),
+    "USE_EXPLOIT_SOURCES": ("sources", "exploits_publics"), "USE_VULNRICHMENT": ("sources", "analyse_cisa"),
+    "USE_GITHUB_ADVISORIES": ("sources", "bibliotheques_open_source"),
+    "ENRICH_MAX_PER_RUN": ("sources", "enrichissements_par_passage"),
+    "TICKETS": ("suivi", "tickets"), "TICKET_PRIORITY": ("suivi", "priorite_des_tickets"),
+    "TIMEZONE": ("affichage", "fuseau_horaire"), "HIDE_WATCHLIST": ("affichage", "masquer_mots_cles"),
+}
+
+
+def load_settings_file(path: Path | None = None) -> dict:
+    path = path or Path(__file__).with_name("reglages.yml")
+    try:
+        import yaml
+        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        return data if isinstance(data, dict) else {}
+    except FileNotFoundError:
+        return {}
+    except Exception as e:  # noqa: BLE001
+        print(f"[WARN] reglages.yml illisible ({e}) : valeurs par défaut utilisées.", flush=True)
+        return {}
+
+
+SETTINGS = load_settings_file()
+
+
 def _env(name: str, default=None):
     v = os.environ.get(name, "")
     v = v.strip() if isinstance(v, str) else v
-    return v if v else default
+    if v:
+        return v
+    sec, key = SETTINGS_MAP.get(name, (None, None))
+    if sec:
+        fv = (SETTINGS.get(sec) or {}).get(key)
+        if fv is not None and fv != "":
+            return str(fv).lower() if isinstance(fv, bool) else str(fv)
+    return default
 
 
 def _envf(name, default):
@@ -96,7 +139,8 @@ def load_config() -> dict:
         "digest": _envb("SEND_DIGEST", True),
         "max_alerts": _envi("MAX_ALERTS_PER_RUN", 10),
         "silent_first": _envb("SILENT_FIRST_RUN", True),
-        "watchlist": [w.strip() for w in re.split(r"[,;\n]", watch) if w.strip()],
+        "watchlist": list(dict.fromkeys([w.strip() for w in re.split(r"[,;\n]", watch) if w.strip()]
+                                        + [str(w).strip() for w in (SETTINGS.get("mots_cles") or []) if str(w).strip()])),
         "hide_watch": _envb("HIDE_WATCHLIST", False),
         "tz": _env("TIMEZONE", "America/Toronto"),
         "site_url": _env("SITE_URL", ""),
@@ -591,6 +635,7 @@ def sanitize_alert(a: dict) -> dict:
     """Retire toute mention d'actif d'une alerte (pour les sorties et l'état publics)."""
     msg = re.sub(r"Actifs : [^|]*\| ?", "", a.get("message", ""))
     msg = re.sub(r"Touche ton parc : [^·|]*", "Touche ton parc ", msg)
+    msg = re.sub(r"Elle concerne ton parc : [^|]*?\.(?= |\||$)", "Elle concerne ton parc.", msg)
     return {**a, "message": msg, "reasons": re.sub(r"Touche ton parc : [^·]*", "Touche ton parc ", a.get("reasons", "")).strip()}
 
 
@@ -613,6 +658,7 @@ def build_outputs(site: Path, records: list[dict], kev_recent: list[dict], alert
             for k in PRIVATE_FIELDS:
                 q[k] = ""
             q["justification"] = (r.get("justification") or "").replace(" — criticité haute", "")
+            q["plain"] = explain.en_clair(q, show_assets=False)
         pub.append(q)
     d1, d7 = now - dt.timedelta(days=1), now - dt.timedelta(days=7)
 
@@ -635,6 +681,24 @@ def build_outputs(site: Path, records: list[dict], kev_recent: list[dict], alert
         "critical_score": cfg["critical"],
         "health": meta.get("health", {}),
         "encrypted": bool(cfg["excel_password"]),
+        "repo": cfg.get("gh_repo") or "",
+        "settings": {
+            "seuils": {"cvss_critique": cfg["critical"], "epss_alerte": cfg["epss_alert"], "cvss_min_parc": cfg["watch_min"]},
+            "alertes": {"failles_exploitees": cfg["alert_kev"], "failles_critiques": cfg["alert_critical"],
+                        "resume_horaire": cfg["digest"], "maximum_par_passage": cfg["max_alerts"],
+                        "heures_calmes": cfg["quiet_hours"] or "", "rapport_quotidien": cfg["daily_report"],
+                        "heure_du_rapport": cfg["daily_hour"], "courriel_niveau_minimum": cfg["email_min_priority"]},
+            "historique": {"jours_de_cve": cfg["retention_days"], "jours_catalogue_cisa": cfg["kev_days"],
+                           "jours_premier_passage": cfg["initial_days"]},
+            "sources": {"exploits_publics": cfg["use_exploits"], "analyse_cisa": cfg["use_vulnrichment"],
+                        "bibliotheques_open_source": cfg["use_ghsa"], "enrichissements_par_passage": cfg["enrich_max"]},
+            "suivi": {"tickets": cfg["tickets"], "priorite_des_tickets": cfg["ticket_min_priority"]},
+            "affichage": {"fuseau_horaire": cfg["tz"], "masquer_mots_cles": cfg["hide_watch"]},
+            "mots_cles": [str(w) for w in (SETTINGS.get("mots_cles") or [])],
+        },
+        "channels": {"ntfy": bool(cfg["ntfy_topic"]), "courriel": bool(cfg["smtp_user"] and cfg["mail_to"]),
+                     "webhook": bool(cfg["webhook_url"]), "inventaire": bool(inventory), "cle_nvd": bool(cfg["nvd_key"]),
+                     "excel_chiffre": bool(cfg["excel_password"])},
     }
     kev_rows = sorted(kev_recent, key=lambda k: k.get("dateAdded", ""), reverse=True)
     alert_rows = sorted(alerts, key=lambda a: a["date"], reverse=True)[:1000]
@@ -645,6 +709,8 @@ def build_outputs(site: Path, records: list[dict], kev_recent: list[dict], alert
     write_json(site / "data.json", {
         "kpi": kpi,
         "views": [{"name": n, "desc": d} for n, d, _ in EXPERT_QUERIES],
+        "synthese": explain.synthese(pub, kpi, meta.get("stats"), show_assets=False),
+        "glossaire": [{"terme": t, "def": d} for t, d in explain.GLOSSAIRE],
         "vulns": pub,
         "kev": [{k: v.get(k, "") for k in ("cveID", "vendorProject", "product", "vulnerabilityName", "dateAdded",
                                             "shortDescription", "requiredAction", "dueDate",
@@ -993,9 +1059,12 @@ def run(args) -> int:
         if len(desc) > 300:
             desc = desc[:297] + "…"
         title = (f"[{v['priority']}] " if v.get("priority") else "") + cid + (f" — {vendor} {product}".rstrip() if (vendor or product) else "")
-        lines = ["Motif : " + " · ".join(c["reasons"])]
-        if v.get("action"):
-            lines.append(f"À faire : {v['action']}")
+        lines = []
+        if v.get("plain"):
+            lines.append(v["plain"])
+        if v.get("todo"):
+            lines.append("👉 " + v["todo"])
+        lines.append("Motif de l'alerte : " + " · ".join(c["reasons"]))
         if v.get("justification"):
             lines.append(f"Pourquoi : {v['justification']}")
         if v.get("score") is not None:
@@ -1009,7 +1078,7 @@ def run(args) -> int:
             lines.append(f"Version corrigée : {v['pkg_fixed']}")
         if k.get("dueDate") or v.get("kev_due"):
             lines.append("Échéance CISA : " + date_only(k.get("dueDate") or v.get("kev_due")))
-        if desc:
+        if desc and not v.get("plain"):
             lines.append(desc)
         if v.get("ref_patch"):
             lines.append("Correctif : " + v["ref_patch"])

@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import re
 
+import explain
+
 API = "https://api.github.com"
 CVE_IN_TITLE = re.compile(r"(CVE-\d{4}-\d{4,})")
 STATUS = {"open": "Ouvert", "completed": "Corrigé", "not_planned": "Risque accepté"}
@@ -52,6 +54,8 @@ def create_ticket(http, token: str, repo: str, r: dict) -> dict:
     title = f"[{r['priority']}] {r['id']} — {(r.get('vendor') or '').strip()} {(r.get('product') or '').strip()}".strip(" —")
     lines = [
         f"**Priorité : {r['priority']} — {r.get('action', '')}**", "",
+        f"**En clair :** {explain.en_clair(r, show_assets=False)}", "",
+        f"**Que faire :** {r.get('todo', '')}", "",
         f"**Pourquoi :** {_public_reasons(r.get('justification'))}", "",
         "| Élément | Valeur |", "|---|---|",
         f"| Sévérité | {r.get('severity', '')} ({r.get('score') if r.get('score') is not None else '—'}) |",

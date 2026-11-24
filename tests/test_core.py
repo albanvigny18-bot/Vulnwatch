@@ -115,7 +115,8 @@ def test_excel_build_and_encryption(tmp_path):
     rx.build_xlsx(out, recs, [], [], kpi, {"critical": 9, "tz": "America/Toronto"}, dt.timezone.utc, [], hist)
     import openpyxl
     wb = openpyxl.load_workbook(out)
-    assert "Vues expertes" in wb.sheetnames and "Tendances" in wb.sheetnames and "Guide" in wb.sheetnames
+    assert "Vues expertes" in wb.sheetnames and "Tendances" in wb.sheetnames and "Comprendre" in wb.sheetnames
+    assert wb.sheetnames[0] == "Synthèse"
     enc = tmp_path / "e.xlsx"
     vw.encrypt_xlsx(out, enc, "Mot-de-passe-1")
     import msoffcrypto
@@ -126,3 +127,28 @@ def test_versions_summary():
     s = intel._versions_summary([{"status": "affected", "version": "0", "lessThan": "2.4.1"},
                                  {"status": "unaffected", "version": "3.0"}, {"status": "affected", "version": "1.2.3"}])
     assert s == "< 2.4.1, 1.2.3"
+
+
+def test_plain_language():
+    import explain
+    r = vw.parse_nvd(nvd_item(kev=True), NOW)
+    classify.classify(r)
+    r["watch"], r["assets"] = "PareFeu-Siege-42", "PareFeu-Siege-42"
+    e = rx.enrich(r, {"critical": 9}, NOW)
+    assert "sans compte ni mot de passe" in e["plain"] and "vraies attaques" in e["plain"] and "PareFeu-Siege-42" in e["plain"]
+    assert e["todo"].startswith("URGENT")
+    assert "PareFeu-Siege-42" not in explain.en_clair(dict(e, assets=""), show_assets=False)
+    txt = " ".join(explain.synthese([e], {"new_24h": 1, "critical_7d": 1, "kev_7d": 0}))
+    assert "1 demandent une action urgente" in txt
+
+
+def test_sanitize_alert_removes_assets():
+    a = {"message": "Une faille… Elle concerne ton parc : VPN principal (version installée : 7.2). | Actifs : VPN principal | x",
+         "reasons": "Touche ton parc : VPN principal"}
+    out = vw.sanitize_alert(a)
+    assert "VPN principal" not in out["message"] and "VPN principal" not in out["reasons"]
+
+
+def test_settings_file():
+    cfg = vw.load_config()
+    assert cfg["critical"] == 9.0 and isinstance(cfg["watchlist"], list)

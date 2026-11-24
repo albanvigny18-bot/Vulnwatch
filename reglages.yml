@@ -1,0 +1,93 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║                        RÉGLAGES DE VULNWATCH                                 ║
+# ╠══════════════════════════════════════════════════════════════════════════════╣
+# ║ Pour modifier : clique sur le crayon ✏️ en haut à droite de ce fichier,        ║
+# ║ change une valeur, puis « Commit changes ». C'est pris en compte au prochain ║
+# ║ passage (au plus 1 heure), ou tout de suite si tu relances le workflow.     ║
+# ║                                                                              ║
+# ║ Plus simple : l'onglet « Réglages » de la console web génère ce fichier      ║
+# ║ pour toi, avec des explications.                                             ║
+# ║                                                                              ║
+# ║ ⚠️ Ce fichier est PUBLIC. N'y mets jamais : mot de passe, clé API, ni la      ║
+# ║ liste de tes équipements. Ces informations vont dans les « secrets » GitHub  ║
+# ║ (Settings → Secrets and variables → Actions).                                ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+
+# ── Quand une faille est-elle grave ? ─────────────────────────────────────────────
+seuils:
+  # Note de gravité (sur 10) à partir de laquelle une faille est « critique ».
+  # 9.0 est le standard. Baisse à 8.0 pour être alerté plus largement.
+  cvss_critique: 9.0
+
+  # Alerter quand la probabilité d'une attaque dans le mois (EPSS) dépasse ce seuil.
+  # 0.5 = 50 %. Pour info : 95 % des failles sont sous 1 %.
+  epss_alerte: 0.5
+
+  # Gravité minimale pour alerter quand une faille touche TON parc (inventaire).
+  cvss_min_parc: 7.0
+
+# ── Les alertes ────────────────────────────────────────────────────────────────────
+alertes:
+  # Alerter quand la CISA ajoute une faille à sa liste des failles exploitées.
+  failles_exploitees: true
+
+  # Alerter quand une faille devient critique.
+  failles_critiques: true
+
+  # Petit résumé silencieux des nouvelles failles, à chaque passage.
+  resume_horaire: true
+
+  # Au-delà de ce nombre d'alertes par passage, les suivantes sont regroupées en un message.
+  maximum_par_passage: 10
+
+  # Heures calmes : la nuit, seules les alertes URGENTES font sonner le téléphone.
+  # Exemple : "22-7" (de 22 h à 7 h). Laisse "" pour ne jamais être en mode calme.
+  heures_calmes: ""
+
+  # Point quotidien (notification + courriel avec l'Excel joint si le courriel est configuré).
+  rapport_quotidien: true
+  heure_du_rapport: 7
+
+  # Niveau minimal envoyé par courriel : 5 = urgent seulement, 4 = urgent + important, 2 = tout.
+  courriel_niveau_minimum: 4
+
+# ── Historique conservé ────────────────────────────────────────────────────────────
+historique:
+  # Les failles publiées depuis combien de jours restent dans l'Excel.
+  # (Les failles exploitées restent toujours.)
+  jours_de_cve: 30
+  # Combien de jours d'ajouts au catalogue CISA afficher.
+  jours_catalogue_cisa: 90
+  # Profondeur du tout premier passage.
+  jours_premier_passage: 7
+
+# ── Sources de données (laisse true sauf besoin particulier) ───────────────────────
+sources:
+  exploits_publics: true          # Metasploit, Exploit-DB, Nuclei
+  analyse_cisa: true              # CISA Vulnrichment (SSVC, versions touchées, note de l'éditeur)
+  bibliotheques_open_source: true # GitHub Advisories (npm, PyPI, Maven…)
+  enrichissements_par_passage: 600
+
+# ── Suivi des corrections par tickets GitHub ───────────────────────────────────────
+suivi:
+  # true = un ticket est ouvert pour chaque faille urgente ; tu le fermes une fois corrigée.
+  # ⚠️ Les tickets d'un dépôt public sont visibles de tous (sans le nom de tes équipements).
+  tickets: false
+  # P1 = urgences seulement ; P2 = urgences + importantes.
+  priorite_des_tickets: P1
+
+# ── Affichage ──────────────────────────────────────────────────────────────────────
+affichage:
+  # Fuseau horaire des dates (America/Toronto convient pour Québec et Montréal).
+  fuseau_horaire: America/Toronto
+  # true = sur le site public, remplace aussi les mots-clés de surveillance par ✓.
+  masquer_mots_cles: false
+
+# ── Mots-clés de surveillance (facultatif, PUBLIC) ─────────────────────────────────
+# Fournisseurs ou produits à surveiller de près, s'ils ne sont pas confidentiels.
+# Pour ton vrai parc (avec criticité et exposition), utilise plutôt le secret INVENTAIRE.
+# Exemple :
+#   mots_cles:
+#     - Fortinet
+#     - Citrix
+mots_cles: []

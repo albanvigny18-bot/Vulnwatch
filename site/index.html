@@ -55,25 +55,40 @@ h1{font-size:19px;margin:0}.sub{color:var(--mute);font-size:12.5px}
 .view{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer}
 .view b{font-size:15px}.view .n{float:right;font-weight:700}.view .n.r{color:var(--crit)}.view p{margin:4px 0 0;color:var(--mute);font-size:12.5px}
 .health{font-size:12px;color:var(--mute);margin-top:16px}.bad{color:var(--crit);font-weight:600}
+.syn{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;font-size:15.5px;line-height:1.55}
+.syn p{margin:0 0 10px}.plain{margin-top:5px;font-size:14.5px}.todo{margin-top:6px;font-size:14px;background:var(--code);border-radius:8px;padding:6px 9px}
+.legend{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center;font-size:14px}
+.gl dt{font-weight:700;margin-top:10px}.gl dd{margin:3px 0 0}
+.form{display:grid;gap:10px}.field{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.field label{font-weight:600;display:block}.field small{color:var(--mute);display:block;margin:2px 0 6px}
+.field input,.field select,textarea{width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:16px}
+textarea{font:13px ui-monospace,Menlo,monospace;min-height:160px}
+h2{font-size:17px;margin:18px 0 8px}.ok{color:var(--low);font-weight:700}.ko{color:var(--mute)}
+.inv{width:100%;border-collapse:collapse;font-size:13px}.inv td{padding:3px}.inv input,.inv select{width:100%;padding:6px;font-size:14px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+.simple .expert-only{display:none}
 footer{color:var(--mute);font-size:12px;margin-top:20px;text-align:center}
 </style>
 </head>
 <body>
 <header>
-  <h1>🛡️ VulnWatch</h1>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h1>🛡️ VulnWatch</h1>
+  <button class="btn" id="mode" title="Basculer entre explications simples et détails techniques">Mode : simple</button></div>
   <div class="sub" id="upd">Chargement…</div>
   <nav class="tabs" id="tabs">
-    <button class="tab on" data-t="prio">Priorités</button>
+    <button class="tab on" data-t="syn">En clair</button>
+    <button class="tab" data-t="prio">Priorités</button>
     <button class="tab" data-t="views">Vues expertes</button>
     <button class="tab" data-t="all">Toutes les CVE</button>
     <button class="tab" data-t="kev">Catalogue KEV</button>
     <button class="tab" data-t="alerts">Alertes</button>
+    <button class="tab" data-t="learn">Comprendre</button>
+    <button class="tab" data-t="cfg">Réglages</button>
   </nav>
 </header>
 <div class="wrap">
   <section class="kpis" id="kpis"></section>
   <div class="qbox">
-    <input id="q" type="search" placeholder='Requête : ex. cvss>=9 exploit:metasploit famille:périmétrique' autocomplete="off" autocapitalize="off" spellcheck="false">
+    <input id="q" type="search" placeholder='Rechercher : un produit, une CVE… ou une requête (touche ?)' autocomplete="off" autocapitalize="off" spellcheck="false">
     <button class="btn" id="hbtn" title="Aide sur les requêtes">?</button>
   </div>
   <div class="saved" id="saved"></div>
@@ -101,7 +116,8 @@ footer{color:var(--mute);font-size:12px;margin-top:20px;text-align:center}
 </div>
 <script>
 (function(){
-  var D=null, tab='prio', shown=50, cur=[];
+  var D=null, tab='syn', shown=50, cur=[], simple=true, INV=[];
+  try{simple=localStorage.getItem('vw-mode')!=='expert'}catch(e){}
   var $=function(id){return document.getElementById(id)};
   var SAVED=[
     ['🔥 Exploitées', 'kev:oui'], ['💣 Metasploit + CVSS≥7', 'exploit:metasploit cvss>=7'],
@@ -173,7 +189,7 @@ footer{color:var(--mute);font-size:12px;margin-top:20px;text-align:center}
     var sev=r.severity||'NON ÉVALUÉE';
     var h='<div class="item"><div class="top"><a class="id" href="https://nvd.nist.gov/vuln/detail/'+esc(r.id)+'" target="_blank" rel="noopener">'+esc(r.id)+'</a>'+
       '<span class="b p-'+r.priority+'">'+r.priority+'</span><span class="b s-'+sev.split(' ')[0]+'">'+esc(sev)+(r.score!=null?' '+r.score.toFixed(1):'')+'</span>'+
-      '<span class="b b-o">Risque '+r.risk+'</span>';
+      (simple?'':'<span class="b b-o">Risque '+r.risk+'</span>');
     if(r.kev)h+='<span class="b b-kev">EXPLOITÉE</span>';
     if(r.msf)h+='<span class="b b-msf">METASPLOIT</span>';else if((r.exploit_maturity||'').indexOf('Preuve')===0)h+='<span class="b b-poc">POC</span>';
     if(r.ransomware==='Known')h+='<span class="b b-ran">RANÇONGICIEL</span>';
@@ -183,8 +199,9 @@ footer{color:var(--mute);font-size:12px;margin-top:20px;text-align:center}
     h+='</div>';
     var vp=[r.vendor,r.product].filter(Boolean).join(' · ')+(r.family?' — '+r.family:'');
     if(vp)h+='<div class="vp">'+esc(vp)+'</div>';
-    h+='<div class="why"><b>'+esc(r.action)+'.</b> '+esc(r.justification)+'</div><div class="desc">'+esc(r.desc)+'</div>';
-    var rows=[['Type d\'impact',r.tags],['Vues expertes',r.views],['Versions affectées',r.versions],['Paquets',r.packages&&(r.packages+' '+(r.pkg_ranges||'')+(r.pkg_fixed?' → corrigé en '+r.pkg_fixed:''))],
+    if(simple){h+='<div class="plain">'+esc(r.plain)+'</div><div class="todo">👉 '+esc(r.todo)+'</div>'}
+    else{h+='<div class="why"><b>'+esc(r.action)+'.</b> '+esc(r.justification)+'</div><div class="desc">'+esc(r.desc)+'</div>'}
+    var rows=[[simple?'Pourquoi cette priorité':'En clair',simple?r.justification:r.plain],[simple?'Description technique':'Que faire',simple?r.desc:r.todo],['Type d\'impact',r.tags],['Vues expertes',r.views],['Versions affectées',r.versions],['Paquets',r.packages&&(r.packages+' '+(r.pkg_ranges||'')+(r.pkg_fixed?' → corrigé en '+r.pkg_fixed:''))],
       ['Exploitation (SSVC)',r.ssvc_exploitation],['Automatisable / impact (SSVC)',[r.ssvc_automatable,r.ssvc_impact].filter(Boolean).join(' / ')],
       ['Maturité de l\'exploit',r.exploit_maturity],['Metasploit',r.msf],['Exploit-DB',r.edb],['Vecteur d\'attaque',[r.av,r.ac&&('complexité '+r.ac),r.pr&&('privilèges '+r.pr),r.ui&&('interaction '+r.ui)].filter(Boolean).join(' · ')],
       ['Impact C/I/D',r.cia],['Score',(r.score!=null?r.score+' (CVSS '+(r.cvss_version||'')+', source '+(r.score_source||'')+')':'')],['Vecteur CVSS',r.vector],
@@ -211,8 +228,113 @@ footer{color:var(--mute);font-size:12px;margin-top:20px;text-align:center}
       var rows=run(D.vulns,'vue:"'+v.name+'"'), p1=rows.filter(function(r){return r.priority==='P1'}).length;
       return '<div class="view" data-q=\'vue:"'+esc(v.name)+'"\'><span class="n'+(p1?' r':'')+'">'+rows.length+(p1?' · '+p1+' P1':'')+'</span><b>'+esc(v.name)+'</b><p>'+esc(v.desc)+'</p></div>'}).join('')+'</div>';
   }
+  function synView(){
+    var h='<div class="syn">'+D.synthese.map(function(p){return '<p>'+esc(p)+'</p>'}).join('')+'</div>';
+    h+='<div class="syn"><b>Comment lire les priorités</b><div class="legend" style="margin-top:8px">'+
+      '<span class="b p-P1">P1</span><span>Urgent : agir sous 48 heures.</span><span class="b p-P2">P2</span><span>Important : agir cette semaine.</span>'+
+      '<span class="b p-P3">P3</span><span>À planifier dans le mois.</span><span class="b p-P4">P4</span><span>À surveiller, pas d\'action immédiate.</span></div></div>';
+    var urg=run(D.vulns.filter(function(r){return r.priority==='P1'||r.priority==='P2'}),'').slice(0,10);
+    h+='<h2>Les urgences, expliquées simplement</h2>'+(urg.length?urg.map(vulnCard).join(''):'<div class="empty">Aucune urgence pour le moment. 👍</div>');
+    return h;
+  }
+  function learnView(){
+    return '<div class="syn"><p>Les mots de la cybersécurité, expliqués simplement.</p><dl class="gl">'+D.glossaire.map(function(g){return '<dt>'+esc(g.terme)+'</dt><dd>'+esc(g.def)+'</dd>'}).join('')+'</dl></div>';
+  }
+  var FIELDS=[
+    ['seuils','cvss_critique','num','Seuil « critique » (note sur 10)','À partir de quelle gravité une faille est critique. Standard : 9.0. Mets 8.0 pour être alerté plus largement.'],
+    ['seuils','epss_alerte','num','Seuil de probabilité d\'attaque (EPSS)','Alerter quand la probabilité qu\'une faille soit attaquée dans le mois dépasse ce seuil. 0.5 = 50 %.'],
+    ['seuils','cvss_min_parc','num','Gravité minimale pour ton parc','Alerter dès qu\'une faille de cette gravité touche un de tes équipements.'],
+    ['alertes','failles_exploitees','bool','Alerter sur les failles exploitées','Quand la CISA confirme que des pirates utilisent une faille.'],
+    ['alertes','failles_critiques','bool','Alerter sur les failles critiques','Quand une faille atteint le seuil critique.'],
+    ['alertes','resume_horaire','bool','Résumé horaire silencieux','Un petit résumé des nouvelles failles, sans sonnerie.'],
+    ['alertes','maximum_par_passage','num','Nombre maximal d\'alertes par passage','Au-delà, les alertes sont regroupées en un seul message.'],
+    ['alertes','heures_calmes','txt','Heures calmes','La nuit, seules les urgences sonnent. Exemple : 22-7. Vide = jamais.'],
+    ['alertes','rapport_quotidien','bool','Point quotidien','Un résumé chaque matin (et l\'Excel par courriel si configuré).'],
+    ['alertes','heure_du_rapport','num','Heure du point quotidien','De 0 à 23.'],
+    ['alertes','courriel_niveau_minimum','sel:5=Urgent seulement|4=Urgent et important|2=Tout','Ce que tu reçois par courriel',''],
+    ['historique','jours_de_cve','num','Jours d\'historique','Les failles publiées depuis combien de jours restent affichées (les failles exploitées restent toujours).'],
+    ['historique','jours_catalogue_cisa','num','Jours du catalogue CISA',''],
+    ['suivi','tickets','bool','Tickets de suivi','Ouvre un ticket GitHub par urgence, à fermer une fois corrigée. Visible publiquement (sans tes équipements).'],
+    ['suivi','priorite_des_tickets','sel:P1=Urgences (P1)|P2=Urgences et importantes (P1-P2)','Tickets pour',''],
+    ['affichage','fuseau_horaire','txt','Fuseau horaire','America/Toronto convient pour Québec et Montréal.'],
+    ['affichage','masquer_mots_cles','bool','Masquer les mots-clés sur le site public',''],
+    ['sources','exploits_publics','bool','Source : exploits publics','Metasploit, Exploit-DB, Nuclei.'],
+    ['sources','analyse_cisa','bool','Source : analyse de la CISA','SSVC, versions touchées, note de l\'éditeur.'],
+    ['sources','bibliotheques_open_source','bool','Source : bibliothèques open source','GitHub Advisories.']
+  ];
+  function cfgView(){
+    var st=D.kpi.settings||{}, ch=D.kpi.channels||{}, repo=D.kpi.repo||'';
+    var h='<div class="syn"><b>État de ton installation</b><div class="legend" style="margin-top:8px">'+
+      [['ntfy','Notifications sur téléphone (ntfy)','secret NTFY_TOPIC'],['courriel','Courriel et rapport quotidien','secrets SMTP_USER, SMTP_PASSWORD, MAIL_TO'],
+       ['webhook','Teams / Slack / Discord','secret WEBHOOK_URL'],['inventaire','Inventaire de ton parc','secret INVENTAIRE (générateur ci-dessous)'],
+       ['cle_nvd','Clé NVD (plus rapide)','secret NVD_API_KEY'],['excel_chiffre','Excel complet chiffré','secret EXCEL_PASSWORD']].map(function(c){
+        return '<span class="'+(ch[c[0]]?'ok':'ko')+'">'+(ch[c[0]]?'✓':'○')+'</span><span>'+esc(c[1])+(ch[c[0]]?'':' — à activer : '+esc(c[2]))+'</span>'}).join('')+'</div>'+
+      (repo?'<p style="margin-top:10px"><a class="btn" target="_blank" rel="noopener" href="https://github.com/'+esc(repo)+'/settings/secrets/actions">Ouvrir les secrets GitHub ↗</a></p>':'')+'</div>';
+    h+='<h2>1. Tes réglages</h2><p class="count">Change les valeurs, puis touche « Générer ». Copie le résultat et colle-le à la place du contenu du fichier reglages.yml.</p><div class="form">';
+    FIELDS.forEach(function(f,i){
+      var v=(st[f[0]]||{})[f[1]], inp;
+      if(f[2]==='bool')inp='<select id="f'+i+'"><option value="true"'+(v?' selected':'')+'>Oui</option><option value="false"'+(!v?' selected':'')+'>Non</option></select>';
+      else if(f[2].indexOf('sel:')===0)inp='<select id="f'+i+'">'+f[2].slice(4).split('|').map(function(o){var kv=o.split('=');return '<option value="'+kv[0]+'"'+(String(v)===kv[0]?' selected':'')+'>'+esc(kv[1])+'</option>'}).join('')+'</select>';
+      else inp='<input id="f'+i+'" '+(f[2]==='num'?'inputmode="decimal"':'')+' value="'+esc(v==null?'':v)+'">';
+      h+='<div class="field"><label for="f'+i+'">'+esc(f[3])+'</label>'+(f[4]?'<small>'+esc(f[4])+'</small>':'')+inp+'</div>';
+    });
+    h+='<div class="field"><label for="fkw">Mots-clés de surveillance (publics)</label><small>Un par ligne. Pour ton vrai parc, utilise plutôt l\'inventaire ci-dessous, qui reste secret.</small><textarea id="fkw" style="min-height:70px">'+esc((st.mots_cles||[]).join('\n'))+'</textarea></div>';
+    h+='<button class="btn pri" id="gen">Générer mes réglages</button><textarea id="yml" readonly placeholder="Le fichier généré apparaîtra ici."></textarea>'+
+      '<div class="dl"><button class="btn" id="cpy">Copier</button>'+(repo?'<a class="btn" target="_blank" rel="noopener" href="https://github.com/'+esc(repo)+'/edit/main/reglages.yml">Ouvrir reglages.yml sur GitHub ↗</a>':'')+'</div></div>';
+    h+='<h2>2. L\'inventaire de ton parc (secret)</h2><p class="count">Liste tes équipements et logiciels. Rien n\'est envoyé : la liste reste sur cet appareil jusqu\'à ce que tu la copies dans le secret GitHub <b>INVENTAIRE</b>.</p>'+
+      '<div class="form" id="invt"></div><div class="dl" style="margin:8px 0"><button class="btn" id="addrow">+ Ajouter un équipement</button><button class="btn pri" id="geninv">Générer l\'inventaire</button></div>'+
+      '<textarea id="invout" readonly placeholder="Le texte à coller dans le secret INVENTAIRE apparaîtra ici."></textarea><div class="dl"><button class="btn" id="cpyinv">Copier</button>'+
+      (repo?'<a class="btn" target="_blank" rel="noopener" href="https://github.com/'+esc(repo)+'/settings/secrets/actions/new">Créer le secret INVENTAIRE ↗</a>':'')+'</div>';
+    return h;
+  }
+  function invTable(){
+    if(!INV.length)INV=[['','','','','Moyenne','Non','']];
+    var L=['Nom de l\'équipement','Fournisseur (éditeur)','Produit','Version installée','Criticité pour ton activité','Accessible depuis Internet ?','Responsable'];
+    var P=['ex. VPN du siège','ex. Fortinet','ex. FortiOS','ex. 7.2.5','','','ex. Équipe réseau'];
+    $('invt').innerHTML=INV.map(function(r,i){
+      return '<div class="field"><div style="display:flex;justify-content:space-between;align-items:center"><b>Équipement '+(i+1)+'</b><button class="btn" data-del="'+i+'" title="Supprimer">✕</button></div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">'+[0,1,2,3,4,5,6].map(function(j){
+          var inp=j===4?'<select data-r="'+i+'" data-c="4">'+['Haute','Moyenne','Basse'].map(function(o){return '<option'+(r[4]===o?' selected':'')+'>'+o+'</option>'}).join('')+'</select>'
+            :j===5?'<select data-r="'+i+'" data-c="5">'+['Oui','Non'].map(function(o){return '<option'+(r[5]===o?' selected':'')+'>'+o+'</option>'}).join('')+'</select>'
+            :'<input data-r="'+i+'" data-c="'+j+'" value="'+esc(r[j])+'" placeholder="'+esc(P[j])+'">';
+          return '<label style="font-weight:400;font-size:12.5px;color:var(--mute)'+(j===0||j===6?';grid-column:1/-1':'')+'">'+esc(L[j])+inp+'</label>'}).join('')+'</div></div>'}).join('');
+  }
+  function yamlVal(v,type){if(type==='bool')return v;if(type==='num'||type.indexOf('sel:')===0)return v===''?'0':v.replace(',','.');return '"'+String(v).replace(/"/g,'')+'"'}
+  function genYaml(){
+    var groups={}, order=['seuils','alertes','historique','sources','suivi','affichage'];
+    FIELDS.forEach(function(f,i){(groups[f[0]]=groups[f[0]]||[]).push('  '+f[1]+': '+yamlVal($('f'+i).value,f[2])+'   # '+f[3])});
+    var src=(D.kpi.settings||{}).sources||{};
+    groups.sources.push('  enrichissements_par_passage: '+(src.enrichissements_par_passage||600));
+    var h=(D.kpi.settings||{}).historique||{};
+    groups.historique.push('  jours_premier_passage: '+(h.jours_premier_passage||7));
+    var kw=$('fkw').value.split('\n').map(function(x){return x.trim()}).filter(Boolean);
+    var out='# Réglages VulnWatch — générés par la console le '+new Date().toLocaleString('fr-CA')+'\n# ⚠️ Fichier public : jamais de mot de passe, de clé ni la liste de tes équipements ici.\n\n';
+    order.forEach(function(g){out+=g+':\n'+groups[g].join('\n')+'\n\n'});
+    out+='mots_cles:'+(kw.length?'\n'+kw.map(function(k){return '  - "'+k.replace(/"/g,'')+'"'}).join('\n'):' []')+'\n';
+    $('yml').value=out;
+  }
+  function copy(id){var t=$(id);t.select();try{navigator.clipboard.writeText(t.value)}catch(e){document.execCommand('copy')}}
+  function bindCfg(){
+    invTable();
+    $('gen').onclick=genYaml;$('cpy').onclick=function(){copy('yml')};$('cpyinv').onclick=function(){copy('invout')};
+    $('addrow').onclick=function(){INV.push(['','','','','Moyenne','Non',''],);invTable()};
+    $('invt').addEventListener('input',function(e){var t=e.target;if(t.dataset.r!=null)INV[+t.dataset.r][+t.dataset.c]=t.value});
+    $('invt').addEventListener('change',function(e){var t=e.target;if(t.dataset.r!=null)INV[+t.dataset.r][+t.dataset.c]=t.value});
+    $('invt').addEventListener('click',function(e){var b=e.target.closest('[data-del]');if(b){INV.splice(+b.dataset.del,1);invTable()}});
+    $('geninv').onclick=function(){
+      var rows=INV.filter(function(r){return r[1]||r[2]}).map(function(r){return r.map(function(x){return String(x).replace(/;/g,',').trim()}).join(';')});
+      $('invout').value='Actif;Fournisseur;Produit;Version;Criticite;Expose;Proprietaire\n'+rows.join('\n');
+    };
+  }
   function render(){
     if(!D)return;
+    document.body.classList.toggle('simple',simple);
+    $('mode').textContent='Mode : '+(simple?'simple':'expert');
+    var special={syn:synView,learn:learnView,cfg:cfgView}[tab];
+    var showQ=!special;
+    $('q').parentNode.style.display=showQ?'':'none';$('saved').style.display=showQ?'':'none';
+    document.querySelector('.bar').style.display=showQ?'':'none';
+    if(special){$('list').innerHTML=special();if(tab==='cfg')bindCfg();return}
     var q=$('q').value.trim(), src, card;
     if(tab==='views'&&!q){$('list').innerHTML=viewsGrid();$('count').textContent=D.views.length+' vues expertes — touche une vue pour l\'ouvrir';cur=[];return}
     if(tab==='kev'){cur=D.kev.filter(function(k){return !q||norm(JSON.stringify(k)).indexOf(norm(q))>=0});card=kevCard}
@@ -249,8 +371,9 @@ footer{color:var(--mute);font-size:12px;margin-top:20px;text-align:center}
   $('kpis').addEventListener('click',function(e){var c=e.target.closest('.kpi');if(!c)return;if(c.dataset.q)setQ(c.dataset.q,'all');else setQ('','kev')});
   $('list').addEventListener('click',function(e){var v=e.target.closest('.view');if(v){setQ(v.dataset.q,'all');return}
     var it=e.target.closest('.item');if(it&&!e.target.closest('a'))it.classList.toggle('open')});
-  $('q').addEventListener('input',function(){shown=50;if(tab==='views'||tab==='prio'){tab='all';document.querySelectorAll('.tab').forEach(function(x){x.classList.toggle('on',x.dataset.t==='all')})}render()});
+  $('q').addEventListener('input',function(){shown=50;if(tab==='views'||tab==='prio'||tab==='syn'){tab='all';document.querySelectorAll('.tab').forEach(function(x){x.classList.toggle('on',x.dataset.t==='all')})}render()});
   $('hbtn').onclick=function(){$('help').classList.toggle('on')};
+  $('mode').onclick=function(){simple=!simple;try{localStorage.setItem('vw-mode',simple?'simple':'expert')}catch(e){}render()};
   $('exp').onclick=exportCsv;
   fetch('data.json?t='+Date.now(),{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()})
     .then(function(d){D=d;header();var m=location.hash.match(/q=([^&]+)/);if(m)setQ(decodeURIComponent(m[1]),'all');else render()})

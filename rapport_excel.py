@@ -19,6 +19,7 @@ import datetime as dt
 from collections import Counter, defaultdict
 from pathlib import Path
 
+import explain
 from openpyxl import Workbook
 from openpyxl.chart import BarChart, Reference
 from openpyxl.chart.label import DataLabelList
@@ -249,6 +250,8 @@ def enrich(r: dict, cfg: dict, now: dt.datetime) -> dict:
         patch_available="Oui" if (r.get("ref_patch") or r.get("pkg_fixed")) else "",
     )
     r["views"] = "; ".join(name for name, _, f in EXPERT_QUERIES if f(r))
+    r["plain"] = explain.en_clair(r, show_assets=True)
+    r["todo"] = explain.que_faire(r)
     return r
 
 
@@ -259,7 +262,9 @@ DETAIL_COLS = [
     # --- décider
     ("id", "CVE", 17, "link"),
     ("priority", "Priorité", 9, "txt"),
-    ("action", "Action recommandée", 30, "txt"),
+    ("plain", "En clair (pour tous)", 70, "wrap"),
+    ("todo", "Que faire", 55, "wrap"),
+    ("action", "Délai", 30, "txt"),
     ("justification", "Pourquoi cette priorité", 50, "txt"),
     ("risk", "Score de risque (0-100)", 11, "int"),
     ("severity", "Sévérité", 13, "txt"),
@@ -324,6 +329,8 @@ GUIDE = [
                  "ou exploit public, OU critique sur ton parc (pré-auth, exposé ou exploit public), OU CVSS ≥ 7 avec exploit/pré-auth sur un actif exposé. "
                  "P2 (7 j) : critique, OU EPSS ≥ 50 %, OU exploit public et CVSS ≥ 7, OU CVSS ≥ 7 sur ton parc, OU SSVC automatisable à impact total. "
                  "P3 (30 j) : CVSS ≥ 7, EPSS ≥ 10 %, ton parc, ou exploit public. P4 : surveiller."),
+    ("En clair / Que faire", "Explication en français simple (ce qui est touché, ce qu'un pirate peut faire, s'il y a de vraies attaques) "
+                             "et l'action concrète à mener, compréhensibles sans connaissance technique."),
     ("Pourquoi cette priorité", "Les facteurs qui ont conduit au niveau de priorité, pour justifier la décision auprès des équipes."),
     ("Score de risque", "Indicateur 0-100 pour trier : CVSS × 6 + EPSS × 20 + 15 si exploitée + 10 si Metasploit (5 si PoC) + 5 si rançongiciel "
                         "+ 3 × criticité de l'actif (1-3) + 5 si actif exposé + 5 si pré-authentification à distance."),
@@ -383,8 +390,9 @@ def _cell_value(r: dict, key: str, kind: str, tz):
 
 
 def _write_table(ws, top: int, cols: list, rows: list[dict], name: str, tz, style="TableStyleMedium2",
-                 empty_msg="Aucune donnée pour le moment.", freeze=True) -> int:
+                 empty_msg="Aucune donnée pour le moment.", freeze=True, wrap=True) -> int:
     """Écrit un tableau Excel (filtres, tri, styles) et renvoie la dernière ligne écrite."""
+    has_wrap = wrap and any(c[3] == "wrap" for c in cols)
     for j, (_, head, width, _) in enumerate(cols, start=1):
         c = ws.cell(row=top, column=j, value=head)
         c.alignment = Alignment(wrap_text=True, vertical="center")
@@ -408,6 +416,10 @@ def _write_table(ws, top: int, cols: list, rows: list[dict], name: str, tz, styl
                 cell.number_format = "0.0"
             elif kind == "pct":
                 cell.number_format = "0.0%"
+            elif kind == "wrap" and wrap:
+                cell.alignment = Alignment(wrap_text=True, vertical="top")
+            if has_wrap and kind != "wrap":
+                cell.alignment = Alignment(vertical="top")
             elif kind == "pctd":
                 cell.number_format = "+0.0%;-0.0%;0.0%"
             elif kind == "datetime":
@@ -498,9 +510,50 @@ def build_xlsx(path: Path, recs: list[dict], kev_rows: list[dict], alert_rows: l
     d1 = now - dt.timedelta(days=1)
     wb = Workbook()
 
+    # ===================================================== 0. Synthèse (en français simple)
+    sy = wb.active
+    sy.title = "Synthèse"
+    sy.sheet_properties.tabColor = "00B050"
+    sy.sheet_view.showGridLines = False
+    sy.column_dimensions["A"].width = 17
+    sy.column_dimensions["B"].width = 9
+    sy.column_dimensions["C"].width = 70
+    sy.column_dimensions["D"].width = 60
+    sy["A1"] = "La situation en clair"
+    sy["A1"].font = TITLE
+    upd0 = _dt(kpi["updated"]).astimezone(tz)
+    sy["A2"] = f"Mis à jour le {upd0:%Y-%m-%d à %H:%M} · cette page se lit en 1 minute · le détail est dans les feuilles suivantes"
+    sy["A2"].font = Font(italic=True, color="595959")
+    row = 4
+    for para in explain.synthese(recs, kpi, history, show_assets=bool(inventory)):
+        sy.merge_cells(start_row=row, start_column=1, end_row=row, end_column=4)
+        c = sy.cell(row=row, column=1, value=para)
+        c.alignment = Alignment(wrap_text=True, vertical="top")
+        c.font = Font(size=12)
+        sy.row_dimensions[row].height = max(20, 17 * (len(para) // 150 + 1))
+        row += 1
+    row += 1
+    sy.cell(row=row, column=1, value="Les 10 urgences, expliquées simplement").font = H2
+    cmap0 = {c[0]: c for c in DETAIL_COLS}
+    scols = [cmap0["id"], cmap0["priority"], cmap0["plain"], cmap0["todo"]]
+    urg = [r for r in recs_p if r["priority"] in ("P1", "P2")][:10]
+    last = _write_table(sy, row + 1, scols, urg, "Urgences", tz, "TableStyleMedium3",
+                        "Aucune urgence : rien ne demande d'action rapide pour le moment.", freeze=False)
+    row = last + 2
+    sy.cell(row=row, column=1, value="Comment lire les priorités").font = H2
+    for i, (p, txt) in enumerate((("P1", "Urgent : agir sous 48 heures."), ("P2", "Important : agir cette semaine."),
+                                  ("P3", "À planifier : dans le mois, avec les mises à jour habituelles."),
+                                  ("P4", "À surveiller : pas d'action immédiate.")), start=row + 1):
+        c = sy.cell(row=i, column=1, value=p)
+        c.fill = FILL[p.lower()]
+        c.font = WHITE_B if p in ("P1", "P2") else Font(bold=True)
+        c.alignment = Alignment(horizontal="center")
+        sy.merge_cells(start_row=i, start_column=2, end_row=i, end_column=3)
+        sy.cell(row=i, column=2, value=txt)
+    sy.cell(row=row + 6, column=1, value="Les mots techniques (CVE, CVSS, EPSS, KEV…) sont expliqués dans la feuille « Comprendre ».").font = Font(italic=True, color="595959")
+
     # ===================================================== 1. Tableau de bord
-    ws = wb.active
-    ws.title = "Tableau de bord"
+    ws = wb.create_sheet("Tableau de bord")
     ws.sheet_properties.tabColor = C["navy"]
     ws.sheet_view.showGridLines = False
     ws["A1"] = "VulnWatch — Veille des vulnérabilités"
@@ -721,7 +774,7 @@ def build_xlsx(path: Path, recs: list[dict], kev_rows: list[dict], alert_rows: l
     # ===================================================== 8. Toutes les CVE
     w = _sheet(wb, "Toutes les CVE", f"Base complète : CVE publiées dans les {cfg.get('retention_days', 30)} derniers jours + toutes "
                                      f"les CVE exploitées. {len(recs_p)} CVE, triées par priorité puis score de risque.", "7F7F7F")
-    _write_table(w, 4, DETAIL_COLS, recs_p, "Toutes", tz, "TableStyleMedium2", "Aucune CVE pour le moment.")
+    _write_table(w, 4, DETAIL_COLS, recs_p, "Toutes", tz, "TableStyleMedium2", "Aucune CVE pour le moment.", wrap=False)
 
     # ===================================================== 7. Par fournisseur
     w = _sheet(wb, "Par fournisseur", "Synthèse par éditeur sur la base suivie : volumes, gravité et urgence.", "548235")
@@ -798,10 +851,21 @@ def build_xlsx(path: Path, recs: list[dict], kev_rows: list[dict], alert_rows: l
         w.conditional_formatting.add(f"C5:C{last}", CellIsRule(operator="equal", formula=["4"], fill=FILL["orange"], font=WHITE_B))
 
     # ===================================================== 10. Guide
-    w = _sheet(wb, "Guide", "Comment lire ce classeur.", "A6A6A6")
+    w = _sheet(wb, "Comprendre", "Les notions de base expliquées simplement, puis la signification de chaque colonne.", "A6A6A6")
     w.column_dimensions["A"].width = 30
     w.column_dimensions["B"].width = 120
-    for i, (k, v) in enumerate(GUIDE, start=4):
+    w.cell(row=4, column=1, value="Les notions de base").font = H2
+    for i, (k, v) in enumerate(explain.GLOSSAIRE, start=5):
+        a = w.cell(row=i, column=1, value=k)
+        a.font = Font(bold=True)
+        a.alignment = Alignment(vertical="top", wrap_text=True)
+        b = w.cell(row=i, column=2, value=v)
+        b.alignment = Alignment(wrap_text=True, vertical="top")
+        w.row_dimensions[i].height = 32 if len(v) > 110 else 18
+        a.border = b.border = BOX
+    i0 = 5 + len(explain.GLOSSAIRE) + 1
+    w.cell(row=i0, column=1, value="Les colonnes, une par une").font = H2
+    for i, (k, v) in enumerate(GUIDE, start=i0 + 1):
         a = w.cell(row=i, column=1, value=k)
         a.font = Font(bold=True)
         a.alignment = Alignment(vertical="top")
@@ -812,6 +876,7 @@ def build_xlsx(path: Path, recs: list[dict], kev_rows: list[dict], alert_rows: l
     i += 2
     w.cell(row=i, column=1, value="Feuilles").font = H2
     for j, (sheet, what) in enumerate([
+        ("Synthèse", "La situation en français simple, lisible en 1 minute, et les 10 urgences expliquées."),
         ("Tableau de bord", "Vue d'ensemble : compteurs, graphiques, fournisseurs, top 25 avec justification, dernières alertes."),
         ("À traiter (P1-P2)", "Ta liste de travail : ce qui doit être corrigé en premier."),
         ("Exploitées", "Failles exploitées activement (KEV, SSVC)."),

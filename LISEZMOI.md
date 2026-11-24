@@ -1,13 +1,39 @@
-# VulnWatch : guide de l'analyste
+# VulnWatch : guide
 
-VulnWatch est un outil de veille des vulnérabilités pensé pour les équipes de cybersécurité (SOC, gestion des vulnérabilités, RSSI, OT). Il tourne **toutes les heures sur GitHub Actions**, gratuitement, même quand ton ordinateur est éteint.
+## En une minute
 
-À chaque passage, il :
-- collecte et croise **8 sources** ;
-- calcule une **priorité justifiée** pour chaque CVE ;
-- la rapproche de **ton inventaire d'actifs** ;
-- publie un **Excel professionnel** et une **console web** ;
-- alerte **là où tu travailles**.
+VulnWatch **surveille en continu les failles de sécurité publiées dans le monde**. Il te dit **lesquelles sont dangereuses pour toi** et **quoi faire**, en français simple.
+
+- **Où regarder ?**
+  - Le **fichier Excel**, qui s'ouvre sur la feuille **« Synthèse »** : la situation en 1 minute, avec les urgences expliquées.
+  - La **console web**, qui s'ouvre sur l'onglet **« En clair »**.
+- **Comment lire ?** Chaque faille a une priorité :
+  - 🔴 **P1** = agir sous 48 h ;
+  - 🟠 **P2** = cette semaine ;
+  - 🟡 **P3** = dans le mois ;
+  - ⚪ **P4** = rester informé.
+- **Pour chaque faille, deux phrases simples :**
+  - **« En clair »** : ce qui est touché, ce qu'un pirate peut faire, et s'il y a déjà de vraies attaques ;
+  - **« Que faire »** : l'action concrète et le délai.
+- **Un mot inconnu ?** Feuille ou onglet **« Comprendre »**.
+- **Personnaliser ?** Onglet **« Réglages »** de la console : il génère tes réglages et ton inventaire, sans rien connaître à la technique (voir § 0).
+- **Tu préfères les détails techniques ?** Bouton **« Mode : expert »** sur la console. Le reste de ce guide est destiné aux analystes.
+
+---
+
+## 0. Personnaliser VulnWatch (sans coder)
+
+| Je veux… | Où | Comment |
+|---|---|---|
+| Changer les seuils, les heures calmes, le point quotidien… | Fichier **`reglages.yml`** | Console → onglet **Réglages** → **Générer** → **Copier** → **Ouvrir reglages.yml sur GitHub** → colle à la place du contenu → **Commit changes**. Chaque réglage est expliqué en français dans le fichier. |
+| Dire à VulnWatch quels équipements j'ai | Secret **`INVENTAIRE`** | Console → **Réglages** → partie 2 : remplis tes équipements → **Générer l'inventaire** → **Copier** → **Créer le secret INVENTAIRE** → colle → enregistre. La liste reste secrète. |
+| Recevoir les alertes sur mon téléphone | Secret **`NTFY_TOPIC`** | Voir § 4 |
+| Recevoir l'Excel par courriel chaque matin | Secrets SMTP | Voir § 4 |
+| Lire l'Excel complet (avec mes équipements) en ligne | Secret **`EXCEL_PASSWORD`** | Choisis un mot de passe : l'Excel en ligne sera chiffré |
+
+L'onglet **Réglages** affiche aussi **l'état de ton installation**, c'est-à-dire ce qui est activé ou non, avec la marche à suivre pour chaque option.
+
+Ordre de priorité des réglages : une variable GitHub (Settings → Variables), si elle existe, l'emporte sur `reglages.yml`. Le fichier l'emporte à son tour sur les valeurs par défaut.
 
 ---
 
@@ -73,6 +99,7 @@ Il est publié à l'adresse `https://albanvigny18-bot.github.io/Vulnwatch/VulnWa
 
 | Feuille | Contenu |
 |---|---|
+| **Synthèse** | **La situation en français simple**, lisible en 1 minute, et les 10 urgences expliquées (« En clair » et « Que faire ») |
 | **Tableau de bord** | Compteurs (P1, P2, exploitées, exploits publics, parc…), graphiques, fournisseurs les plus touchés, **les 25 CVE à traiter en premier avec leur justification**, dernières alertes |
 | **À traiter (P1-P2)** | La liste de travail |
 | **Exploitées** | KEV et SSVC « Active » |
@@ -85,9 +112,9 @@ Il est publié à l'adresse `https://albanvigny18-bot.github.io/Vulnwatch/VulnWa
 | **Tendances** | Évolution jour par jour, avec graphiques |
 | **Catalogue KEV** | Les ajouts récents de la CISA, avec l'action requise et l'échéance |
 | **Journal des alertes** | Toutes les alertes envoyées |
-| **Guide** | La signification de chaque colonne |
+| **Comprendre** | Les notions de base expliquées simplement (CVE, CVSS, EPSS, KEV, exploit…) et la signification de chaque colonne |
 
-Chaque CVE est détaillée sur **56 colonnes**, regroupées en cinq blocs :
+Chaque CVE est détaillée sur **58 colonnes**, dont **« En clair »** et **« Que faire »**, compréhensibles par tous, regroupées en cinq blocs :
 1. **Décider** : priorité, action, justification, risque, CVSS et sa source, EPSS et sa tendance, KEV, SSVC, maturité de l'exploit, rançongiciel, correctif disponible.
 2. **Mon parc** : actifs, criticité, exposition, version installée, responsable.
 3. **Contexte** : type d'impact, famille, vues expertes, fournisseur, produit, versions affectées, paquets, faiblesse (CWE en français), description.
