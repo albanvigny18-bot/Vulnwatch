@@ -237,6 +237,9 @@ class Http:
 
 # --------------------------------------------------------------------------- sources
 
+NVD_KEY_REJECTED: list = []
+
+
 def fetch_nvd(http: Http, start: dt.datetime, end: dt.datetime, api_key: str | None) -> list:
     """CVE modifiées (ou publiées) dans [start, end], découpage par 120 jours, pagination."""
     headers = {"apiKey": api_key} if api_key else None
@@ -256,7 +259,18 @@ def fetch_nvd(http: Http, start: dt.datetime, end: dt.datetime, api_key: str | N
                 "resultsPerPage": 1000,
                 "startIndex": idx,
             }
-            data = http.get_json(NVD_URL + "?noRejected", params=params, headers=headers)
+            try:
+                data = http.get_json(NVD_URL + "?noRejected", params=params, headers=headers)
+            except requests.HTTPError as e:
+                # La NVD répond 404 quand la clé API est invalide : on continue sans clé (plus lent) et on prévient.
+                if headers and e.response is not None and e.response.status_code == 404:
+                    log("Clé NVD_API_KEY refusée par la NVD (404) : vérifie le secret. Passage sans clé.", "ERREUR")
+                    NVD_KEY_REJECTED.append(True)
+                    headers, delay = None, 6.5
+                    time.sleep(delay)
+                    data = http.get_json(NVD_URL + "?noRejected", params=params, headers=None)
+                else:
+                    raise
             total = int(data.get("totalResults", 0))
             out.extend(data.get("vulnerabilities") or [])
             idx += 1000
@@ -696,6 +710,7 @@ def build_outputs(site: Path, records: list[dict], kev_recent: list[dict], alert
 
 # --------------------------------------------------------------------------- moteur
 
+RULES_VERSION = "3.1"
 KEEP_ON_UPDATE = ("epss", "epss_pct", "epss_hist", "ssvc_exploitation", "ssvc_automatable", "ssvc_impact", "affected",
                   "versions", "ghsa", "packages", "pkg_ranges", "pkg_fixed", "ransomware", "kev_added", "kev_due",
                   "score", "vector", "cvss_version", "score_source", "severity", "severity_en")
@@ -766,6 +781,14 @@ def run(args) -> int:
             touched.append(rec["id"])
         nvd_ok = True
         mark("NVD", True)
+        if NVD_KEY_REJECTED:
+            health["NVD"]["last_error"] = "Clé API refusée : passage sans clé (plus lent). Vérifie le secret NVD_API_KEY."
+            if not state.get("nvd_key_warned"):
+                notifier.send("VulnWatch : clé NVD refusée", ["La NVD refuse la clé du secret NVD_API_KEY (copie incomplète ou clé non activée ?).",
+                              "La veille continue sans clé, plus lentement. Recopie la clé reçue par courriel de la NVD."], 3, "", ["warning"])
+                state["nvd_key_warned"] = True
+        else:
+            state.pop("nvd_key_warned", None)
         log(f"NVD : {len(touched)} CVE traitées, {len(new_ids)} nouvelles, {skipped} anciennes ignorées")
     except Exception as e:  # noqa: BLE001
         mark("NVD", False, str(e))
@@ -946,6 +969,20 @@ def run(args) -> int:
             add(cid, "PARC:" + cid, "Touche ton parc : " + v["watch"], 4)
 
     silent = args.no_alerts or (first_run and cfg["silent_first"])
+    # Nouvelle version des règles de priorité : les P1 existantes servent de référence (pas d'avalanche)
+    if state.get("rules_version") != RULES_VERSION and not silent:
+        for cid in list(cand):
+            c = cand[cid]
+            if c["keys"] == ["P1:" + cid]:
+                alerts.append({"date": iso(now), "cve": cid, "reasons": c["reasons"][0], "priority": c["prio"],
+                               "channels": "(référence nouvelles règles, non envoyée)", "message": "", "keys": c["keys"]})
+                del cand[cid]
+            elif "P1:" + cid in c["keys"]:
+                c["keys"].remove("P1:" + cid)
+                c["reasons"] = [x for x in c["reasons"] if x != "Passée en priorité P1"]
+                alerts.append({"date": iso(now), "cve": cid, "reasons": "Passée en priorité P1", "priority": 5,
+                               "channels": "(référence nouvelles règles, non envoyée)", "message": "", "keys": ["P1:" + cid]})
+    state["rules_version"] = RULES_VERSION
     ordered = sorted(cand.items(), key=lambda kv: (kv[1]["prio"], (view.get(kv[0]) or {}).get("risk") or 0), reverse=True)
     sent_n, overflow = 0, []
     for cid, c in ordered:

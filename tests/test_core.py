@@ -94,7 +94,9 @@ def test_priority_rules():
     assert e["priority"] == "P1" and "KEV" in e["justification"] and 0 <= e["risk"] <= 100
     crit = vw.parse_nvd(nvd_item(score=9.8), NOW)
     classify.classify(crit)
-    assert rx.enrich(crit, {"critical": 9}, NOW)["priority"] == "P1"  # critique + pré-auth à distance
+    crit["exploit_ref"] = ""
+    assert rx.enrich(dict(crit), {"critical": 9}, NOW)["priority"] == "P2"  # critique pré-auth sans exploit : P2
+    assert rx.enrich(dict(crit, epss=0.2), {"critical": 9}, NOW)["priority"] == "P1"  # + EPSS ≥ 10 % : P1
     low = vw.parse_nvd(nvd_item(score=4.3, sev="MEDIUM", vec="CVSS:3.1/AV:L/AC:H/PR:H/UI:R/S:U/C:L/I:N/A:N", desc="minor"), NOW)
     low["exploit_ref"] = ""
     assert rx.enrich(low, {"critical": 9}, NOW)["priority"] == "P4"

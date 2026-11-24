@@ -30,7 +30,7 @@ VulnWatch est un outil de veille des vulnérabilités pensé pour les équipes d
 
 | Priorité | Délai | Règle |
 |---|---|---|
-| **P1** | 48 h | **Au moins un** de ces cas :<br>• exploitée (KEV ou SSVC « Active ») ;<br>• module Metasploit et CVSS ≥ 7 ;<br>• critique, avec EPSS ≥ 10 % ou exploitable à distance sans authentification ;<br>• critique sur ton parc ;<br>• CVSS ≥ 7 avec un exploit ou sans authentification, sur un actif exposé à Internet. |
+| **P1** | 48 h | **Au moins un** de ces cas :<br>• exploitée (KEV ou SSVC « Active ») ;<br>• module Metasploit et CVSS ≥ 7 ;<br>• critique, avec EPSS ≥ 10 % ou un exploit public ;<br>• critique sur ton parc, si elle est exploitable sans authentification, exposée ou dotée d'un exploit public ;<br>• CVSS ≥ 7 avec un exploit ou sans authentification, sur un actif exposé à Internet. |
 | **P2** | 7 jours | **Au moins un** de ces cas :<br>• critique ;<br>• EPSS ≥ 50 % ;<br>• exploit public et CVSS ≥ 7 ;<br>• CVSS ≥ 7 sur ton parc ;<br>• SSVC « automatisable, impact total ». |
 | **P3** | 30 jours | CVSS ≥ 7, OU EPSS ≥ 10 %, OU touche ton parc, OU exploit public. |
 | **P4** | surveiller | Tout le reste. |

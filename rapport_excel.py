@@ -210,8 +210,9 @@ def enrich(r: dict, cfg: dict, now: dt.datetime) -> dict:
     if (e or 0) >= 0.1:
         why.append(f"EPSS {e:.0%}")
 
-    if exploited or (weapon and s0 >= 7) or (s0 >= crit and ((e or 0) >= 0.1 or preauth)) \
-            or (asset and s0 >= crit) or (asset and exposed and s0 >= 7 and (poc or preauth)):
+    if exploited or (weapon and s0 >= 7) or (s0 >= crit and ((e or 0) >= 0.1 or poc)) \
+            or (asset and s0 >= crit and (preauth or exposed or poc)) \
+            or (asset and exposed and s0 >= 7 and (poc or preauth or weapon)):
         p = "P1"
     elif s0 >= crit or (e or 0) >= 0.5 or (poc and s0 >= 7) or (asset and s0 >= 7) or (autom and s0 >= 7):
         p = "P2"
@@ -320,7 +321,7 @@ DETAIL_COLS = [
 
 GUIDE = [
     ("Priorité", "P1 (sous 48 h) : exploitée activement (KEV ou SSVC « Active »), OU module Metasploit et CVSS ≥ 7, OU critique avec EPSS ≥ 10 % "
-                 "ou exploitable à distance sans authentification, OU critique sur ton parc, OU CVSS ≥ 7 avec exploit/pré-auth sur un actif exposé. "
+                 "ou exploit public, OU critique sur ton parc (pré-auth, exposé ou exploit public), OU CVSS ≥ 7 avec exploit/pré-auth sur un actif exposé. "
                  "P2 (7 j) : critique, OU EPSS ≥ 50 %, OU exploit public et CVSS ≥ 7, OU CVSS ≥ 7 sur ton parc, OU SSVC automatisable à impact total. "
                  "P3 (30 j) : CVSS ≥ 7, EPSS ≥ 10 %, ton parc, ou exploit public. P4 : surveiller."),
     ("Pourquoi cette priorité", "Les facteurs qui ont conduit au niveau de priorité, pour justifier la décision auprès des équipes."),
