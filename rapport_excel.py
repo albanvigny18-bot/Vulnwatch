@@ -111,33 +111,143 @@ def parse_vector(vector: str) -> dict:
     return out
 
 
+def _soon(r, days):
+    d = _dt(r.get("kev_due"))
+    return bool(d) and d <= dt.datetime.now(UTC) + dt.timedelta(days=days)
+
+
+EXPERT_QUERIES = [
+    ("RCE pré-auth", "Exécution de code ou prise de contrôle à distance sans authentification (CVSS ≥ 7)",
+     lambda r: r.get("pre_auth_rce") == "Oui" and (r.get("score") or 0) >= 7),
+    ("Exploitées activement", "Au catalogue CISA KEV ou SSVC « Exploitation : Active »",
+     lambda r: bool(r.get("kev")) or r.get("ssvc_exploitation") == "Active"),
+    ("Arme Metasploit", "Un module Metasploit public existe : exploitation à la portée de tous",
+     lambda r: bool(r.get("msf"))),
+    ("PoC public", "Preuve de concept publique (Exploit-DB, référence NVD « Exploit » ou SSVC « PoC »)",
+     lambda r: (r.get("exploit_maturity") or "").startswith("Preuve") or r.get("ssvc_exploitation") == "Preuve de concept"),
+    ("Rançongiciels", "Failles utilisées dans des campagnes de rançongiciel (CISA)",
+     lambda r: r.get("ransomware") == "Known"),
+    ("Échéance CISA ≤ 7 j", "Failles KEV dont l'échéance de correction CISA est dépassée ou dans moins de 7 jours",
+     lambda r: bool(r.get("kev")) and _soon(r, 7)),
+    ("Périmétrique", "VPN, pare-feu, passerelles, équilibreurs : la porte d'entrée favorite des attaquants (CVSS ≥ 7)",
+     lambda r: "Périmétrique" in (r.get("family") or "") and (r.get("score") or 0) >= 7),
+    ("OT / ICS", "Automates, SCADA, IHM, équipements industriels",
+     lambda r: "OT / ICS" in (r.get("family") or "")),
+    ("Microsoft", "Produits Microsoft (Windows, Exchange, Office, Edge…) — utile au Patch Tuesday",
+     lambda r: "microsoft" in (r.get("vendor") or "").lower()),
+    ("Navigateurs", "Chrome, Firefox, Safari, Edge, moteurs JavaScript",
+     lambda r: "Navigateur" in (r.get("family") or "")),
+    ("Virtualisation / Cloud", "Hyperviseurs, vCenter, conteneurs, Kubernetes, cloud",
+     lambda r: "Virtualisation" in (r.get("family") or "")),
+    ("Messagerie / Collab.", "Exchange, SharePoint, Confluence, GitLab, Zimbra…",
+     lambda r: "Messagerie" in (r.get("family") or "")),
+    ("Open source (GHSA)", "Bibliothèques et paquets (npm, PyPI, Maven, NuGet, Go…) avec version corrigée",
+     lambda r: bool(r.get("packages"))),
+    ("Zero-click", "Exploitable sans aucune interaction de l'utilisateur, à distance",
+     lambda r: "Zero-click" in (r.get("tags") or "")),
+    ("Contournement d'auth.", "Contournement d'authentification (CVSS ≥ 7)",
+     lambda r: "Contournement d'authentification" in (r.get("tags") or "") and (r.get("score") or 0) >= 7),
+    ("Élévation de privilèges", "Élévation de privilèges : maillon clé des chaînes d'attaque",
+     lambda r: "Élévation de privilèges" in (r.get("tags") or "")),
+    ("EPSS en hausse", "Probabilité d'exploitation en hausse d'au moins 5 points sur 7 jours",
+     lambda r: (r.get("epss_delta") or 0) >= 0.05),
+    ("EPSS ≥ 10 %", "Probabilité d'exploitation à 30 jours d'au moins 10 % (top ~ 3 % des CVE)",
+     lambda r: (r.get("epss") or 0) >= 0.1),
+    ("Critiques sans correctif", "CVSS ≥ 9 sans correctif ni version corrigée référencés : mesures de contournement à prévoir",
+     lambda r: (r.get("score") or 0) >= 9 and not (r.get("ref_patch") or r.get("pkg_fixed"))),
+    ("Nouvelles critiques 24 h", "Critiques détectées dans les dernières 24 heures",
+     lambda r: r.get("new") == "Oui" and (r.get("score") or 0) >= 9),
+]
+
+
+SEV_FROM_EN = {"CRITICAL": "CRITIQUE", "HIGH": "ÉLEVÉE", "MEDIUM": "MOYENNE", "LOW": "FAIBLE", "NONE": "AUCUNE"}
+CRIT_LABEL = {3: "Haute", 2: "Moyenne", 1: "Basse", 0: ""}
+
+
+def sev_from_score(s):
+    if s is None:
+        return "NON ÉVALUÉE"
+    return "CRITIQUE" if s >= 9 else "ÉLEVÉE" if s >= 7 else "MOYENNE" if s >= 4 else "FAIBLE" if s > 0 else "AUCUNE"
+
+
 def enrich(r: dict, cfg: dict, now: dt.datetime) -> dict:
-    """Ajoute priorité, action recommandée, score de risque, décodage CVSS, CWE en clair, ancienneté."""
+    """Priorité P1-P4 justifiée, action, score de risque, décodage CVSS, CWE en clair, ancienneté, tendance EPSS."""
     s, e = r.get("score"), r.get("epss")
-    kev, watch = bool(r.get("kev")), bool(r.get("watch"))
+    if r.get("severity") in (None, "", "NON ÉVALUÉE") and s is not None:
+        r["severity"] = SEV_FROM_EN.get((r.get("severity_en") or "").upper()) or sev_from_score(s)
     crit = cfg.get("critical", 9.0)
-    if kev or (s is not None and s >= crit and (e or 0) >= 0.1) or (watch and (s or 0) >= crit):
+    s0 = s or 0
+    exploited = bool(r.get("kev")) or r.get("ssvc_exploitation") == "Active"
+    weapon = bool(r.get("msf"))
+    poc = bool(r.get("edb") or r.get("exploit_ref")) or r.get("ssvc_exploitation") == "Preuve de concept"
+    asset = bool(r.get("watch"))
+    acrit = r.get("asset_crit") or (2 if asset else 0)
+    exposed = bool(r.get("asset_exposed"))
+    preauth = r.get("pre_auth_rce") == "Oui"
+    autom = r.get("ssvc_automatable") == "Oui" and r.get("ssvc_impact") == "Totale"
+
+    why = []
+    if r.get("kev"):
+        why.append("Exploitée activement (CISA KEV)")
+    elif r.get("ssvc_exploitation") == "Active":
+        why.append("Exploitation active (CISA SSVC)")
+    if r.get("ransomware") == "Known":
+        why.append("Utilisée par des rançongiciels")
+    if weapon:
+        why.append("Module Metasploit public")
+    elif poc:
+        why.append("Exploit public (PoC)")
+    if preauth:
+        why.append("Exploitable à distance sans authentification")
+    if autom:
+        why.append("Automatisable, impact total (SSVC)")
+    if asset:
+        why.append("Touche ton parc" + (" (actif exposé Internet)" if exposed else "") + (" — criticité haute" if acrit >= 3 else ""))
+    if s is not None and s >= crit:
+        why.append(f"CVSS critique {s:.1f}")
+    elif s is not None and s >= 7:
+        why.append(f"CVSS élevé {s:.1f}")
+    if (e or 0) >= 0.1:
+        why.append(f"EPSS {e:.0%}")
+
+    if exploited or (weapon and s0 >= 7) or (s0 >= crit and ((e or 0) >= 0.1 or preauth)) \
+            or (asset and s0 >= crit) or (asset and exposed and s0 >= 7 and (poc or preauth)):
         p = "P1"
-    elif (s is not None and s >= crit) or (e or 0) >= 0.5 or (watch and (s or 0) >= 7):
+    elif s0 >= crit or (e or 0) >= 0.5 or (poc and s0 >= 7) or (asset and s0 >= 7) or (autom and s0 >= 7):
         p = "P2"
-    elif (s is not None and s >= 7) or (e or 0) >= 0.1 or watch:
+    elif s0 >= 7 or (e or 0) >= 0.1 or asset or poc or weapon:
         p = "P3"
     else:
         p = "P4"
-    risk = (s if s is not None else 5.0) * 6 + (e or 0) * 25 + (15 if kev else 0) \
-        + (10 if r.get("ransomware") == "Known" else 0) + (5 if watch else 0) + (5 if r.get("exploit_ref") else 0)
+    risk = (s if s is not None else 5.0) * 6 + (e or 0) * 20 + (15 if exploited else 0) \
+        + (10 if weapon else 5 if poc else 0) + (5 if r.get("ransomware") == "Known" else 0) \
+        + acrit * 3 + (5 if exposed else 0) + (5 if preauth else 0)
     pub = _dt(r.get("published"))
     first = _dt(r.get("first_seen"))
     cwes = [c.strip() for c in (r.get("cwe") or "").split(",") if c.strip()]
+    hist = r.get("epss_hist") or {}
+    delta = None
+    if e is not None and hist:
+        old_keys = sorted(k for k in hist if k <= (now - dt.timedelta(days=6)).strftime("%Y-%m-%d")) or sorted(hist)
+        ref = hist.get(old_keys[-1]) if old_keys else None
+        if ref is not None:
+            delta = e - ref
     r.update(parse_vector(r.get("vector", "")))
     r.update(
         priority=p,
         action=PRIORITY_ACTION[p],
+        justification=" · ".join(why) or "Aucun facteur aggravant connu",
         risk=int(round(min(100, risk))),
         age_days=(now - pub).days if pub else None,
         new="Oui" if first and first >= now - dt.timedelta(days=1) else "",
         cwe_name="; ".join(CWE_FR.get(c, c) for c in cwes),
+        epss_delta=delta,
+        asset_crit_label=CRIT_LABEL.get(r.get("asset_crit") or 0, ""),
+        asset_exposed_label="Oui" if exposed else ("Non" if asset else ""),
+        score_source=r.get("score_source") or ("NVD" if s is not None else ""),
+        patch_available="Oui" if (r.get("ref_patch") or r.get("pkg_fixed")) else "",
     )
+    r["views"] = "; ".join(name for name, _, f in EXPERT_QUERIES if f(r))
     return r
 
 
@@ -145,33 +255,62 @@ def enrich(r: dict, cfg: dict, now: dt.datetime) -> dict:
 
 # (clé, en-tête, largeur, type)   type : txt | num1 | pct | int | date | datetime | yesno | link
 DETAIL_COLS = [
+    # --- décider
     ("id", "CVE", 17, "link"),
     ("priority", "Priorité", 9, "txt"),
     ("action", "Action recommandée", 30, "txt"),
-    ("risk", "Score de risque (0-100)", 12, "int"),
+    ("justification", "Pourquoi cette priorité", 50, "txt"),
+    ("risk", "Score de risque (0-100)", 11, "int"),
     ("severity", "Sévérité", 13, "txt"),
     ("score", "CVSS", 7, "num1"),
-    ("epss", "EPSS (proba. 30 j)", 11, "pct"),
+    ("score_source", "Source du score", 12, "txt"),
+    ("epss", "EPSS (proba. 30 j)", 10, "pct"),
+    ("epss_delta", "Δ EPSS 7 j", 9, "pctd"),
     ("epss_pct", "Percentile EPSS", 10, "pct"),
     ("kev", "Exploitée (KEV)", 10, "yesno"),
-    ("exploit_ref", "Exploit public", 10, "yesno"),
-    ("ransomware", "Rançongiciel", 12, "txt"),
-    ("watch", "Mon parc", 16, "txt"),
-    ("new", "Nouveau (24 h)", 10, "txt"),
+    ("ssvc_exploitation", "Exploitation (SSVC)", 14, "txt"),
+    ("exploit_maturity", "Maturité de l'exploit", 22, "txt"),
+    ("ransomware", "Rançongiciel", 11, "txt"),
+    ("patch_available", "Correctif disponible", 10, "txt"),
+    # --- mon parc
+    ("watch", "Mon parc (actifs)", 24, "txt"),
+    ("asset_crit_label", "Criticité actif", 10, "txt"),
+    ("asset_exposed_label", "Actif exposé Internet", 10, "txt"),
+    ("asset_versions", "Version installée", 22, "txt"),
+    ("asset_owner", "Responsable", 18, "txt"),
+    ("new", "Nouveau (24 h)", 9, "txt"),
+    # --- contexte
+    ("tags", "Type d'impact", 36, "txt"),
+    ("family", "Famille de produit", 30, "txt"),
+    ("views", "Vues expertes", 36, "txt"),
     ("vendor", "Fournisseur", 18, "txt"),
     ("product", "Produit", 22, "txt"),
+    ("versions", "Versions affectées (éditeur)", 40, "txt"),
+    ("packages", "Paquets open source", 28, "txt"),
+    ("pkg_ranges", "Versions vulnérables (paquet)", 24, "txt"),
+    ("pkg_fixed", "Version corrigée (paquet)", 16, "txt"),
     ("cwe_name", "Type de faiblesse", 32, "txt"),
     ("desc", "Description", 90, "txt"),
+    # --- technique
     ("av", "Vecteur d'attaque", 18, "txt"),
     ("ac", "Complexité", 10, "txt"),
     ("pr", "Privilèges requis", 11, "txt"),
     ("ui", "Interaction utilisateur", 12, "txt"),
     ("cia", "Impact C / I / D", 30, "txt"),
+    ("ssvc_automatable", "Automatisable (SSVC)", 11, "txt"),
+    ("ssvc_impact", "Impact technique (SSVC)", 11, "txt"),
+    ("msf", "Modules Metasploit", 40, "txt"),
+    ("nuclei", "Modèle Nuclei", 9, "txt"),
+    ("edb", "Exploit-DB", 16, "txt"),
+    # --- suivi
+    ("ticket_status", "Suivi (ticket)", 14, "txt"),
+    ("ticket_url", "Lien du ticket", 14, "url"),
     ("published", "Publiée le", 16, "datetime"),
     ("modified", "Modifiée le", 16, "datetime"),
     ("age_days", "Âge (jours)", 8, "int"),
     ("kev_due", "Échéance CISA", 12, "date"),
     ("ref_patch", "Correctif / avis éditeur", 40, "url"),
+    ("ghsa", "Avis GitHub (GHSA)", 22, "txt"),
     ("cwe", "CWE", 12, "txt"),
     ("status", "Statut NVD", 16, "txt"),
     ("source", "Émetteur (CNA)", 22, "txt"),
@@ -180,29 +319,35 @@ DETAIL_COLS = [
 ]
 
 GUIDE = [
-    ("Priorité", "P1 : exploitée (KEV) OU critique avec EPSS ≥ 10 % OU critique sur ton parc. "
-                 "P2 : critique, OU EPSS ≥ 50 %, OU CVSS ≥ 7 sur ton parc. P3 : CVSS ≥ 7, OU EPSS ≥ 10 %, OU ton parc. P4 : le reste."),
-    ("Action recommandée", "Délai de traitement suggéré selon la priorité (P1 sous 48 h, P2 sous 7 jours, P3 sous 30 jours, P4 surveiller)."),
-    ("Score de risque", "Indicateur synthétique 0-100 pour trier : CVSS × 6 + EPSS × 25 + 15 si KEV + 10 si rançongiciel + 5 si ton parc + 5 si exploit public."),
-    ("Sévérité / CVSS", "Gravité technique selon la NVD (CVSS 4.0, 3.1, 3.0 ou 2). CRITIQUE ≥ 9, ÉLEVÉE ≥ 7, MOYENNE ≥ 4, FAIBLE < 4. "
-                        "NON ÉVALUÉE : la NVD n'a pas encore attribué de score."),
-    ("EPSS", "Probabilité (FIRST) que la vulnérabilité soit exploitée dans les 30 prochains jours. Le percentile la situe par rapport à toutes les CVE."),
-    ("Exploitée (KEV)", "Présente au catalogue CISA des vulnérabilités exploitées activement : priorité absolue."),
-    ("Exploit public", "La NVD référence un code d'exploitation public (référence marquée « Exploit »)."),
-    ("Rançongiciel", "« Known » : la CISA sait que la faille est utilisée dans des campagnes de rançongiciel."),
-    ("Mon parc", "Mots de ta liste de surveillance (secret WATCHLIST) trouvés dans le fournisseur, le produit ou la description."),
-    ("Nouveau (24 h)", "CVE détectée par VulnWatch pour la première fois il y a moins de 24 h."),
-    ("Type de faiblesse / CWE", "Catégorie de défaut (ex. CWE-79 = XSS, CWE-89 = injection SQL)."),
-    ("Vecteur d'attaque", "Réseau = exploitable à distance ; Adjacent = même réseau local ; Local = accès à la machine ; Physique = accès matériel."),
-    ("Complexité / Privilèges / Interaction", "Conditions nécessaires à l'attaque : plus c'est « Faible / Aucun / Aucune », plus c'est facile à exploiter."),
-    ("Impact C / I / D", "Impact sur la Confidentialité, l'Intégrité et la Disponibilité."),
-    ("Échéance CISA", "Date limite de correction fixée par la CISA pour les agences fédérales américaines : bon repère d'urgence."),
-    ("Correctif / avis éditeur", "Premier lien NVD marqué « Patch » ou « Vendor Advisory »."),
-    ("Statut NVD", "Received / Awaiting Analysis / Analyzed / Modified : avancement de l'analyse par la NVD."),
-    ("Émetteur (CNA)", "Organisation qui a publié la CVE (éditeur, CERT, MITRE…)."),
-    ("Mise à jour", "Classeur régénéré automatiquement toutes les heures. Pour suivre tes propres actions (statut, responsable), "
-                    "utilise un classeur connecté par Power Query (voir LISEZMOI) : tes colonnes ajoutées y sont conservées."),
-    ("Sources", "NVD 2.0 (NIST) · CISA Known Exploited Vulnerabilities · FIRST EPSS."),
+    ("Priorité", "P1 (sous 48 h) : exploitée activement (KEV ou SSVC « Active »), OU module Metasploit et CVSS ≥ 7, OU critique avec EPSS ≥ 10 % "
+                 "ou exploitable à distance sans authentification, OU critique sur ton parc, OU CVSS ≥ 7 avec exploit/pré-auth sur un actif exposé. "
+                 "P2 (7 j) : critique, OU EPSS ≥ 50 %, OU exploit public et CVSS ≥ 7, OU CVSS ≥ 7 sur ton parc, OU SSVC automatisable à impact total. "
+                 "P3 (30 j) : CVSS ≥ 7, EPSS ≥ 10 %, ton parc, ou exploit public. P4 : surveiller."),
+    ("Pourquoi cette priorité", "Les facteurs qui ont conduit au niveau de priorité, pour justifier la décision auprès des équipes."),
+    ("Score de risque", "Indicateur 0-100 pour trier : CVSS × 6 + EPSS × 20 + 15 si exploitée + 10 si Metasploit (5 si PoC) + 5 si rançongiciel "
+                        "+ 3 × criticité de l'actif (1-3) + 5 si actif exposé + 5 si pré-authentification à distance."),
+    ("Sévérité / CVSS / Source", "Gravité technique (CVSS 4.0 → 3.1 → 3.0 → 2). Si la NVD n'a pas encore analysé la CVE, VulnWatch reprend le score "
+                                 "de l'éditeur (CNA) ou de la CISA : la colonne « Source du score » l'indique."),
+    ("EPSS / Δ EPSS", "Probabilité (FIRST) d'exploitation dans les 30 jours, et son évolution sur 7 jours : une forte hausse signale un intérêt "
+                      "croissant des attaquants."),
+    ("Exploitée (KEV)", "Au catalogue CISA des vulnérabilités exploitées activement."),
+    ("Exploitation (SSVC)", "Décision CISA (Vulnrichment) : Active = exploitée, Preuve de concept = code public, Aucune connue."),
+    ("Maturité de l'exploit", "Arme (Metasploit) > Preuve de concept publique (Exploit-DB / référence NVD) > Détection publique (modèle Nuclei)."),
+    ("Correctif disponible", "Oui si la NVD référence un correctif / avis éditeur, ou si une version corrigée du paquet existe."),
+    ("Mon parc / Criticité / Exposition", "Actifs de ton inventaire (secret INVENTAIRE) ou mots de ta liste (secret WATCHLIST) concernés, "
+                                          "avec leur criticité métier et leur exposition à Internet."),
+    ("Version installée / Versions affectées", "Compare la version de ton actif aux versions déclarées vulnérables par l'éditeur."),
+    ("Type d'impact", "Classification automatique : RCE, Pré-authentification à distance, Élévation de privilèges, Contournement "
+                      "d'authentification, Injection SQL, XSS, SSRF, Corruption mémoire, Déni de service, Zero-click…"),
+    ("Famille de produit", "Périmétrique (VPN, pare-feu), OT/ICS, Navigateur, Système d'exploitation, Virtualisation/Cloud, Messagerie, etc."),
+    ("Paquets open source", "Avis GitHub (GHSA) : écosystème:paquet, plage de versions vulnérables et première version corrigée."),
+    ("Vecteur / Complexité / Privilèges / Interaction", "Conditions d'attaque issues du vecteur CVSS (plus c'est « Réseau / Faible / Aucun », plus c'est grave)."),
+    ("Automatisable / Impact technique (SSVC)", "Automatisable = l'attaque peut être industrialisée ; Impact total = contrôle complet du composant."),
+    ("Suivi (ticket)", "Si les tickets GitHub sont activés : Ouvert, Corrigé (ticket fermé) ou Risque accepté (fermé « not planned »)."),
+    ("Échéance CISA", "Date limite fixée par la CISA aux agences fédérales américaines : bon repère d'urgence."),
+    ("Mise à jour", "Classeur régénéré toutes les heures. Pour ajouter tes propres colonnes de suivi, utilise un classeur connecté par "
+                    "Power Query (voir LISEZMOI) : tes colonnes y sont conservées."),
+    ("Sources", "NVD 2.0 (NIST) · CISA KEV · CISA Vulnrichment (SSVC) · FIRST EPSS · GitHub Security Advisories · Metasploit · Nuclei · Exploit-DB."),
 ]
 
 # --------------------------------------------------------------------------- styles
@@ -262,6 +407,8 @@ def _write_table(ws, top: int, cols: list, rows: list[dict], name: str, tz, styl
                 cell.number_format = "0.0"
             elif kind == "pct":
                 cell.number_format = "0.0%"
+            elif kind == "pctd":
+                cell.number_format = "+0.0%;-0.0%;0.0%"
             elif kind == "datetime":
                 cell.number_format = "yyyy-mm-dd hh:mm"
             elif kind == "date":
@@ -288,6 +435,23 @@ def _conditional(ws, cols, first, last):
         elif key == "priority":
             for txt, fill, font in (("P1", "p1", WHITE_B), ("P2", "p2", WHITE_B), ("P3", "p3", None), ("P4", "p4", None)):
                 ws.conditional_formatting.add(rng, CellIsRule(operator="equal", formula=[f'"{txt}"'], fill=FILL[fill], font=font))
+        elif key == "ssvc_exploitation":
+            ws.conditional_formatting.add(rng, CellIsRule(operator="equal", formula=['"Active"'], fill=FILL["kev"], font=WHITE_B))
+            ws.conditional_formatting.add(rng, CellIsRule(operator="equal", formula=['"Preuve de concept"'], fill=FILL["orange"], font=WHITE_B))
+        elif key == "exploit_maturity":
+            ws.conditional_formatting.add(rng, FormulaRule(formula=[f'LEFT({col}{first},4)="Arme"'], fill=FILL["kev"], font=WHITE_B))
+            ws.conditional_formatting.add(rng, FormulaRule(formula=[f'LEFT({col}{first},6)="Preuve"'], fill=FILL["orange"], font=WHITE_B))
+        elif key in ("asset_exposed_label",):
+            ws.conditional_formatting.add(rng, CellIsRule(operator="equal", formula=['"Oui"'], fill=FILL["red"], font=WHITE_B))
+        elif key == "asset_crit_label":
+            ws.conditional_formatting.add(rng, CellIsRule(operator="equal", formula=['"Haute"'], fill=FILL["red"], font=WHITE_B))
+        elif key == "patch_available":
+            ws.conditional_formatting.add(rng, CellIsRule(operator="equal", formula=['"Oui"'], fill=FILL["green"]))
+        elif key == "epss_delta":
+            ws.conditional_formatting.add(rng, CellIsRule(operator="greaterThanOrEqual", formula=["0.05"], font=Font(color=C["red"], bold=True)))
+        elif key == "ticket_status":
+            ws.conditional_formatting.add(rng, CellIsRule(operator="equal", formula=['"Corrigé"'], fill=FILL["green"]))
+            ws.conditional_formatting.add(rng, CellIsRule(operator="equal", formula=['"Ouvert"'], fill=FILL["yellow"]))
         elif key in ("kev", "exploit_ref"):
             ws.conditional_formatting.add(rng, CellIsRule(operator="equal", formula=['"Oui"'], fill=FILL["kev"], font=WHITE_B))
         elif key == "ransomware":
@@ -327,7 +491,7 @@ def _sheet(wb, title, intro, tab_color=None):
 
 
 def build_xlsx(path: Path, recs: list[dict], kev_rows: list[dict], alert_rows: list[dict],
-               kpi: dict, cfg: dict, tz) -> None:
+               kpi: dict, cfg: dict, tz, inventory: list | None = None, history: list | None = None) -> None:
     now = dt.datetime.now(UTC)
     recs_p = _sort_prio(recs)
     d1 = now - dt.timedelta(days=1)
@@ -346,12 +510,12 @@ def build_xlsx(path: Path, recs: list[dict], kev_rows: list[dict], alert_rows: l
 
     pc = Counter(r["priority"] for r in recs)
     # Largeurs fixes, alignées sur le tableau « Top 25 » (colonnes A à L)
-    DASH_W = [17, 17, 30, 12, 13, 9, 11, 10, 16, 18, 22, 80]
+    DASH_W = [17, 17, 30, 12, 13, 9, 11, 10, 22, 22, 22, 80]
     cards = [
         ("P1 — corriger sous 48 h", pc.get("P1", 0), "p1"), ("P2 — corriger sous 7 j", pc.get("P2", 0), "p2"),
         ("Exploitées activement (KEV)", sum(1 for r in recs if r.get("kev")), "kev"),
         ("Touchent mon parc", sum(1 for r in recs if r.get("watch")), "navy"),
-        ("Nouvelles CVE (24 h)", kpi["new_24h"], "navy"), ("Nouvelles CVE (7 j)", kpi["new_7d"], "navy"),
+        ("Nouvelles CVE (24 h)", kpi["new_24h"], "navy"), ("Exploit public (Metasploit / PoC)", sum(1 for r in recs if r.get("exploit_maturity", "").startswith(("Arme", "Preuve"))), "orange"),
         (f"Critiques publiées (7 j)", kpi["critical_7d"], "red"), ("Ajouts au catalogue KEV (7 j)", kpi["kev_7d"], "kev"),
     ]
     spans = [(1, 2), (3, 3), (4, 6), (7, 9)]
@@ -458,8 +622,10 @@ def build_xlsx(path: Path, recs: list[dict], kev_rows: list[dict], alert_rows: l
     # Top 25 priorités
     top = 43
     ws.cell(row=top - 1, column=1, value="Les 25 vulnérabilités à traiter en premier").font = H2
-    top_cols = [c for c in DETAIL_COLS if c[0] in ("id", "priority", "action", "risk", "severity", "score", "epss",
-                                                   "kev", "watch", "vendor", "product", "desc")]
+    top_keys = ["id", "priority", "action", "risk", "severity", "score", "epss", "kev", "exploit_maturity", "watch",
+                "product", "justification"]
+    cmap = {c[0]: c for c in DETAIL_COLS}
+    top_cols = [cmap[k] for k in top_keys]
     last = _write_table(ws, top, top_cols, recs_p[:25], "Top25", tz, "TableStyleMedium3",
                         "Rien à signaler pour le moment.", freeze=False)
 
@@ -476,22 +642,85 @@ def build_xlsx(path: Path, recs: list[dict], kev_rows: list[dict], alert_rows: l
         ws.column_dimensions[get_column_letter(j)].width = wdt
     ws.freeze_panes = "A4"
 
-    # ===================================================== 2..6. Vues de CVE
+    # ===================================================== 2..5. Vues de travail
     views = [
-        ("À traiter (P1-P2)", "Vulnérabilités demandant une action, de la plus urgente à la moins urgente.",
+        ("À traiter (P1-P2)", "Ta liste de travail : vulnérabilités demandant une action, de la plus urgente à la moins urgente.",
          [r for r in recs_p if r["priority"] in ("P1", "P2")], "Atraiter", C["red"]),
-        ("Exploitées (KEV)", "CVE suivies qui figurent au catalogue CISA des vulnérabilités exploitées activement.",
-         [r for r in recs_p if r.get("kev")], "Exploitees", C["kev"]),
-        ("Mon parc", "CVE qui mentionnent un fournisseur ou un produit de ta liste de surveillance.",
+        ("Exploitées", "CVE exploitées activement (catalogue CISA KEV ou SSVC « Active »).",
+         [r for r in recs_p if r.get("kev") or r.get("ssvc_exploitation") == "Active"], "Exploitees", C["kev"]),
+        ("Mon parc", "CVE qui touchent les actifs de ton inventaire ou ta liste de surveillance.",
          [r for r in recs_p if r.get("watch")], "MonParc", "2F5597"),
         ("Nouvelles 24 h", "CVE détectées pour la première fois dans les dernières 24 heures.",
          [r for r in recs_p if r.get("new")], "Nouvelles", "00B0F0"),
-        ("Toutes les CVE", f"Base complète : CVE publiées dans les {cfg.get('retention_days', 30)} derniers jours + toutes les CVE exploitées.",
-         recs_p, "Toutes", "7F7F7F"),
     ]
     for title, intro, rows, tname, color in views:
-        w = _sheet(wb, title, f"{intro} {len(rows)} CVE. Filtres et tri disponibles sur chaque en-tête.", color)
+        w = _sheet(wb, title, f"{intro} {len(rows)} CVE. Filtres et tri sur chaque en-tête.", color)
         _write_table(w, 4, DETAIL_COLS, rows, tname, tz, "TableStyleMedium2", "Aucune CVE dans cette catégorie pour le moment.")
+
+    # ===================================================== 6. Vues expertes (requêtes prêtes à l'emploi)
+    w = _sheet(wb, "Vues expertes", "Requêtes d'analyste prêtes à l'emploi. Pour la liste complète d'une vue : feuille « Toutes les CVE », "
+                                    "filtre la colonne « Vues expertes » (Filtres textuels → Contient…).", "C65911")
+    w.sheet_view.showGridLines = False
+    cmap = {c[0]: c for c in DETAIL_COLS}
+    qcols = [cmap[k] for k in ("id", "priority", "risk", "score", "epss", "exploit_maturity", "watch", "product", "justification")]
+    w.cell(row=4, column=1, value="Sommaire").font = H2
+    counts = [(name, desc, [r for r in recs_p if f(r)]) for name, desc, f in EXPERT_QUERIES]
+    for j, h in enumerate(("Vue", "Description", "CVE", "dont P1"), start=1):
+        c = w.cell(row=5, column=j, value=h)
+        c.font, c.fill = WHITE_B, FILL["navy"]
+    for i, (name, desc, rows) in enumerate(counts, start=6):
+        w.cell(row=i, column=1, value=name).font = Font(bold=True)
+        w.cell(row=i, column=2, value=desc)
+        w.cell(row=i, column=3, value=len(rows))
+        p1 = sum(1 for r in rows if r["priority"] == "P1")
+        c = w.cell(row=i, column=4, value=p1)
+        if p1:
+            c.font = Font(color=C["red"], bold=True)
+    row = 6 + len(counts) + 2
+    for qi, (name, desc, rows) in enumerate(counts, start=1):
+        w.cell(row=row, column=1, value=f"{name} — {len(rows)} CVE").font = H2
+        w.cell(row=row + 1, column=1, value=desc + (" (15 plus prioritaires affichées)" if len(rows) > 15 else "")).font = Font(italic=True, color="595959")
+        last = _write_table(w, row + 2, qcols, rows[:15], f"Q{qi:02d}", tz, "TableStyleLight9", "Aucune CVE pour cette vue.", freeze=False)
+        row = last + 3
+    for j, wdt in enumerate((24, 60, 9, 9, 9, 22, 22, 22, 70), start=1):
+        w.column_dimensions[get_column_letter(j)].width = wdt
+    w.freeze_panes = "A4"
+
+    # ===================================================== 7. Exposition par actif (inventaire)
+    if inventory:
+        w = _sheet(wb, "Exposition par actif", "Pour chaque actif de ton inventaire : les vulnérabilités qui le concernent, "
+                                               "de l'actif le plus à risque au moins à risque.", "2F5597")
+        arows = []
+        for it in inventory:
+            hits = [r for r in recs_p if it["asset"] in (r.get("assets") or "").split("; ")]
+            arows.append({
+                "asset": it["asset"], "vendor": it["vendor"], "product": it["product"], "version": it["version"],
+                "crit": it["criticity"], "exposed": "Oui" if it["exposed"] else "Non", "owner": it["owner"],
+                "n": len(hits), "p1": sum(1 for r in hits if r["priority"] == "P1"),
+                "p2": sum(1 for r in hits if r["priority"] == "P2"),
+                "kev": sum(1 for r in hits if r.get("kev")),
+                "max": max((r["score"] for r in hits if r.get("score") is not None), default=None),
+                "risk": max((r["risk"] for r in hits), default=0),
+                "cves": ", ".join(r["id"] for r in hits[:12]),
+            })
+        arows.sort(key=lambda x: (x["p1"], x["p2"], x["risk"]), reverse=True)
+        icols = [("asset", "Actif", 26, "txt"), ("crit", "Criticité", 10, "txt"), ("exposed", "Exposé Internet", 10, "txt"),
+                 ("vendor", "Fournisseur", 16, "txt"), ("product", "Produit", 20, "txt"), ("version", "Version", 12, "txt"),
+                 ("owner", "Responsable", 18, "txt"), ("n", "CVE", 7, "int"), ("p1", "P1", 6, "int"), ("p2", "P2", 6, "int"),
+                 ("kev", "Exploitées", 9, "int"), ("max", "Pire CVSS", 9, "num1"), ("risk", "Risque max", 9, "int"),
+                 ("cves", "CVE (les plus prioritaires)", 100, "txt")]
+        last = _write_table(w, 4, icols, arows, "ExpositionActifs", tz, "TableStyleMedium2")
+        if arows:
+            for col in ("I", "K"):
+                w.conditional_formatting.add(f"{col}5:{col}{last}", CellIsRule(operator="greaterThan", formula=["0"], fill=FILL["red"], font=WHITE_B))
+            w.conditional_formatting.add(f"J5:J{last}", CellIsRule(operator="greaterThan", formula=["0"], fill=FILL["orange"], font=WHITE_B))
+            w.conditional_formatting.add(f"C5:C{last}", CellIsRule(operator="equal", formula=['"Oui"'], font=Font(color=C["red"], bold=True)))
+            w.conditional_formatting.add(f"B5:B{last}", CellIsRule(operator="equal", formula=['"Haute"'], font=Font(color=C["red"], bold=True)))
+
+    # ===================================================== 8. Toutes les CVE
+    w = _sheet(wb, "Toutes les CVE", f"Base complète : CVE publiées dans les {cfg.get('retention_days', 30)} derniers jours + toutes "
+                                     f"les CVE exploitées. {len(recs_p)} CVE, triées par priorité puis score de risque.", "7F7F7F")
+    _write_table(w, 4, DETAIL_COLS, recs_p, "Toutes", tz, "TableStyleMedium2", "Aucune CVE pour le moment.")
 
     # ===================================================== 7. Par fournisseur
     w = _sheet(wb, "Par fournisseur", "Synthèse par éditeur sur la base suivie : volumes, gravité et urgence.", "548235")
@@ -525,6 +754,25 @@ def build_xlsx(path: Path, recs: list[dict], kev_rows: list[dict], alert_rows: l
             w.conditional_formatting.add(f"{col}5:{col}{last}", CellIsRule(operator="greaterThan", formula=["0"],
                                                                          fill=FILL["red"], font=WHITE_B))
         w.conditional_formatting.add(f"I5:I{last}", CellIsRule(operator="equal", formula=['"Oui"'], fill=FILL["blue"]))
+
+    # ===================================================== Tendances
+    if history:
+        from openpyxl.chart import LineChart
+        w = _sheet(wb, "Tendances", "Évolution quotidienne (jusqu'à 90 jours) : volume de CVE, critiques, ajouts KEV, P1 et alertes.", "4472C4")
+        hcols = [("date", "Jour", 12, "txt"), ("new", "Nouvelles CVE", 12, "int"), ("critical", "Nouvelles critiques", 12, "int"),
+                 ("kev_added", "Ajouts KEV", 10, "int"), ("p1", "P1 en base", 10, "int"), ("p2", "P2 en base", 10, "int"),
+                 ("alerts", "Alertes envoyées", 12, "int")]
+        hist = sorted(history, key=lambda h: h["date"])[-90:]
+        last = _write_table(w, 4, hcols, hist, "Tendances", tz, "TableStyleLight9", freeze=False)
+        if len(hist) >= 2:
+            for title, cols_, anchor in (("Volume quotidien", (2, 3), "I4"), ("Urgences", (4, 5, 7), "I22")):
+                ch = LineChart()
+                ch.title, ch.height, ch.width, ch.style = title, 8, 20, 12
+                for ci in cols_:
+                    ch.add_data(Reference(w, min_col=ci, min_row=4, max_row=last), titles_from_data=True)
+                ch.set_categories(Reference(w, min_col=1, min_row=5, max_row=last))
+                ch.legend.position = "b"
+                w.add_chart(ch, anchor)
 
     # ===================================================== 8. Catalogue KEV
     w = _sheet(wb, "Catalogue KEV", f"Ajouts au catalogue CISA KEV des {cfg.get('kev_days', 90)} derniers jours "
@@ -563,13 +811,16 @@ def build_xlsx(path: Path, recs: list[dict], kev_rows: list[dict], alert_rows: l
     i += 2
     w.cell(row=i, column=1, value="Feuilles").font = H2
     for j, (sheet, what) in enumerate([
-        ("Tableau de bord", "Vue d'ensemble : compteurs, graphiques, fournisseurs, top 25, dernières alertes."),
+        ("Tableau de bord", "Vue d'ensemble : compteurs, graphiques, fournisseurs, top 25 avec justification, dernières alertes."),
         ("À traiter (P1-P2)", "Ta liste de travail : ce qui doit être corrigé en premier."),
-        ("Exploitées (KEV)", "Failles exploitées activement présentes dans la base."),
-        ("Mon parc", "Ce qui concerne tes technologies."),
+        ("Exploitées", "Failles exploitées activement (KEV, SSVC)."),
+        ("Mon parc", "Ce qui concerne tes actifs et technologies."),
         ("Nouvelles 24 h", "Ce qui est apparu depuis hier."),
+        ("Vues expertes", "20 requêtes d'analyste prêtes à l'emploi (RCE pré-auth, Metasploit, périmétrique, OT, Patch Tuesday…)."),
+        ("Exposition par actif", "Si un inventaire est fourni : le risque actif par actif."),
         ("Toutes les CVE", "La base complète, triée par priorité puis score de risque."),
         ("Par fournisseur", "Quels éditeurs concentrent le risque."),
+        ("Tendances", "Évolution jour par jour, avec graphiques."),
         ("Catalogue KEV", "Les derniers ajouts officiels de la CISA, même hors de la base."),
         ("Journal des alertes", "Historique des alertes et des canaux utilisés."),
     ], start=i + 1):

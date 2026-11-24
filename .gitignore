@@ -1,4 +1,6 @@
 state/
 public/
+public_prive/
 __pycache__/
 *.pyc
+.pytest_cache/

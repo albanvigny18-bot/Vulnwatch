@@ -28,6 +28,11 @@ from pathlib import Path
 
 import requests
 
+import classify  # noqa: E402
+import intel  # noqa: E402
+import tickets  # noqa: E402
+from collections import Counter  # noqa: E402
+
 try:
     from zoneinfo import ZoneInfo
 except ImportError:  # pragma: no cover
@@ -105,6 +110,19 @@ def load_config() -> dict:
         "mail_from": _env("MAIL_FROM"),
         "mail_to": _env("MAIL_TO"),
         "email_min_priority": _envi("EMAIL_MIN_PRIORITY", 4),
+        "inventory_csv": os.environ.get("INVENTAIRE", "") or "",
+        "excel_password": _env("EXCEL_PASSWORD"),
+        "webhook_url": _env("WEBHOOK_URL"),
+        "webhook_type": (_env("WEBHOOK_TYPE", "") or "").lower(),
+        "quiet_hours": _env("QUIET_HOURS", ""),
+        "tickets": _envb("TICKETS", False),
+        "ticket_min_priority": _env("TICKET_PRIORITY", "P1"),
+        "gh_token": _env("GITHUB_TOKEN"),
+        "gh_repo": _env("GITHUB_REPOSITORY"),
+        "enrich_max": _envi("ENRICH_MAX_PER_RUN", 250),
+        "use_ghsa": _envb("USE_GITHUB_ADVISORIES", True),
+        "use_exploits": _envb("USE_EXPLOIT_SOURCES", True),
+        "use_vulnrichment": _envb("USE_VULNRICHMENT", True),
         "daily_report": _envb("DAILY_REPORT", True),
         "daily_hour": _envi("DAILY_REPORT_HOUR", 7),
     }
@@ -168,27 +186,51 @@ def write_json(path: Path, data, compact: bool = False) -> None:
 
 
 class Http:
+    """Client HTTP avec reprises exponentielles ; 404 n'est jamais retenté."""
+
     def __init__(self):
         self.s = requests.Session()
         self.s.headers["User-Agent"] = f"VulnWatch/{VERSION} (+https://github.com)"
 
-    def get_json(self, url, params=None, headers=None, tries=4, timeout=120):
+    def get_raw(self, url, params=None, headers=None, tries=4, timeout=120, quiet=False):
         for i in range(1, tries + 1):
             try:
                 r = self.s.get(url, params=params, headers=headers, timeout=timeout)
+                if r.status_code == 404:
+                    r.raise_for_status()
                 if r.status_code in (403, 429) or r.status_code >= 500:
                     raise requests.HTTPError(f"HTTP {r.status_code}")
                 r.raise_for_status()
-                return r.json()
-            except Exception as e:  # noqa: BLE001
-                log(f"Requête en échec ({e}) tentative {i}/{tries} : {url}", "WARN")
-                if i == tries:
+                return r
+            except requests.HTTPError as e:
+                if e.response is not None and e.response.status_code == 404:
                     raise
-                time.sleep(min(60, 6 * i * i))
+                err = e
+            except Exception as e:  # noqa: BLE001
+                err = e
+            if not quiet:
+                log(f"Requête en échec ({err}) tentative {i}/{tries} : {url}", "WARN")
+            if i == tries:
+                raise err
+            time.sleep(min(60, 6 * i * i))
+
+    def get_json(self, url, params=None, headers=None, tries=4, timeout=120, quiet=False):
+        return self.get_raw(url, params, headers, tries, timeout, quiet).json()
+
+    def get_text(self, url, params=None, headers=None, tries=4, timeout=120, quiet=False):
+        r = self.get_raw(url, params, headers, tries, timeout, quiet)
+        r.encoding = r.encoding or "utf-8"
+        return r.text
 
     def post(self, url, **kw):
         kw.setdefault("timeout", 30)
         r = self.s.post(url, **kw)
+        r.raise_for_status()
+        return r
+
+    def patch(self, url, **kw):
+        kw.setdefault("timeout", 30)
+        r = self.s.patch(url, **kw)
         r.raise_for_status()
         return r
 
@@ -334,8 +376,20 @@ class Notifier:
         c = self.cfg
         return bool(c["smtp_user"] and c["smtp_pass"] and c["mail_to"])
 
+    def quiet_now(self) -> bool:
+        """Heures calmes (ex. QUIET_HOURS=22-7) : seules les alertes urgentes (niveau 5) sont poussées."""
+        qh = self.cfg.get("quiet_hours") or ""
+        m = re.match(r"^\s*(\d{1,2})\s*-\s*(\d{1,2})\s*$", qh)
+        if not m:
+            return False
+        start, end = int(m.group(1)), int(m.group(2))
+        h = dt.datetime.now(ZoneInfo(self.cfg["tz"]) if ZoneInfo else UTC).hour
+        return (start <= h or h < end) if start > end else (start <= h < end)
+
     def channels(self) -> list[str]:
         out = []
+        if self.cfg["webhook_url"]:
+            out.append(f"Webhook ({self.cfg['webhook_type'] or 'auto'})")
         if self.cfg["ntfy_topic"]:
             out.append("ntfy")
         if self.email_ok():
@@ -370,9 +424,41 @@ class Notifier:
                 s.login(c["smtp_user"], c["smtp_pass"])
                 s.send_message(msg)
 
+    def _webhook(self, title, body, priority, url):
+        c = self.cfg
+        hook = c["webhook_url"]
+        kind = c["webhook_type"] or ("discord" if "discord" in hook else "slack" if "hooks.slack.com" in hook
+                                     else "teams" if ("logic.azure.com" in hook or "webhook.office.com" in hook
+                                                      or "powerplatform" in hook) else "generic")
+        icon = {5: "🔴", 4: "🟠", 3: "🔵"}.get(priority, "⚪")
+        links = [x for x in ((url, "Fiche NVD"), (c["site_url"], "Console VulnWatch"),
+                              (c["site_url"] + "VulnWatch.xlsx" if c["site_url"] else "", "Excel")) if x[0]]
+        if kind == "teams":
+            card = {"$schema": "http://adaptivecards.io/schemas/adaptive-card.json", "type": "AdaptiveCard", "version": "1.4",
+                    "body": [{"type": "TextBlock", "text": f"{icon} {title}", "weight": "Bolder", "size": "Medium", "wrap": True},
+                             {"type": "TextBlock", "text": body.replace("\n", "\n\n"), "wrap": True}],
+                    "actions": [{"type": "Action.OpenUrl", "title": t, "url": u} for u, t in links]}
+            payload = {"type": "message", "attachments": [{"contentType": "application/vnd.microsoft.card.adaptive",
+                                                           "content": card}]}
+        elif kind == "slack":
+            payload = {"text": f"{icon} *{title}*\n{body}\n" + " · ".join(f"<{u}|{t}>" for u, t in links)}
+        elif kind == "discord":
+            payload = {"content": (f"{icon} **{title}**\n{body}\n" + "\n".join(f"{t} : <{u}>" for u, t in links))[:1990]}
+        else:
+            payload = {"title": title, "message": body, "priority": priority, "url": url, "links": dict((t, u) for u, t in links)}
+        self.http.post(hook, json=payload)
+
     def send(self, title: str, lines: list[str], priority: int = 3, url: str = "", tags=None) -> str:
         c, sent = self.cfg, []
         body = "\n".join(lines)
+        if priority < 5 and self.quiet_now():
+            return "(heures calmes : visible dans l'Excel)"
+        if c["webhook_url"] and priority >= 3:
+            try:
+                self._webhook(title, body, priority, url)
+                sent.append("Webhook")
+            except Exception as e:  # noqa: BLE001
+                log(f"Webhook : échec ({type(e).__name__})", "WARN")
         xlsx_url = (c["site_url"] + "VulnWatch.xlsx") if c["site_url"] else ""
         if c["ntfy_topic"]:
             try:
@@ -443,7 +529,7 @@ def daily_report_html(records: list[dict], kev_recent: list[dict], alerts: list[
 
 # --------------------------------------------------------------------------- sorties
 
-from rapport_excel import DETAIL_COLS, build_xlsx, enrich  # noqa: E402
+from rapport_excel import DETAIL_COLS, build_xlsx, enrich, sev_from_score  # noqa: E402
 
 PRIO_ORDER = {"P1": 0, "P2": 1, "P3": 2, "P4": 3}
 
@@ -457,17 +543,63 @@ def is_priority(r: dict) -> bool:
     return r.get("priority") in ("P1", "P2")
 
 
+PRIVATE_FIELDS = ("assets", "asset_versions", "asset_owner")
+INTERNAL_FIELDS = ("epss_hist", "vr_checked", "severity_en", "cna_vendor", "cna_product")
+
+
+def encrypt_xlsx(src: Path, dst: Path, password: str) -> None:
+    """Chiffrement Office standard (AES, « Agile Encryption ») : Excel iPhone, PC et Mac demandent le mot de passe."""
+    from msoffcrypto.format.ooxml import OOXMLFile
+    with src.open("rb") as f, dst.open("wb") as o:
+        OOXMLFile(f).encrypt(password, o)
+
+
+def write_feed(path: Path, alerts: list[dict], cfg: dict) -> None:
+    """Flux Atom des alertes importantes (lecteur RSS, Outlook, Teams, Slack…)."""
+    from xml.sax.saxutils import escape as x
+    base = cfg["site_url"] or "https://nvd.nist.gov/"
+    items = [a for a in sorted(alerts, key=lambda a: a["date"], reverse=True)
+             if a.get("priority", 0) >= 4 and not str(a.get("channels", "")).startswith("(référence")][:100]
+    upd = items[0]["date"] if items else iso(dt.datetime.now(UTC))
+    out = ['<?xml version="1.0" encoding="utf-8"?>', '<feed xmlns="http://www.w3.org/2005/Atom">',
+           "<title>VulnWatch — alertes de vulnérabilités</title>", f'<link href="{x(base)}"/>',
+           f"<id>{x(base)}feed.xml</id>", f"<updated>{upd}</updated>"]
+    for a in items:
+        msg = re.sub(r"Actifs : [^|]*\|?", "", a.get("message", ""))  # jamais d'actifs dans un flux public
+        out += ["<entry>", f"<title>{x(('🔴 ' if a['priority'] >= 5 else '🟠 ') + a['cve'] + ' — ' + a['reasons'])}</title>",
+                f'<link href="{NVD_DETAIL}{x(a["cve"])}"/>', f"<id>urn:vulnwatch:{x(a['cve'])}:{x(a['date'])}</id>",
+                f"<updated>{a['date']}</updated>", f"<summary>{x(msg.replace(' | ', ' — '))}</summary>", "</entry>"]
+    out.append("</feed>")
+    path.write_text("\n".join(out), encoding="utf-8")
+
+
+def sanitize_alert(a: dict) -> dict:
+    """Retire toute mention d'actif d'une alerte (pour les sorties et l'état publics)."""
+    msg = re.sub(r"Actifs : [^|]*\| ?", "", a.get("message", ""))
+    msg = re.sub(r"Touche ton parc : [^·|]*", "Touche ton parc ", msg)
+    return {**a, "message": msg, "reasons": re.sub(r"Touche ton parc : [^·]*", "Touche ton parc ", a.get("reasons", "")).strip()}
+
+
 def build_outputs(site: Path, records: list[dict], kev_recent: list[dict], alerts: list[dict],
-                  cfg: dict, meta: dict) -> None:
+                  cfg: dict, meta: dict) -> Path:
+    """Écrit Excel, CSV, JSON et flux Atom. Renvoie le chemin du classeur complet (pour le courriel)."""
     site.mkdir(parents=True, exist_ok=True)
     tz = ZoneInfo(cfg["tz"]) if ZoneInfo else UTC
     now = dt.datetime.now(UTC)
+    inventory = meta.get("inventory") or []
     xcfg = {"critical": cfg["critical"], "tz": cfg["tz"], "retention_days": cfg["retention_days"], "kev_days": cfg["kev_days"]}
     recs = [enrich(dict(r), xcfg, now) for r in records]
-    if cfg["hide_watch"]:
-        for r in recs:
-            r["watch"] = "✓" if r.get("watch") else ""
     recs.sort(key=lambda r: r["modified"], reverse=True)
+    hide = bool(inventory) or cfg["hide_watch"]
+    pub = []
+    for r in recs:
+        q = {k: v for k, v in r.items() if k not in INTERNAL_FIELDS}
+        if hide:
+            q["watch"] = "✓" if r.get("watch") else ""
+            for k in PRIVATE_FIELDS:
+                q[k] = ""
+            q["justification"] = (r.get("justification") or "").replace(" — criticité haute", "")
+        pub.append(q)
     d1, d7 = now - dt.timedelta(days=1), now - dt.timedelta(days=7)
 
     def pubdate(r):
@@ -483,22 +615,28 @@ def build_outputs(site: Path, records: list[dict], kev_recent: list[dict], alert
         "alerts_7d": sum(1 for a in alerts if (parse_dt(a["date"]) or now) >= d7 and a.get("channels") and not a["channels"].startswith("(")),
         "p1": sum(1 for r in recs if r["priority"] == "P1"),
         "p2": sum(1 for r in recs if r["priority"] == "P2"),
+        "weapon": sum(1 for r in recs if r.get("msf")),
         "total": len(recs),
         "kev_version": meta.get("kev_version", ""),
         "critical_score": cfg["critical"],
         "health": meta.get("health", {}),
+        "encrypted": bool(cfg["excel_password"]),
     }
     kev_rows = sorted(kev_recent, key=lambda k: k.get("dateAdded", ""), reverse=True)
     alert_rows = sorted(alerts, key=lambda a: a["date"], reverse=True)[:1000]
+    pub_alerts = [sanitize_alert(a) if hide else a for a in alert_rows]
 
-    # ---- JSON pour le tableau de bord web
+    # ---- JSON (console web + API)
+    from rapport_excel import EXPERT_QUERIES
     write_json(site / "data.json", {
         "kpi": kpi,
-        "vulns": recs,
+        "views": [{"name": n, "desc": d} for n, d, _ in EXPERT_QUERIES],
+        "vulns": pub,
         "kev": [{k: v.get(k, "") for k in ("cveID", "vendorProject", "product", "vulnerabilityName", "dateAdded",
                                             "shortDescription", "requiredAction", "dueDate",
                                             "knownRansomwareCampaignUse")} for v in kev_rows],
-        "alerts": alert_rows[:200],
+        "alerts": [{k: a.get(k) for k in ("date", "cve", "reasons", "priority", "channels")} for a in pub_alerts[:300]],
+        "stats": meta.get("stats", [])[-90:],
     }, compact=True)
 
     # ---- CSV (source Power Query) : mêmes colonnes détaillées que l'Excel
@@ -509,7 +647,7 @@ def build_outputs(site: Path, records: list[dict], kev_recent: list[dict], alert
     with (site / "vulns.csv").open("w", encoding="utf-8-sig", newline="") as f:
         w = csv.writer(f)
         w.writerow([h for _, h, _, _ in DETAIL_COLS] + ["Lien NVD"])
-        for r in sorted(recs, key=priority_key, reverse=True):
+        for r in sorted(pub, key=priority_key, reverse=True):
             row = []
             for k, _, _, kind in DETAIL_COLS:
                 v = r.get(k)
@@ -524,7 +662,7 @@ def build_outputs(site: Path, records: list[dict], kev_recent: list[dict], alert
     with (site / "alertes.csv").open("w", encoding="utf-8-sig", newline="") as f:
         w = csv.writer(f)
         w.writerow(["Date", "CVE", "Motifs", "Niveau", "Canaux", "Détail", "Lien NVD"])
-        for a in alert_rows:
+        for a in pub_alerts:
             w.writerow([local(a["date"]), a["cve"], a["reasons"], a["priority"], a["channels"], a["message"], NVD_DETAIL + a["cve"]])
     with (site / "kev.csv").open("w", encoding="utf-8-sig", newline="") as f:
         w = csv.writer(f)
@@ -533,13 +671,35 @@ def build_outputs(site: Path, records: list[dict], kev_recent: list[dict], alert
             w.writerow([k.get("cveID"), k.get("dateAdded"), k.get("vendorProject"), k.get("product"),
                         k.get("vulnerabilityName"), k.get("shortDescription"), k.get("requiredAction"),
                         k.get("dueDate"), k.get("knownRansomwareCampaignUse")])
+    write_feed(site / "feed.xml", pub_alerts, cfg)
 
-    # ---- Classeur Excel détaillé
-    build_xlsx(site / "VulnWatch.xlsx", recs, kev_rows, alert_rows, kpi, xcfg, tz)
+    # ---- Classeurs Excel : complet (privé) et publié
+    work = site.parent / (site.name + "_prive")
+    work.mkdir(parents=True, exist_ok=True)
+    private = work / "VulnWatch.xlsx"
+    build_xlsx(private, recs, kev_rows, alert_rows, kpi, xcfg, tz, inventory, meta.get("stats"))
+    if cfg["excel_password"]:
+        encrypt_xlsx(private, site / "VulnWatch.xlsx", cfg["excel_password"])
+        private_send = work / "VulnWatch-chiffre.xlsx"
+        shutil.copy(site / "VulnWatch.xlsx", private_send)
+        log("Excel publié chiffré (mot de passe requis à l'ouverture).")
+    elif hide:
+        build_xlsx(site / "VulnWatch.xlsx", pub, kev_rows, pub_alerts, kpi, xcfg, tz, None, meta.get("stats"))
+        private_send = private
+        log("Excel publié sans le détail de tes actifs (définis EXCEL_PASSWORD pour publier la version complète chiffrée).")
+    else:
+        shutil.copy(private, site / "VulnWatch.xlsx")
+        private_send = private
     log(f"Sorties écrites dans {site}")
+    return private_send
 
 
 # --------------------------------------------------------------------------- moteur
+
+KEEP_ON_UPDATE = ("epss", "epss_pct", "epss_hist", "ssvc_exploitation", "ssvc_automatable", "ssvc_impact", "affected",
+                  "versions", "ghsa", "packages", "pkg_ranges", "pkg_fixed", "ransomware", "kev_added", "kev_due",
+                  "score", "vector", "cvss_version", "score_source", "severity", "severity_en")
+
 
 def run(args) -> int:
     cfg = load_config()
@@ -593,7 +753,13 @@ def run(args) -> int:
             old = db.get(rec["id"])
             if old:
                 rec["first_seen"] = old.get("first_seen", rec["first_seen"])
-                rec["epss"], rec["epss_pct"] = old.get("epss"), old.get("epss_pct")
+                for k in KEEP_ON_UPDATE:
+                    if k in old and k not in ("score", "vector", "cvss_version", "score_source", "severity", "severity_en"):
+                        rec.setdefault(k, old[k])
+                if rec["score"] is None and old.get("score_source") not in (None, "", "NVD") and old.get("score") is not None:
+                    for k in ("score", "vector", "cvss_version", "score_source", "severity", "severity_en"):
+                        rec[k] = old.get(k)
+                rec.pop("vr_checked", None)  # la CVE a changé : on ré-enrichira
             else:
                 new_ids.append(rec["id"])
             db[rec["id"]] = rec
@@ -631,18 +797,60 @@ def run(args) -> int:
         kev_recent = state.get("kev_recent_cache", [])
         log(f"CISA KEV indisponible : {e}", "ERREUR")
 
-    # 3. Liste de surveillance
-    wl = [w.lower() for w in cfg["watchlist"]]
-    for r in db.values():
-        hay = f"{r['vendor']} {r['product']} {r['desc']}".lower()
-        r["watch"] = "; ".join(cfg["watchlist"][i] for i, w in enumerate(wl) if w in hay)
-
-    # 4. Rétention (date de publication ; les CVE exploitées restent)
+    # 3. Rétention (date de publication ; les CVE exploitées restent)
     for cid in [c for c, r in db.items() if not r["kev"] and (parse_dt(r["published"]) or now) < keep_from]:
         del db[cid]
-
-    # 5. EPSS (toutes une fois par jour, sinon seulement les modifiées)
     today = now.strftime("%Y-%m-%d")
+
+    # 4. Exploits publics (Metasploit, Nuclei, Exploit-DB) — cache quotidien
+    if cfg["use_exploits"]:
+        cache_path = state_dir / "exploits.json"
+        cache = read_json(cache_path, {})
+        try:
+            intel_data, ih = intel.load_exploit_intel(http, cache, today)
+            for src, (ok, err) in ih.items():
+                mark(src, ok, err)
+            write_json(cache_path, cache, compact=True)
+        except Exception as e:  # noqa: BLE001
+            intel_data = (cache or {}).get("data", {})
+            log(f"Exploits publics indisponibles : {e}", "WARN")
+        for r in db.values():
+            intel.apply_exploit_intel(r, intel_data)
+
+    # 5. CISA Vulnrichment / CVE.org : SSVC, versions affectées, score CNA si la NVD n'a pas encore analysé
+    if cfg["use_vulnrichment"]:
+        todo = [cid for cid, r in sorted(db.items(), key=lambda kv: kv[1].get("modified", ""), reverse=True)
+                if not r.get("vr_checked") or (r.get("score") is None and (parse_dt(r["vr_checked"]) or now) < now - dt.timedelta(hours=12))]
+        todo = todo[: cfg["enrich_max"]]
+        found = 0
+        for cid in todo:
+            rec5 = intel.fetch_cve5(http, cid)
+            db[cid]["vr_checked"] = iso(now)
+            if rec5:
+                try:
+                    intel.apply_cve5(db[cid], intel.parse_cve5(rec5))
+                    found += 1
+                except Exception as e:  # noqa: BLE001
+                    log(f"Vulnrichment {cid} : format inattendu ({e})", "WARN")
+        if todo:
+            mark("CISA Vulnrichment", found > 0 or len(todo) < 5, "aucun enregistrement trouvé")
+            log(f"CISA Vulnrichment / CVE.org : {found}/{len(todo)} CVE enrichies")
+
+    # 6. GitHub Security Advisories (paquets open source)
+    if cfg["use_ghsa"]:
+        g_since = parse_dt(state.get("last_ghsa_ok")) or now - dt.timedelta(days=cfg["initial_days"])
+        try:
+            gh = intel.fetch_ghsa(http, g_since - dt.timedelta(days=1), cfg["gh_token"])
+            for cid, g in gh.items():
+                if cid in db:
+                    intel.apply_ghsa(db[cid], g)
+            state["last_ghsa_ok"] = iso(now)
+            mark("GitHub Advisories", True)
+        except Exception as e:  # noqa: BLE001
+            mark("GitHub Advisories", False, str(e))
+            log(f"GitHub Advisories indisponible : {e}", "WARN")
+
+    # 7. EPSS (toutes une fois par jour, sinon seulement les modifiées) + historique 8 jours
     ids = list(db) if state.get("epss_full_date") != today else [t for t in touched if t in db]
     if ids:
         try:
@@ -650,71 +858,127 @@ def run(args) -> int:
             for cid, (e, p) in scores.items():
                 if cid in db:
                     db[cid]["epss"], db[cid]["epss_pct"] = e, p
+                    h = db[cid].setdefault("epss_hist", {})
+                    h[today] = e
+                    for k in sorted(h)[:-8]:
+                        del h[k]
             if state.get("epss_full_date") != today and scores:
                 state["epss_full_date"] = today
             mark("EPSS", True)
         except Exception as e:  # noqa: BLE001
             mark("EPSS", False, str(e))
 
-    # 6. Alertes
+    # 8. Classification experte + inventaire d'actifs
+    inventory = classify.parse_inventory(cfg["inventory_csv"])
+    if inventory:
+        log(f"Inventaire : {len(inventory)} actifs")
+    for r in db.values():
+        if r.get("severity") in (None, "", "NON ÉVALUÉE") and r.get("score") is not None:
+            r["severity"] = sev_from_score(r["score"])
+        classify.classify(r)
+        classify.apply_inventory(r, classify.match_inventory(r, inventory), cfg["watchlist"])
+
+    # 9. Vue enrichie (priorité P1-P4, justification, risque)
+    xcfg = {"critical": cfg["critical"]}
+    view = {cid: enrich(dict(r), xcfg, now) for cid, r in db.items()}
+
+    # 10. Tickets GitHub (suivi des corrections)
+    tickets_map = {}
+    if cfg["tickets"] and cfg["gh_token"] and cfg["gh_repo"]:
+        try:
+            tickets_map = tickets.list_tickets(http, cfg["gh_token"], cfg["gh_repo"])
+            want = ("P1",) if cfg["ticket_min_priority"] == "P1" else ("P1", "P2")
+            created = 0
+            if not (first_run and cfg["silent_first"]):
+                for cid, v in sorted(view.items(), key=lambda kv: priority_key(kv[1]), reverse=True):
+                    if v["priority"] in want and cid not in tickets_map and created < 15:
+                        tickets_map[cid] = tickets.create_ticket(http, cfg["gh_token"], cfg["gh_repo"], v)
+                        created += 1
+            mark("Tickets GitHub", True)
+            log(f"Tickets : {len(tickets_map)} suivis, {created} créés")
+        except Exception as e:  # noqa: BLE001
+            mark("Tickets GitHub", False, str(e))
+            log(f"Tickets GitHub : échec ({e})", "WARN")
+    for cid, t in tickets_map.items():
+        if cid in db:
+            db[cid]["ticket_status"], db[cid]["ticket_url"] = t["status"], t["url"]
+            view[cid]["ticket_status"], view[cid]["ticket_url"] = t["status"], t["url"]
+
+    # 11. Alertes
     sent_keys = {k for a in alerts for k in a.get("keys", [])}
     cand: dict[str, dict] = {}
 
-    def add(cid, key, reason, prio, rec=None, kev=None):
+    def add(cid, key, reason, prio, kev=None):
         if key in sent_keys:
             return
-        c = cand.setdefault(cid, {"reasons": [], "keys": [], "prio": 1, "rec": rec, "kev": kev})
-        c["reasons"].append(reason)
+        c = cand.setdefault(cid, {"reasons": [], "keys": [], "prio": 1, "kev": kev})
+        if reason not in c["reasons"]:
+            c["reasons"].append(reason)
         c["keys"].append(key)
         c["prio"] = max(c["prio"], prio)
-        c["rec"] = c["rec"] or rec
         c["kev"] = c["kev"] or kev
 
     if cfg["alert_kev"]:
         for k in new_kev:
-            why = "Exploitée activement (CISA KEV)"
+            why = "Ajoutée au catalogue CISA KEV (exploitée activement)"
             if k.get("knownRansomwareCampaignUse") == "Known":
                 why += ", utilisée par des rançongiciels"
-            add(k["cveID"], "KEV:" + k["cveID"], why, 5, db.get(k["cveID"]), k)
-    for cid, r in db.items():
-        s, e = r["score"], r["epss"]
-        if cfg["alert_critical"] and s is not None and s >= cfg["critical"]:
+            add(k["cveID"], "KEV:" + k["cveID"], why, 5, k)
+    for cid, v in view.items():
+        s_, e_ = v.get("score"), v.get("epss")
+        if v["priority"] == "P1":
+            add(cid, "P1:" + cid, "Passée en priorité P1", 5)
+        if cfg["alert_critical"] and s_ is not None and s_ >= cfg["critical"]:
             prev = prev_scores.get(cid)
             if prev is None or prev < cfg["critical"]:
-                add(cid, "CRIT:" + cid, f"Critique (CVSS {s:.1f})", 5, r)
-        if e is not None and e >= cfg["epss_alert"]:
-            add(cid, "EPSS:" + cid, f"EPSS élevé ({e:.0%})", 4, r)
-        if r["watch"] and s is not None and s >= cfg["watch_min"]:
-            add(cid, "PARC:" + cid, f"Parc surveillé : {r['watch']} (CVSS {s:.1f})", 4, r)
+                add(cid, "CRIT:" + cid, f"Critique (CVSS {s_:.1f})", 5)
+        if v.get("ssvc_exploitation") == "Active" and not v.get("kev"):
+            add(cid, "SSVC:" + cid, "Exploitation active signalée par la CISA (SSVC)", 5)
+        if v.get("msf") and (s_ or 0) >= 7:
+            add(cid, "ARME:" + cid, "Module Metasploit public disponible", 4)
+        if e_ is not None and e_ >= cfg["epss_alert"]:
+            add(cid, "EPSS:" + cid, f"EPSS élevé ({e_:.0%})", 4)
+        if v.get("watch") and s_ is not None and s_ >= cfg["watch_min"]:
+            add(cid, "PARC:" + cid, "Touche ton parc : " + v["watch"], 4)
 
     silent = args.no_alerts or (first_run and cfg["silent_first"])
-    ordered = sorted(cand.items(), key=lambda kv: (kv[1]["prio"], (kv[1]["rec"] or {}).get("score") or 0), reverse=True)
+    ordered = sorted(cand.items(), key=lambda kv: (kv[1]["prio"], (view.get(kv[0]) or {}).get("risk") or 0), reverse=True)
     sent_n, overflow = 0, []
     for cid, c in ordered:
-        r, k = c["rec"] or {}, c["kev"] or {}
-        vendor = r.get("vendor") or k.get("vendorProject", "")
-        product = r.get("product") or k.get("product", "")
-        desc = r.get("desc") or k.get("shortDescription", "")
-        if len(desc) > 350:
-            desc = desc[:347] + "…"
-        title = cid + (f" — {vendor} {product}".rstrip() if (vendor or product) else "")
+        v, k = view.get(cid) or {}, c["kev"] or {}
+        vendor = v.get("vendor") or k.get("vendorProject", "")
+        product = v.get("product") or k.get("product", "")
+        desc = v.get("desc") or k.get("shortDescription", "")
+        if len(desc) > 300:
+            desc = desc[:297] + "…"
+        title = (f"[{v['priority']}] " if v.get("priority") else "") + cid + (f" — {vendor} {product}".rstrip() if (vendor or product) else "")
         lines = ["Motif : " + " · ".join(c["reasons"])]
-        if r.get("score") is not None:
-            lines.append(f"Sévérité : {r['severity']} ({r['score']:.1f})")
-        if r.get("epss") is not None:
-            lines.append(f"EPSS : {r['epss']:.1%}")
-        if k.get("dueDate"):
-            lines.append("Échéance CISA : " + date_only(k["dueDate"]))
-        if k.get("requiredAction"):
-            lines.append("Action : " + k["requiredAction"])
+        if v.get("action"):
+            lines.append(f"À faire : {v['action']}")
+        if v.get("justification"):
+            lines.append(f"Pourquoi : {v['justification']}")
+        if v.get("score") is not None:
+            lines.append(f"Sévérité : {v['severity']} ({v['score']:.1f}{' · ' + v['score_source'] if v.get('score_source') not in (None, '', 'NVD') else ''})"
+                         + (f" · EPSS {v['epss']:.1%}" if v.get("epss") is not None else ""))
+        if v.get("assets"):
+            lines.append(f"Actifs : {v['assets']}" + (f" (versions : {v['asset_versions']})" if v.get("asset_versions") else ""))
+        if v.get("versions") or v.get("pkg_ranges"):
+            lines.append(f"Versions affectées : {v.get('versions') or v.get('pkg_ranges')}")
+        if v.get("pkg_fixed"):
+            lines.append(f"Version corrigée : {v['pkg_fixed']}")
+        if k.get("dueDate") or v.get("kev_due"):
+            lines.append("Échéance CISA : " + date_only(k.get("dueDate") or v.get("kev_due")))
         if desc:
             lines.append(desc)
-        tags = ["fire"] if any("KEV" in x for x in c["reasons"]) else (["rotating_light"] if c["prio"] >= 5 else ["warning"])
+        if v.get("ref_patch"):
+            lines.append("Correctif : " + v["ref_patch"])
+        tags = ["fire"] if (v.get("kev") or k) else (["rotating_light"] if c["prio"] >= 5 else ["warning"])
         if silent:
             channels = "(alertes désactivées)" if args.no_alerts else "(référence initiale, non envoyée)"
         elif sent_n < cfg["max_alerts"]:
             channels = notifier.send(title, lines, c["prio"], NVD_DETAIL + cid, tags) or "(aucun canal)"
-            sent_n += 1
+            if not channels.startswith("("):
+                sent_n += 1
         else:
             overflow.append(cid)
             channels = "(regroupée dans le résumé)"
@@ -724,18 +988,17 @@ def run(args) -> int:
     if not silent:
         if overflow:
             notifier.send(f"VulnWatch : {len(overflow)} autres alertes",
-                          ["Détails dans le tableau de bord / Excel.", ", ".join(overflow[:40])], 4, "", ["warning"])
+                          ["Détail dans l'Excel (feuille « Journal des alertes »).", ", ".join(overflow[:40])], 4, "", ["warning"])
         if cfg["digest"] and new_ids:
-            news = [db[i] for i in new_ids if i in db]
-            cnt = {s: sum(1 for r in news if r["severity"] == s) for s in ("CRITIQUE", "ÉLEVÉE", "MOYENNE", "NON ÉVALUÉE")}
-            top = sorted(news, key=lambda r: r["score"] or 0, reverse=True)[:5]
-            lines = [f"Critiques : {cnt['CRITIQUE']} · Élevées : {cnt['ÉLEVÉE']} · Moyennes : {cnt['MOYENNE']} · "
-                     f"Non évaluées : {cnt['NON ÉVALUÉE']}"]
-            lines += [f"• {r['id']} ({r['score'] if r['score'] is not None else '—'}) {r['vendor']} {r['product']}".rstrip() for r in top]
+            news = [view[i] for i in new_ids if i in view]
+            cnt = Counter(v["priority"] for v in news)
+            top = sorted(news, key=priority_key, reverse=True)[:5]
+            lines = [f"P1 : {cnt.get('P1', 0)} · P2 : {cnt.get('P2', 0)} · P3 : {cnt.get('P3', 0)} · P4 : {cnt.get('P4', 0)}"]
+            lines += [f"• [{v['priority']}] {v['id']} ({v['score'] if v['score'] is not None else '—'}) {v['vendor']} {v['product']}".rstrip() for v in top]
             notifier.send(f"VulnWatch : {len(news)} nouvelles CVE", lines, 2, "", ["bar_chart"])
     elif first_run and not args.no_alerts:
         notifier.send("VulnWatch est en marche ✅",
-                      [f"Base initiale : {len(db)} CVE suivies.",
+                      [f"Base initiale : {len(db)} CVE suivies, {sum(1 for v in view.values() if v['priority'] == 'P1')} en P1.",
                        "Les alertes commencent au prochain passage (environ 1 h)."], 3, "", ["white_check_mark"])
 
     # Alerte de panne : une source en échec 6 passages de suite (≈ 6 h), une seule fois
@@ -746,36 +1009,60 @@ def run(args) -> int:
                            "La veille continue avec les autres sources et rattrapera le retard."], 3, "", ["warning"])
     log(f"Alertes : {len(ordered)} candidate(s), {sent_n} envoyée(s){' (mode silencieux)' if silent else ''}")
 
-    # 7. Sauvegarde de l'état
+    # 12. Statistiques quotidiennes (feuille « Tendances »)
+    local_today = now.astimezone(ZoneInfo(cfg["tz"]) if ZoneInfo else UTC).strftime("%Y-%m-%d")
+    stats = state.get("stats", [])
+    day = next((x for x in stats if x["date"] == local_today), None)
+    if not day:
+        day = {"date": local_today, "new": 0, "critical": 0, "kev_added": 0, "alerts": 0}
+        stats.append(day)
+    day["new"] += len(new_ids)
+    day["critical"] += sum(1 for i in new_ids if (view.get(i, {}).get("score") or 0) >= cfg["critical"])
+    day["kev_added"] += len(new_kev)
+    day["alerts"] += sent_n
+    day["p1"] = sum(1 for v in view.values() if v["priority"] == "P1")
+    day["p2"] = sum(1 for v in view.values() if v["priority"] == "P2")
+    state["stats"] = stats[-120:]
+
+    # 13. Sauvegarde de l'état
     if nvd_ok:
         state["last_nvd_ok"] = iso(now)
     state.update(first_run_done=True, kev_version=kev_version, health=health, last_run=iso(now),
                  kev_recent_cache=kev_recent if kev_recent else state.get("kev_recent_cache", []))
-    write_json(state_dir / "vulns.json", list(db.values()), compact=True)
-    write_json(state_dir / "alerts.json", alerts[-5000:], compact=True)
+    # L'état est sauvegardé dans une branche publique : on n'y garde JAMAIS d'information sur tes actifs
+    # (l'inventaire et la liste de surveillance sont relus depuis les secrets à chaque passage).
+    priv = ("assets", "asset_versions", "asset_owner", "asset_crit", "asset_exposed", "watch")
+    write_json(state_dir / "vulns.json", [{k: v for k, v in r.items() if k not in priv} for r in db.values()], compact=True)
+    write_json(state_dir / "alerts.json", [sanitize_alert(a) for a in alerts[-5000:]], compact=True)
     write_json(state_dir / "kev_seen.json", sorted(kev_seen), compact=True)
     write_json(state_dir / "state.json", state)
 
-    # 8. Publication
-    meta = {"kev_version": kev_version, "health": health}
-    build_outputs(site_dir, list(db.values()), kev_recent, alerts, cfg, meta)
+    # 14. Publication
+    meta = {"kev_version": kev_version, "health": health, "inventory": inventory, "stats": state["stats"]}
+    private_xlsx = build_outputs(site_dir, list(db.values()), kev_recent, alerts, cfg, meta)
     tpl = Path(__file__).with_name("site") / "index.html"
     if tpl.exists():
         shutil.copy(tpl, site_dir / "index.html")
 
-    # 9. Rapport quotidien par courriel, avec le classeur Excel en pièce jointe
-    if notifier.email_ok() and cfg["daily_report"] and not args.no_alerts:
-        local_now = now.astimezone(ZoneInfo(cfg["tz"])) if ZoneInfo else now
-        today_local = local_now.strftime("%Y-%m-%d")
-        if (args.daily_report_now or (local_now.hour >= cfg["daily_hour"] and state.get("daily_sent") != today_local)):
+    # 15. Résumé quotidien : notification push + courriel avec l'Excel en pièce jointe
+    local_now = now.astimezone(ZoneInfo(cfg["tz"])) if ZoneInfo else now
+    due = args.daily_report_now or (local_now.hour >= cfg["daily_hour"] and state.get("daily_sent") != local_today)
+    if cfg["daily_report"] and due and not args.no_alerts and not silent:
+        p = Counter(v["priority"] for v in view.values())
+        notifier.send(f"VulnWatch — point du {local_today}",
+                      [f"P1 : {p.get('P1', 0)} · P2 : {p.get('P2', 0)} · exploitées : {sum(1 for v in view.values() if v.get('kev'))} · "
+                       f"mon parc : {sum(1 for v in view.values() if v.get('watch'))}",
+                       f"Nouvelles CVE hier : {next((x['new'] for x in stats if x['date'] < local_today), 0) if len(stats) > 1 else day['new']}",
+                       "Ouvre l'Excel pour la liste « À traiter »."], 3, "", ["clipboard"])
+        if notifier.email_ok():
             try:
                 text, hb = daily_report_html(list(db.values()), kev_recent, alerts, cfg)
-                notifier.send_email(f"[VulnWatch] Rapport du {today_local}", text, hb, site_dir / "VulnWatch.xlsx")
-                state["daily_sent"] = today_local
-                write_json(state_dir / "state.json", state)
+                notifier.send_email(f"[VulnWatch] Rapport du {local_today}", text, hb, private_xlsx)
                 log("Rapport quotidien envoyé avec l'Excel en pièce jointe.")
             except Exception as e:  # noqa: BLE001
                 log(f"Rapport quotidien : échec ({type(e).__name__}: {e})", "WARN")
+        state["daily_sent"] = local_today
+        write_json(state_dir / "state.json", state)
     log("Terminé.")
     return 0
 

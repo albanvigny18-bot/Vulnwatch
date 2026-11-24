@@ -1,0 +1,10 @@
+Actif;Fournisseur;Produit;Version;Criticite;Expose;Proprietaire
+VPN principal;Fortinet;FortiOS;7.2.5;Haute;Oui;Équipe réseau
+Pare-feu périmétrique;Palo Alto Networks;PAN-OS;10.2.7;Haute;Oui;Équipe réseau
+Messagerie;Microsoft;Exchange Server;2019 CU14;Haute;Oui;Équipe Microsoft
+Hyperviseurs;VMware;ESXi;8.0 U2;Haute;Non;Infrastructure
+Postes de travail;Microsoft;Windows 11;23H2;Moyenne;Non;Soutien technique
+Navigateur;Google;Chrome;131;Moyenne;Non;Soutien technique
+Automates ligne 2;Siemens;SIMATIC S7-1500;3.0;Haute;Non;Équipe OT
+IHM atelier;Mitsubishi Electric;GOT2000;1.290;Moyenne;Non;Équipe OT
+Portail web;Apache;Tomcat;9.0.85;Moyenne;Oui;Équipe applicative

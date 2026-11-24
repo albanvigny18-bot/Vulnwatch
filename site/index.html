@@ -7,162 +7,253 @@
 <meta name="apple-mobile-web-app-title" content="VulnWatch">
 <meta name="theme-color" content="#0f172a">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%9B%A1%EF%B8%8F%3C/text%3E%3C/svg%3E">
-<title>VulnWatch — Veille des vulnérabilités</title>
+<link rel="alternate" type="application/atom+xml" title="Alertes VulnWatch" href="feed.xml">
+<title>VulnWatch — Console de veille des vulnérabilités</title>
 <style>
-:root{--bg:#f6f7f9;--card:#fff;--ink:#0f172a;--mute:#64748b;--line:#e2e8f0;--acc:#2563eb;
---crit:#b91c1c;--high:#ea580c;--med:#ca8a04;--low:#16a34a;--na:#64748b;--kev:#7f1d1d;--watch:#1d4ed8}
-@media (prefers-color-scheme:dark){:root{--bg:#0b1120;--card:#111827;--ink:#e5e7eb;--mute:#94a3b8;--line:#1f2937;--acc:#60a5fa}}
+:root{--bg:#f6f7f9;--card:#fff;--ink:#0f172a;--mute:#64748b;--line:#e2e8f0;--acc:#2563eb;--crit:#b91c1c;--high:#ea580c;--med:#ca8a04;--low:#16a34a;--na:#64748b;--kev:#7f1d1d;--watch:#1d4ed8;--code:#eef2ff}
+@media (prefers-color-scheme:dark){:root{--bg:#0b1120;--card:#111827;--ink:#e5e7eb;--mute:#94a3b8;--line:#1f2937;--acc:#60a5fa;--code:#1e293b}}
 *{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
-body{margin:0;font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);
-padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
-header{position:sticky;top:0;z-index:5;background:var(--bg);padding:12px 14px 8px;border-bottom:1px solid var(--line)}
-h1{font-size:20px;margin:0 0 2px}.sub{color:var(--mute);font-size:13px}
-.wrap{max-width:1100px;margin:0 auto;padding:12px 14px 40px}
-.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;margin-bottom:14px}
-.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+body{margin:0;font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 14px 8px;border-bottom:1px solid var(--line)}
+h1{font-size:19px;margin:0}.sub{color:var(--mute);font-size:12.5px}
+.wrap{max-width:1150px;margin:0 auto;padding:12px 14px 40px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;margin-bottom:12px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 11px;cursor:pointer}
 .kpi b{display:block;font-size:22px}.kpi span{color:var(--mute);font-size:12px;line-height:1.25;display:block}
-.kpi.crit b{color:var(--crit)}.kpi.kev b{color:var(--kev)}.kpi.watch b{color:var(--watch)}
+.kpi.p1 b{color:var(--crit)}.kpi.p2 b{color:var(--high)}.kpi.kev b{color:var(--kev)}.kpi.watch b{color:var(--watch)}
 .tabs{display:flex;gap:6px;overflow-x:auto;margin-top:8px;scrollbar-width:none}
 .tab{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:7px 13px;font-size:14px;white-space:nowrap;cursor:pointer}
 .tab.on{background:var(--acc);border-color:var(--acc);color:#fff}
-.tools{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
-.tools input[type=search]{flex:1 1 220px;min-width:0;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:16px}
-.chip{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:7px 11px;font-size:13px;cursor:pointer}
-.chip.on{border-color:var(--acc);color:var(--acc);font-weight:600}
-.dl{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 14px}
-.btn{display:inline-block;text-decoration:none;background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:8px 12px;font-size:14px}
-.item{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:9px}
-.top{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
-.id{font-weight:700;color:var(--ink);text-decoration:none;margin-right:4px}
-.b{font-size:11.5px;font-weight:700;border-radius:6px;padding:2px 7px;color:#fff;white-space:nowrap}
-.s-CRITIQUE{background:var(--crit)}.s-ÉLEVÉE{background:var(--high)}.s-MOYENNE{background:var(--med)}.s-FAIBLE{background:var(--low)}
-.s-NON,.s-AUCUNE{background:var(--na)}.b-kev{background:var(--kev)}.b-ran{background:#000}.b-watch{background:var(--watch)}
-.p-P1{background:#c00000}.p-P2{background:#ed7d31}.p-P3{background:#bf8f00}.p-P4{background:#94a3b8}.b-new{background:#0891b2}.b-epss{background:transparent;color:var(--ink);border:1px solid var(--line)}
-.vp{color:var(--mute);font-size:13px;margin-top:4px}.desc{margin-top:5px;font-size:14px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.item.open .desc{-webkit-line-clamp:unset}.meta{color:var(--mute);font-size:12px;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.item.open .meta{-webkit-line-clamp:unset}
-.more{display:block;margin:12px auto;padding:10px 18px}
+.qbox{display:flex;gap:6px;margin:10px 0 6px}
+.qbox input{flex:1;min-width:0;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:15px ui-monospace,SFMono-Regular,Menlo,monospace}
+.btn{display:inline-block;text-decoration:none;background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:8px 11px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.btn.pri{background:var(--acc);color:#fff;border-color:var(--acc)}
+.saved{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 10px;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.chip:hover,.chip.on{border-color:var(--acc);color:var(--acc)}
+.help{display:none;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 13px;font-size:13.5px;margin:6px 0}
+.help.on{display:block}.help code,.q code{background:var(--code);padding:1px 5px;border-radius:5px;font-size:12.5px}
+.help table{border-collapse:collapse;width:100%}.help td{padding:3px 6px;border-top:1px solid var(--line);vertical-align:top}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin:8px 0}
+.count{color:var(--mute);font-size:13px}
+.dl{display:flex;flex-wrap:wrap;gap:6px}
+.item{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:5px}
+.id{font-weight:700;color:var(--ink);text-decoration:none;margin-right:3px}
+.b{font-size:11px;font-weight:700;border-radius:6px;padding:2px 6px;color:#fff;white-space:nowrap}
+.s-CRITIQUE{background:var(--crit)}.s-ÉLEVÉE{background:var(--high)}.s-MOYENNE{background:var(--med)}.s-FAIBLE{background:var(--low)}.s-NON,.s-AUCUNE{background:var(--na)}
+.p-P1{background:#c00000}.p-P2{background:#ed7d31}.p-P3{background:#bf8f00}.p-P4{background:#94a3b8}
+.b-kev{background:var(--kev)}.b-ran{background:#000}.b-watch{background:var(--watch)}.b-new{background:#0891b2}.b-msf{background:#6d28d9}.b-poc{background:#9333ea}
+.b-o{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.vp{color:var(--mute);font-size:13px;margin-top:3px}.why{font-size:13px;margin-top:4px}
+.desc{margin-top:4px;font-size:14px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.det{display:none;margin-top:8px;font-size:13px}.item.open .det{display:block}.item.open .desc{-webkit-line-clamp:unset}
+.det table{border-collapse:collapse;width:100%}.det td{padding:3px 6px;border-top:1px solid var(--line);vertical-align:top;word-break:break-word}.det td:first-child{color:var(--mute);width:38%}
+.more{display:block;margin:12px auto}
 .empty{color:var(--mute);text-align:center;padding:30px}
-.health{font-size:12.5px;color:var(--mute);margin-top:18px}.bad{color:var(--crit);font-weight:600}
-footer{color:var(--mute);font-size:12px;margin-top:24px;text-align:center}
+.views{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
+.view{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer}
+.view b{font-size:15px}.view .n{float:right;font-weight:700}.view .n.r{color:var(--crit)}.view p{margin:4px 0 0;color:var(--mute);font-size:12.5px}
+.health{font-size:12px;color:var(--mute);margin-top:16px}.bad{color:var(--crit);font-weight:600}
+footer{color:var(--mute);font-size:12px;margin-top:20px;text-align:center}
 </style>
 </head>
 <body>
 <header>
-  <h1>VulnWatch</h1>
+  <h1>🛡️ VulnWatch</h1>
   <div class="sub" id="upd">Chargement…</div>
   <nav class="tabs" id="tabs">
     <button class="tab on" data-t="prio">Priorités</button>
+    <button class="tab" data-t="views">Vues expertes</button>
     <button class="tab" data-t="all">Toutes les CVE</button>
-    <button class="tab" data-t="kev">CISA KEV</button>
+    <button class="tab" data-t="kev">Catalogue KEV</button>
     <button class="tab" data-t="alerts">Alertes</button>
   </nav>
 </header>
 <div class="wrap">
   <section class="kpis" id="kpis"></section>
-  <div class="dl">
-    <a class="btn" href="VulnWatch.xlsx">⬇︎ Excel</a>
-    <a class="btn" href="vulns.csv">⬇︎ CSV des CVE</a>
-    <a class="btn" href="kev.csv">⬇︎ CSV KEV</a>
-    <a class="btn" href="alertes.csv">⬇︎ CSV alertes</a>
+  <div class="qbox">
+    <input id="q" type="search" placeholder='Requête : ex. cvss>=9 exploit:metasploit famille:périmétrique' autocomplete="off" autocapitalize="off" spellcheck="false">
+    <button class="btn" id="hbtn" title="Aide sur les requêtes">?</button>
   </div>
-  <div class="tools" id="tools">
-    <input type="search" id="q" placeholder="Rechercher : CVE, produit, fournisseur, mot-clé…" autocomplete="off">
-    <button class="chip" data-f="CRITIQUE">Critiques</button>
-    <button class="chip" data-f="ÉLEVÉE">Élevées</button>
-    <button class="chip" data-f="kev">Exploitées (KEV)</button>
-    <button class="chip" data-f="watch">Mon parc</button>
-    <button class="chip" data-f="epss">EPSS ≥ 10 %</button>
+  <div class="saved" id="saved"></div>
+  <div class="help" id="help">
+    <b>Langage de requête</b> — combine librement les critères (ET implicite), <code>-</code> devant un critère pour l'exclure, guillemets pour les espaces, virgule pour « OU ».
+    <table>
+      <tr><td><code>texte libre</code></td><td>recherche dans CVE, fournisseur, produit, description, tags</td></tr>
+      <tr><td><code>p:P1,P2</code></td><td>priorité</td></tr>
+      <tr><td><code>cvss>=9</code> <code>epss>=10%</code> <code>risque>=80</code> <code>age<=7</code></td><td>comparaisons numériques (&gt;, &gt;=, &lt;, &lt;=, =)</td></tr>
+      <tr><td><code>kev:oui</code> <code>parc:oui</code> <code>nouveau:oui</code> <code>correctif:non</code> <code>ransomware:oui</code></td><td>indicateurs</td></tr>
+      <tr><td><code>exploit:metasploit|poc|nuclei|aucun</code> <code>ssvc:active</code></td><td>maturité de l'exploitation</td></tr>
+      <tr><td><code>fournisseur:fortinet</code> <code>produit:"pan-os"</code> <code>cve:2024-3400</code> <code>cwe:79</code></td><td>identification</td></tr>
+      <tr><td><code>tag:rce</code> <code>famille:ot</code> <code>vue:"RCE pré-auth"</code></td><td>classification experte</td></tr>
+      <tr><td><code>av:reseau</code> <code>pr:aucun</code> <code>ui:aucune</code> <code>auto:oui</code></td><td>conditions d'attaque (CVSS / SSVC)</td></tr>
+      <tr><td><code>paquet:npm</code> <code>sev:critique</code> <code>source:cna</code></td><td>open source, sévérité, source du score</td></tr>
+      <tr><td><code>tri:risque|cvss|epss|date|age</code></td><td>ordre d'affichage (défaut : priorité puis risque)</td></tr>
+    </table>
   </div>
+  <div class="bar"><span class="count" id="count"></span>
+    <span class="dl"><button class="btn" id="exp">⬇︎ Exporter le résultat (CSV)</button><a class="btn" href="VulnWatch.xlsx">⬇︎ Excel</a><a class="btn" href="feed.xml">RSS</a></span></div>
   <main id="list"></main>
   <div class="health" id="health"></div>
-  <footer>Sources : NVD (NIST) · CISA Known Exploited Vulnerabilities · FIRST EPSS — mise à jour automatique toutes les heures.</footer>
+  <footer>Sources : NVD (NIST) · CISA KEV · CISA Vulnrichment (SSVC) · FIRST EPSS · GitHub Advisories · Metasploit · Nuclei · Exploit-DB.<br>
+  Données publiques ; les informations sur tes actifs ne sont jamais publiées ici. API : <a href="data.json">data.json</a> · <a href="vulns.csv">vulns.csv</a> · <a href="kev.csv">kev.csv</a> · <a href="alertes.csv">alertes.csv</a></footer>
 </div>
 <script>
 (function(){
-  var D=null, tab='prio', shown=60, filt={};
+  var D=null, tab='prio', shown=50, cur=[];
   var $=function(id){return document.getElementById(id)};
+  var SAVED=[
+    ['🔥 Exploitées', 'kev:oui'], ['💣 Metasploit + CVSS≥7', 'exploit:metasploit cvss>=7'],
+    ['🚪 RCE pré-auth', 'vue:"RCE pré-auth"'], ['🧱 Périmétrique critique', 'famille:périmétrique cvss>=9'],
+    ['🏭 OT / ICS', 'famille:ot'], ['🪟 Patch Tuesday', 'fournisseur:microsoft p:P1,P2,P3'],
+    ['📈 EPSS en hausse', 'vue:"EPSS en hausse"'], ['🎯 Mon parc', 'parc:oui'],
+    ['🆕 Nouvelles critiques', 'nouveau:oui cvss>=9'], ['🩹 Critiques sans correctif', 'cvss>=9 correctif:non'],
+    ['📦 Open source', 'paquet:*'], ['💰 Rançongiciels', 'ransomware:oui'], ['⏳ Non notées par la NVD', 'source:cna,cisa']
+  ];
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function fmt(iso){if(!iso)return'';var d=new Date(iso);return isNaN(d)?iso:d.toLocaleString('fr-CA',{dateStyle:'medium',timeStyle:'short'})}
-  function pct(x){return x==null?'':(x*100).toFixed(x<0.1?1:0)+' %'}
+  function pct(x){return x==null?'—':(x*100).toFixed(x<0.1?1:0)+' %'}
   function ago(iso){var m=(Date.now()-new Date(iso))/60000;if(m<60)return Math.round(m)+' min';if(m<1440)return Math.round(m/60)+' h';return Math.round(m/1440)+' j'}
+  function norm(s){return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')}
 
+  // ---------- langage de requête
+  var NUM={cvss:'score',score:'score',epss:'epss',risque:'risk',risk:'risk',age:'age_days',percentile:'epss_pct'};
+  var TXT={fournisseur:'vendor',vendor:'vendor',produit:'product',product:'product',cve:'id',cwe:'cwe',tag:'tags',famille:'family',
+           vue:'views',av:'av',pr:'pr',ui:'ui',paquet:'packages',sev:'severity',severite:'severity',source:'score_source',ssvc:'ssvc_exploitation',
+           auto:'ssvc_automatable',actif:'watch',statut:'status',ticket:'ticket_status'};
+  function parse(q){
+    var re=/(-?)([a-zA-Zéèà_]+)(>=|<=|:|>|<|=)("[^"]*"|\S+)|(-?)("[^"]*"|\S+)/g, m, out=[];
+    while((m=re.exec(q))){
+      if(m[2]){out.push({neg:!!m[1],key:norm(m[2]),op:m[3],val:m[4].replace(/^"|"$/g,'')})}
+      else{out.push({neg:!!m[5],key:'',op:':',val:m[6].replace(/^"|"$/g,'')})}
+    }
+    return out;
+  }
+  function numv(v){v=String(v).replace(',','.');if(/%$/.test(v))return parseFloat(v)/100;return parseFloat(v)}
+  function test(r,t){
+    var k=t.key, v=norm(t.val), alts=v.split(',');
+    if(!k){var hay=norm([r.id,r.vendor,r.product,r.desc,r.tags,r.family,r.views,r.watch,r.packages].join(' '));return hay.indexOf(v)>=0}
+    if(k==='tri')return true;
+    if(NUM[k]){var x=r[NUM[k]], n=numv(t.val);if(x==null)return false;
+      if(k==='epss'&&n>1)n=n/100;
+      switch(t.op){case'>=':return x>=n;case'<=':return x<=n;case'>':return x>n;case'<':return x<n;default:return Math.abs(x-n)<1e-9}}
+    var yes=function(b){return alts.indexOf('oui')>=0||alts.indexOf('yes')>=0?b:!b};
+    if(k==='p'||k==='priorite'||k==='priority')return alts.indexOf(norm(r.priority))>=0;
+    if(k==='kev')return yes(!!r.kev);
+    if(k==='parc'||k==='watch')return yes(!!r.watch);
+    if(k==='nouveau'||k==='new')return yes(r['new']==='Oui');
+    if(k==='correctif'||k==='patch')return yes(r.patch_available==='Oui');
+    if(k==='ransomware'||k==='rancongiciel')return yes(r.ransomware==='Known');
+    if(k==='exploit'){var em=norm(r.exploit_maturity);return alts.some(function(a){
+      if(a==='metasploit'||a==='msf'||a==='arme')return !!r.msf;
+      if(a==='poc')return em.indexOf('preuve')===0||norm(r.ssvc_exploitation).indexOf('preuve')===0;
+      if(a==='nuclei')return r.nuclei==='Oui';
+      if(a==='aucun'||a==='non')return !em;
+      if(a==='oui'||a==='*')return !!em;return em.indexOf(a)>=0})}
+    var f=TXT[k]; if(!f)return true;
+    var val=norm(r[f]);
+    if(v==='*')return !!val;
+    if(k==='av'&&v==='reseau')v='reseau';
+    return alts.some(function(a){return val.indexOf(a)>=0});
+  }
+  var PO={P1:0,P2:1,P3:2,P4:3};
+  function run(rows,q){
+    var ts=parse(q), sort=null;
+    ts.forEach(function(t){if(t.key==='tri')sort=norm(t.val)});
+    var res=rows.filter(function(r){return ts.every(function(t){var ok=test(r,t);return t.neg?!ok:ok})});
+    var key={risque:'risk',cvss:'score',epss:'epss',age:'age_days',date:'published'}[sort];
+    res.sort(key?function(a,b){var x=a[key],y=b[key];if(key==='age_days')return (x==null?1e9:x)-(y==null?1e9:y);return (y>x?1:y<x?-1:0)}
+               :function(a,b){return (PO[a.priority]-PO[b.priority])||((b.risk||0)-(a.risk||0))});
+    return res;
+  }
+
+  // ---------- rendu
   function vulnCard(r){
-    var sev=r.severity||'NON ÉVALUÉE', cls='s-'+sev.split(' ')[0];
+    var sev=r.severity||'NON ÉVALUÉE';
     var h='<div class="item"><div class="top"><a class="id" href="https://nvd.nist.gov/vuln/detail/'+esc(r.id)+'" target="_blank" rel="noopener">'+esc(r.id)+'</a>'+
-      (r.priority?'<span class="b p-'+r.priority+'">'+r.priority+'</span>':'')+
-      '<span class="b '+cls+'">'+esc(sev)+(r.score!=null?' '+r.score.toFixed(1):'')+'</span>';
-    if(r['new'])h+='<span class="b b-new">NOUVEAU</span>';
+      '<span class="b p-'+r.priority+'">'+r.priority+'</span><span class="b s-'+sev.split(' ')[0]+'">'+esc(sev)+(r.score!=null?' '+r.score.toFixed(1):'')+'</span>'+
+      '<span class="b b-o">Risque '+r.risk+'</span>';
     if(r.kev)h+='<span class="b b-kev">EXPLOITÉE</span>';
+    if(r.msf)h+='<span class="b b-msf">METASPLOIT</span>';else if((r.exploit_maturity||'').indexOf('Preuve')===0)h+='<span class="b b-poc">POC</span>';
     if(r.ransomware==='Known')h+='<span class="b b-ran">RANÇONGICIEL</span>';
-    if(r.watch)h+='<span class="b b-watch">PARC'+(r.watch!=='✓'?' : '+esc(r.watch):'')+'</span>';
-    if(r.epss!=null)h+='<span class="b b-epss">EPSS '+pct(r.epss)+'</span>';
+    if(r.watch)h+='<span class="b b-watch">MON PARC</span>';
+    if(r['new'])h+='<span class="b b-new">NOUVEAU</span>';
+    if(r.epss!=null)h+='<span class="b b-o">EPSS '+pct(r.epss)+'</span>';
     h+='</div>';
-    var vp=[r.vendor,r.product].filter(Boolean).join(' · ');
+    var vp=[r.vendor,r.product].filter(Boolean).join(' · ')+(r.family?' — '+r.family:'');
     if(vp)h+='<div class="vp">'+esc(vp)+'</div>';
-    h+='<div class="desc">'+(r.action?'<b>'+esc(r.action)+'.</b> ':'')+esc(r.desc)+'</div><div class="meta">Publiée '+fmt(r.published)+' · modifiée '+fmt(r.modified)+
-      (r.kev_due?' · échéance CISA '+esc(r.kev_due):'')+(r.cwe?' · '+esc(r.cwe):'')+'</div></div>';
+    h+='<div class="why"><b>'+esc(r.action)+'.</b> '+esc(r.justification)+'</div><div class="desc">'+esc(r.desc)+'</div>';
+    var rows=[['Type d\'impact',r.tags],['Vues expertes',r.views],['Versions affectées',r.versions],['Paquets',r.packages&&(r.packages+' '+(r.pkg_ranges||'')+(r.pkg_fixed?' → corrigé en '+r.pkg_fixed:''))],
+      ['Exploitation (SSVC)',r.ssvc_exploitation],['Automatisable / impact (SSVC)',[r.ssvc_automatable,r.ssvc_impact].filter(Boolean).join(' / ')],
+      ['Maturité de l\'exploit',r.exploit_maturity],['Metasploit',r.msf],['Exploit-DB',r.edb],['Vecteur d\'attaque',[r.av,r.ac&&('complexité '+r.ac),r.pr&&('privilèges '+r.pr),r.ui&&('interaction '+r.ui)].filter(Boolean).join(' · ')],
+      ['Impact C/I/D',r.cia],['Score',(r.score!=null?r.score+' (CVSS '+(r.cvss_version||'')+', source '+(r.score_source||'')+')':'')],['Vecteur CVSS',r.vector],
+      ['EPSS / percentile / Δ 7 j',(r.epss!=null?pct(r.epss)+' / '+pct(r.epss_pct)+(r.epss_delta!=null?' / '+(r.epss_delta>=0?'+':'')+(r.epss_delta*100).toFixed(1)+' pts':''):'')],
+      ['Faiblesse',[r.cwe,r.cwe_name].filter(Boolean).join(' — ')],['Échéance CISA',r.kev_due],['Suivi',r.ticket_status],
+      ['Publiée / modifiée',fmt(r.published)+' / '+fmt(r.modified)],['Émetteur',r.source],['Statut NVD',r.status]];
+    h+='<div class="det"><table>'+rows.filter(function(x){return x[1]}).map(function(x){return '<tr><td>'+esc(x[0])+'</td><td>'+esc(x[1])+'</td></tr>'}).join('')+'</table>'+
+      (r.ref_patch?'<p><a href="'+esc(r.ref_patch)+'" target="_blank" rel="noopener">Correctif / avis éditeur ↗</a></p>':'')+
+      (r.ticket_url?'<p><a href="'+esc(r.ticket_url)+'" target="_blank" rel="noopener">Ticket de suivi ↗</a></p>':'')+'</div></div>';
     return h;
   }
   function kevCard(k){
     return '<div class="item"><div class="top"><a class="id" href="https://nvd.nist.gov/vuln/detail/'+esc(k.cveID)+'" target="_blank" rel="noopener">'+esc(k.cveID)+'</a>'+
       '<span class="b b-kev">KEV '+esc(k.dateAdded)+'</span>'+(k.knownRansomwareCampaignUse==='Known'?'<span class="b b-ran">RANÇONGICIEL</span>':'')+
-      '</div><div class="vp">'+esc(k.vendorProject)+' · '+esc(k.product)+'</div><div class="desc"><b>'+esc(k.vulnerabilityName)+'.</b> '+esc(k.shortDescription)+
-      '</div><div class="meta">Action : '+esc(k.requiredAction)+' · échéance '+esc(k.dueDate)+'</div></div>';
+      '<span class="b b-o">Échéance '+esc(k.dueDate)+'</span></div><div class="vp">'+esc(k.vendorProject)+' · '+esc(k.product)+'</div><div class="desc"><b>'+esc(k.vulnerabilityName)+'.</b> '+esc(k.shortDescription)+
+      '</div><div class="det">Action requise : '+esc(k.requiredAction)+'</div></div>';
   }
   function alertCard(a){
     return '<div class="item"><div class="top"><a class="id" href="https://nvd.nist.gov/vuln/detail/'+esc(a.cve)+'" target="_blank" rel="noopener">'+esc(a.cve)+'</a>'+
-      '<span class="b '+(a.priority>=5?'s-CRITIQUE':'s-ÉLEVÉE')+'">P'+esc(a.priority)+'</span></div><div class="desc">'+esc(a.reasons)+
-      '</div><div class="meta">'+fmt(a.date)+' · '+esc(a.channels)+'</div></div>';
+      '<span class="b '+(a.priority>=5?'p-P1':'p-P2')+'">Niveau '+esc(a.priority)+'</span></div><div class="why">'+esc(a.reasons)+'</div><div class="vp">'+fmt(a.date)+' · '+esc(a.channels)+'</div></div>';
   }
-  function match(r,q){
-    if(q){var hay=(r.id+' '+r.vendor+' '+r.product+' '+r.desc+' '+(r.watch||'')+' '+(r.cveID||'')+' '+(r.vendorProject||'')+' '+(r.vulnerabilityName||'')+' '+(r.shortDescription||'')+' '+(r.reasons||'')).toLowerCase();
-      if(hay.indexOf(q)<0)return false}
-    if(tab==='kev'||tab==='alerts')return true;
-    var sevs=['CRITIQUE','ÉLEVÉE'].filter(function(s){return filt[s]});
-    if(sevs.length&&sevs.indexOf(r.severity)<0)return false;
-    if(filt.kev&&!r.kev)return false;
-    if(filt.watch&&!r.watch)return false;
-    if(filt.epss&&!(r.epss>=0.1))return false;
-    return true;
-  }
-  function prioList(){
-    var o={P1:0,P2:1,P3:2,P4:3};
-    return D.vulns.filter(function(r){return r.priority==='P1'||r.priority==='P2'||r.priority==='P3'})
-      .sort(function(a,b){return (o[a.priority]-o[b.priority])||((b.risk||0)-(a.risk||0))});
+  function viewsGrid(){
+    return '<div class="views">'+D.views.map(function(v){
+      var rows=run(D.vulns,'vue:"'+v.name+'"'), p1=rows.filter(function(r){return r.priority==='P1'}).length;
+      return '<div class="view" data-q=\'vue:"'+esc(v.name)+'"\'><span class="n'+(p1?' r':'')+'">'+rows.length+(p1?' · '+p1+' P1':'')+'</span><b>'+esc(v.name)+'</b><p>'+esc(v.desc)+'</p></div>'}).join('')+'</div>';
   }
   function render(){
     if(!D)return;
-    var q=$('q').value.trim().toLowerCase(), src, card;
-    if(tab==='prio'){src=prioList();card=vulnCard}
-    else if(tab==='all'){src=D.vulns;card=vulnCard}
-    else if(tab==='kev'){src=D.kev;card=kevCard}
-    else {src=D.alerts;card=alertCard}
-    document.querySelectorAll('.chip').forEach(function(c){c.style.display=(tab==='kev'||tab==='alerts')?'none':''});
-    var rows=src.filter(function(r){return match(r,q)});
-    var html=rows.slice(0,shown).map(card).join('');
-    if(!rows.length)html='<div class="empty">Aucun résultat.</div>';
-    if(rows.length>shown)html+='<button class="btn more" id="more">Afficher plus ('+(rows.length-shown)+' restantes)</button>';
+    var q=$('q').value.trim(), src, card;
+    if(tab==='views'&&!q){$('list').innerHTML=viewsGrid();$('count').textContent=D.views.length+' vues expertes — touche une vue pour l\'ouvrir';cur=[];return}
+    if(tab==='kev'){cur=D.kev.filter(function(k){return !q||norm(JSON.stringify(k)).indexOf(norm(q))>=0});card=kevCard}
+    else if(tab==='alerts'){cur=D.alerts.filter(function(a){return !q||norm(JSON.stringify(a)).indexOf(norm(q))>=0});card=alertCard}
+    else{src=(tab==='prio'&&!q)?D.vulns.filter(function(r){return r.priority==='P1'||r.priority==='P2'}):D.vulns;cur=run(src,q);card=vulnCard}
+    $('count').textContent=cur.length+' résultat'+(cur.length>1?'s':'');
+    var html=cur.slice(0,shown).map(card).join('');
+    if(!cur.length)html='<div class="empty">Aucun résultat.</div>';
+    if(cur.length>shown)html+='<button class="btn more" id="more">Afficher plus ('+(cur.length-shown)+' restants)</button>';
     $('list').innerHTML=html;
     var m=$('more');if(m)m.onclick=function(){shown+=100;render()};
   }
   function header(){
     var k=D.kpi;
-    $('upd').innerHTML='Mise à jour il y a '+ago(k.updated)+' ('+fmt(k.updated)+') · '+k.total+' CVE suivies';
-    var cards=[['Nouvelles CVE (24 h)',k.new_24h,''],['Nouvelles CVE (7 j)',k.new_7d,''],['Critiques ≥ '+k.critical_score+' (7 j)',k.critical_7d,'crit'],
-      ['Ajouts KEV (7 j)',k.kev_7d,'kev'],['Mon parc (7 j)',k.watch_7d,'watch'],['Alertes envoyées (7 j)',k.alerts_7d,'']];
-    $('kpis').innerHTML=cards.map(function(c){return '<div class="kpi '+c[2]+'"><b>'+c[1]+'</b><span>'+c[0]+'</span></div>'}).join('');
-    var hs=Object.keys(k.health||{}).map(function(s){var h=k.health[s];return h.fails?'<span class="bad">'+esc(s)+' : '+h.fails+' échec(s)</span>':esc(s)+' : OK'});
-    $('health').innerHTML='État des sources — '+hs.join(' · ')+(k.kev_version?' · catalogue KEV '+esc(k.kev_version):'');
-    if((Date.now()-new Date(k.updated))/3600000>3)$('upd').innerHTML+=' <span class="bad">⚠︎ données de plus de 3 h</span>';
+    $('upd').innerHTML='Mise à jour il y a '+ago(k.updated)+' · '+k.total+' CVE suivies'+((Date.now()-new Date(k.updated))/3600000>3?' <span class="bad">⚠︎ données de plus de 3 h</span>':'');
+    var cards=[['P1 — sous 48 h',k.p1,'p1','p:P1'],['P2 — sous 7 j',k.p2,'p2','p:P2'],['Exploitées',D.vulns.filter(function(r){return r.kev}).length,'kev','kev:oui'],
+      ['Metasploit',k.weapon,'p1','exploit:metasploit'],['Mon parc',D.vulns.filter(function(r){return r.watch}).length,'watch','parc:oui'],
+      ['Nouvelles 24 h',k.new_24h,'','nouveau:oui'],['Critiques 7 j',k.critical_7d,'p1','cvss>=9 age<=7'],['Ajouts KEV 7 j',k.kev_7d,'kev','']];
+    $('kpis').innerHTML=cards.map(function(c){return '<div class="kpi '+c[2]+'" data-q="'+esc(c[3])+'"><b>'+c[1]+'</b><span>'+c[0]+'</span></div>'}).join('');
+    var hs=Object.keys(k.health||{}).map(function(s){var h=k.health[s];return h.fails?'<span class="bad">'+esc(s)+' : '+h.fails+' échec(s)</span>':esc(s)+' ✓'});
+    $('health').innerHTML='État des sources — '+hs.join(' · ')+(k.kev_version?' · KEV '+esc(k.kev_version):'')+(k.encrypted?' · Excel chiffré 🔒':'');
+    $('saved').innerHTML=SAVED.map(function(s){return '<button class="chip" data-q=\''+esc(s[1])+'\'>'+esc(s[0])+'</button>'}).join('');
   }
-  $('tabs').addEventListener('click',function(e){var t=e.target.closest('.tab');if(!t)return;
-    document.querySelectorAll('.tab').forEach(function(x){x.classList.toggle('on',x===t)});tab=t.dataset.t;shown=60;render()});
-  $('tools').addEventListener('click',function(e){var c=e.target.closest('.chip');if(!c)return;var f=c.dataset.f;filt[f]=!filt[f];c.classList.toggle('on',filt[f]);shown=60;render()});
-  $('q').addEventListener('input',function(){shown=60;render()});
-  $('list').addEventListener('click',function(e){var it=e.target.closest('.item');if(it&&!e.target.closest('a'))it.classList.toggle('open')});
+  function setQ(q,t){$('q').value=q;if(t){tab=t;document.querySelectorAll('.tab').forEach(function(x){x.classList.toggle('on',x.dataset.t===t)})}shown=50;render();try{history.replaceState(null,'','#q='+encodeURIComponent(q))}catch(e){}}
+  function exportCsv(){
+    if(!cur.length)return;
+    var cols=Object.keys(cur[0]).filter(function(c){return typeof cur[0][c]!=='object'});
+    var lines=[cols.join(';')].concat(cur.map(function(r){return cols.map(function(c){var v=r[c]==null?'':String(r[c]);return '"'+v.replace(/"/g,'""')+'"'}).join(';')}));
+    var blob=new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='vulnwatch-requete.csv';document.body.appendChild(a);a.click();a.remove();
+  }
+  $('tabs').addEventListener('click',function(e){var t=e.target.closest('.tab');if(!t)return;$('q').value='';setQ('',t.dataset.t)});
+  $('saved').addEventListener('click',function(e){var c=e.target.closest('.chip');if(c)setQ(c.dataset.q,'all')});
+  $('kpis').addEventListener('click',function(e){var c=e.target.closest('.kpi');if(!c)return;if(c.dataset.q)setQ(c.dataset.q,'all');else setQ('','kev')});
+  $('list').addEventListener('click',function(e){var v=e.target.closest('.view');if(v){setQ(v.dataset.q,'all');return}
+    var it=e.target.closest('.item');if(it&&!e.target.closest('a'))it.classList.toggle('open')});
+  $('q').addEventListener('input',function(){shown=50;if(tab==='views'||tab==='prio'){tab='all';document.querySelectorAll('.tab').forEach(function(x){x.classList.toggle('on',x.dataset.t==='all')})}render()});
+  $('hbtn').onclick=function(){$('help').classList.toggle('on')};
+  $('exp').onclick=exportCsv;
   fetch('data.json?t='+Date.now(),{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()})
-    .then(function(d){D=d;header();render()})
+    .then(function(d){D=d;header();var m=location.hash.match(/q=([^&]+)/);if(m)setQ(decodeURIComponent(m[1]),'all');else render()})
     .catch(function(e){$('upd').textContent='Impossible de charger les données ('+e.message+').'});
 })();
 </script>

@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: write   # sauvegarde de l'état dans la branche « data »
+  issues: write     # tickets de suivi (option TICKETS)
   pages: write      # publication du tableau de bord
   id-token: write
 
@@ -22,7 +23,7 @@ concurrency:
 jobs:
   veille:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
@@ -45,7 +46,10 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - run: pip install -r requirements.txt
+      - run: pip install -r requirements.txt pytest
+
+      - name: Tests automatiques (bloquent la publication en cas de régression)
+        run: python -m pytest -q tests
 
       - name: Veille des vulnérabilités
         env:
@@ -60,6 +64,19 @@ jobs:
           MAIL_FROM: ${{ secrets.MAIL_FROM }}
           MAIL_TO: ${{ secrets.MAIL_TO }}
           WATCHLIST: ${{ secrets.WATCHLIST }}
+          INVENTAIRE: ${{ secrets.INVENTAIRE }}
+          EXCEL_PASSWORD: ${{ secrets.EXCEL_PASSWORD }}
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+          WEBHOOK_TYPE: ${{ vars.WEBHOOK_TYPE }}
+          QUIET_HOURS: ${{ vars.QUIET_HOURS }}
+          TICKETS: ${{ vars.TICKETS }}
+          TICKET_PRIORITY: ${{ vars.TICKET_PRIORITY }}
+          ENRICH_MAX_PER_RUN: ${{ vars.ENRICH_MAX_PER_RUN }}
+          USE_GITHUB_ADVISORIES: ${{ vars.USE_GITHUB_ADVISORIES }}
+          USE_EXPLOIT_SOURCES: ${{ vars.USE_EXPLOIT_SOURCES }}
+          USE_VULNRICHMENT: ${{ vars.USE_VULNRICHMENT }}
+          GITHUB_TOKEN: ${{ github.token }}
+          INITIAL_DAYS: ${{ vars.INITIAL_DAYS }}
           HIDE_WATCHLIST: ${{ vars.HIDE_WATCHLIST }}
           CRITICAL_SCORE: ${{ vars.CRITICAL_SCORE }}
           EPSS_ALERT: ${{ vars.EPSS_ALERT }}
