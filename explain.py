@@ -127,8 +127,12 @@ def _threat(r: dict) -> str:
 def en_clair(r: dict, show_assets: bool = True) -> str:
     fam = _family(r)
     what = f"Une faille dans {_product(r)}" + (f", {fam}," if fam else "")
+    impact = _impact(r)
     how = _how(r)
-    s1 = f"{what} permet à un pirate de {_impact(r)}" + (f" {how}" if how else "") + "."
+    if "mot de passe" in impact and how.startswith("depuis Internet, sans compte"):
+        how = "depuis Internet" + how[len("depuis Internet, sans compte ni mot de passe"):]
+    de = "d'" if impact[:1].lower() in "aeiouyéèêàâîôû" else "de "
+    s1 = f"{what} permet à un pirate {de}{impact}" + (f" {how}" if how else "") + "."
     out = [s1.replace(",,", ","), _gravity(r), _threat(r)]
     if r.get("watch"):
         if show_assets and r.get("assets"):
@@ -177,8 +181,8 @@ def synthese(recs: list[dict], kpi: dict, stats: list | None = None, show_assets
         out.append(f"Ton parc est concerné par {len(parc)} d'entre elles, dont {len(parc_urg)} urgentes ou importantes. "
                    "Elles sont détaillées dans la feuille « Mon parc ».")
     else:
-        out.append("Aucun inventaire n'est encore renseigné : ajoute tes équipements et logiciels (secret INVENTAIRE ou "
-                   "onglet « Réglages » de la console) pour savoir lesquelles te concernent vraiment.")
+        out.append("Pour savoir lesquelles te concernent vraiment, ajoute tes équipements et logiciels dans l'onglet "
+                   "« Mon parc » de la console : c'est gratuit, sans compte, et ta liste reste sur ton appareil.")
     out.append(f"Dernières 24 h : {kpi.get('new_24h', 0)} nouvelles vulnérabilités, {kpi.get('critical_7d', 0)} critiques sur 7 jours, "
                f"{kpi.get('kev_7d', 0)} ajoutées à la liste des failles exploitées (CISA) sur 7 jours.")
     if p1:

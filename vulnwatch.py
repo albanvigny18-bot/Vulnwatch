@@ -603,6 +603,8 @@ def is_priority(r: dict) -> bool:
 
 PRIVATE_FIELDS = ("assets", "asset_versions", "asset_owner")
 INTERNAL_FIELDS = ("epss_hist", "vr_checked", "severity_en", "cna_vendor", "cna_product")
+# Champs recalculables côté navigateur (à partir du vecteur CVSS ou de la priorité) : retirés du JSON pour alléger la console.
+SLIM_FIELDS = ("av", "ac", "pr", "ui", "cia", "action", "first_seen", "exploit_ref", "score_source_raw")
 
 
 def encrypt_xlsx(src: Path, dst: Path, password: str) -> None:
@@ -704,14 +706,22 @@ def build_outputs(site: Path, records: list[dict], kev_recent: list[dict], alert
     alert_rows = sorted(alerts, key=lambda a: a["date"], reverse=True)[:1000]
     pub_alerts = [sanitize_alert(a) if hide else a for a in alert_rows]
 
-    # ---- JSON (console web + API)
+    # ---- JSON (console web + API) : allégé pour un chargement rapide sur téléphone
     from rapport_excel import EXPERT_QUERIES
+    web = []
+    for q in pub:
+        w = {k: v for k, v in q.items() if k not in SLIM_FIELDS and v not in (None, "", [], {})}
+        if q.get("priority") == "P4":  # explications génériques pour P4 : régénérées par la console si besoin
+            w.pop("plain", None)
+            w.pop("todo", None)
+            w.pop("justification", None)
+        web.append(w)
     write_json(site / "data.json", {
         "kpi": kpi,
         "views": [{"name": n, "desc": d} for n, d, _ in EXPERT_QUERIES],
         "synthese": explain.synthese(pub, kpi, meta.get("stats"), show_assets=False),
         "glossaire": [{"terme": t, "def": d} for t, d in explain.GLOSSAIRE],
-        "vulns": pub,
+        "vulns": web,
         "kev": [{k: v.get(k, "") for k in ("cveID", "vendorProject", "product", "vulnerabilityName", "dateAdded",
                                             "shortDescription", "requiredAction", "dueDate",
                                             "knownRansomwareCampaignUse")} for v in kev_rows],
