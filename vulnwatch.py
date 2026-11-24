@@ -4,7 +4,7 @@ VulnWatch — veille automatique des vulnérabilités, 24 h/24, gratuite (GitHub
 
 Sources : NVD 2.0 (NIST), catalogue CISA KEV, FIRST EPSS.
 Sorties  : tableau de bord web (GitHub Pages), classeur Excel, CSV (Power Query), JSON.
-Alertes  : Telegram, ntfy (iPhone/Android), courriel SMTP.
+Alertes  : Excel (journal + tableau de bord), ntfy (push iPhone/Android), courriel (+ rapport quotidien avec l'Excel joint).
 
 Tous les réglages passent par des variables d'environnement (secrets / variables GitHub),
 voir LISEZMOI.md. Le script est idempotent : l'état est conservé dans --state.
@@ -100,17 +100,18 @@ def load_config() -> dict:
         "hide_watch": _envb("HIDE_WATCHLIST", False),
         "tz": _env("TIMEZONE", "America/Toronto"),
         "site_url": _env("SITE_URL", ""),
-        "telegram_token": _env("TELEGRAM_BOT_TOKEN"),
-        "telegram_chat": _env("TELEGRAM_CHAT_ID"),
         "ntfy_server": (_env("NTFY_SERVER", "https://ntfy.sh") or "https://ntfy.sh").rstrip("/"),
         "ntfy_topic": _env("NTFY_TOPIC"),
         "ntfy_token": _env("NTFY_TOKEN"),
-        "smtp_host": _env("SMTP_HOST"),
+        "smtp_host": _env("SMTP_HOST", "smtp.gmail.com"),
         "smtp_port": _envi("SMTP_PORT", 587),
         "smtp_user": _env("SMTP_USER"),
         "smtp_pass": _env("SMTP_PASSWORD"),
         "mail_from": _env("MAIL_FROM"),
         "mail_to": _env("MAIL_TO"),
+        "email_min_priority": _envi("EMAIL_MIN_PRIORITY", 4),
+        "daily_report": _envb("DAILY_REPORT", True),
+        "daily_hour": _envi("DAILY_REPORT_HOUR", 7),
     }
 
 
@@ -320,83 +321,125 @@ def fetch_epss(http: Http, ids: list[str]) -> dict:
 # --------------------------------------------------------------------------- notifications
 
 class Notifier:
+    """Canaux : ntfy (notification push iPhone/Android) et courriel SMTP."""
+
     def __init__(self, cfg: dict, http: Http):
         self.cfg, self.http = cfg, http
 
-    def channels(self) -> list[str]:
+    def email_ok(self) -> bool:
         c = self.cfg
+        return bool(c["smtp_user"] and c["smtp_pass"] and c["mail_to"])
+
+    def channels(self) -> list[str]:
         out = []
-        if c["telegram_token"] and c["telegram_chat"]:
-            out.append("Telegram")
-        if c["ntfy_topic"]:
+        if self.cfg["ntfy_topic"]:
             out.append("ntfy")
-        if c["smtp_host"] and c["mail_from"] and c["mail_to"]:
+        if self.email_ok():
             out.append("Courriel")
         return out
+
+    def send_email(self, subject: str, text: str, html_body: str | None = None,
+                   attachment: Path | None = None, urgent: bool = False) -> None:
+        c = self.cfg
+        msg = EmailMessage()
+        msg["Subject"] = subject
+        msg["From"] = c["mail_from"] or c["smtp_user"]
+        msg["To"] = c["mail_to"]
+        if urgent:
+            msg["X-Priority"] = "1"
+            msg["Importance"] = "High"
+        msg.set_content(text)
+        if html_body:
+            msg.add_alternative(html_body, subtype="html")
+        if attachment and attachment.exists():
+            msg.add_attachment(attachment.read_bytes(), maintype="application",
+                               subtype="vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                               filename=attachment.name)
+        ctx = ssl.create_default_context()
+        if c["smtp_port"] == 465:
+            with smtplib.SMTP_SSL(c["smtp_host"], 465, context=ctx, timeout=60) as s:
+                s.login(c["smtp_user"], c["smtp_pass"])
+                s.send_message(msg)
+        else:
+            with smtplib.SMTP(c["smtp_host"], c["smtp_port"], timeout=60) as s:
+                s.starttls(context=ctx)
+                s.login(c["smtp_user"], c["smtp_pass"])
+                s.send_message(msg)
 
     def send(self, title: str, lines: list[str], priority: int = 3, url: str = "", tags=None) -> str:
         c, sent = self.cfg, []
         body = "\n".join(lines)
-        if c["telegram_token"] and c["telegram_chat"]:
-            try:
-                icon = {5: "🔴", 4: "🟠", 3: "🔵"}.get(priority, "⚪")
-                txt = f"{icon} <b>{html.escape(title)}</b>\n" + html.escape(body)
-                if url:
-                    txt += f'\n<a href="{html.escape(url)}">Voir la fiche</a>'
-                if c["site_url"]:
-                    txt += f' · <a href="{html.escape(c["site_url"])}">Tableau de bord</a>'
-                self.http.post(
-                    f"https://api.telegram.org/bot{c['telegram_token']}/sendMessage",
-                    json={"chat_id": c["telegram_chat"], "text": txt[:4000], "parse_mode": "HTML",
-                          "disable_web_page_preview": True, "disable_notification": priority <= 2},
-                )
-                sent.append("Telegram")
-            except Exception as e:  # noqa: BLE001
-                log(f"Telegram : échec ({type(e).__name__})", "WARN")
+        xlsx_url = (c["site_url"] + "VulnWatch.xlsx") if c["site_url"] else ""
         if c["ntfy_topic"]:
             try:
                 payload = {"topic": c["ntfy_topic"], "title": title, "message": body[:3500],
                            "priority": priority, "tags": tags or []}
                 if url:
                     payload["click"] = url
+                actions = []
+                if xlsx_url:
+                    actions.append({"action": "view", "label": "Ouvrir l'Excel", "url": xlsx_url})
                 if c["site_url"]:
-                    payload["actions"] = [{"action": "view", "label": "Tableau de bord", "url": c["site_url"]}]
+                    actions.append({"action": "view", "label": "Tableau de bord", "url": c["site_url"]})
+                if actions:
+                    payload["actions"] = actions
                 h = {"Authorization": f"Bearer {c['ntfy_token']}"} if c["ntfy_token"] else None
                 self.http.post(c["ntfy_server"] + "/", json=payload, headers=h)
                 sent.append("ntfy")
             except Exception as e:  # noqa: BLE001
                 log(f"ntfy : échec ({type(e).__name__})", "WARN")
-        if c["smtp_host"] and c["mail_from"] and c["mail_to"]:
+        if self.email_ok() and priority >= c["email_min_priority"]:
             try:
-                msg = EmailMessage()
-                msg["Subject"] = f"[VulnWatch] {title}"
-                msg["From"] = c["mail_from"]
-                msg["To"] = c["mail_to"]
-                if priority >= 5:
-                    msg["X-Priority"] = "1"
-                msg.set_content(body + (f"\n\n{url}" if url else "") + (f"\n{c['site_url']}" if c["site_url"] else ""))
-                ctx = ssl.create_default_context()
-                if c["smtp_port"] == 465:
-                    with smtplib.SMTP_SSL(c["smtp_host"], 465, context=ctx, timeout=30) as s:
-                        if c["smtp_user"]:
-                            s.login(c["smtp_user"], c["smtp_pass"] or "")
-                        s.send_message(msg)
-                else:
-                    with smtplib.SMTP(c["smtp_host"], c["smtp_port"], timeout=30) as s:
-                        s.starttls(context=ctx)
-                        if c["smtp_user"]:
-                            s.login(c["smtp_user"], c["smtp_pass"] or "")
-                        s.send_message(msg)
+                links = [x for x in (url and f"Fiche NVD : {url}", xlsx_url and f"Excel : {xlsx_url}",
+                                     c["site_url"] and f"Tableau de bord : {c['site_url']}") if x]
+                self.send_email(f"[VulnWatch] {title}", body + "\n\n" + "\n".join(links), urgent=priority >= 5)
                 sent.append("Courriel")
             except Exception as e:  # noqa: BLE001
-                log(f"Courriel : échec ({type(e).__name__})", "WARN")
+                log(f"Courriel : échec ({type(e).__name__}: {e})", "WARN")
         return ", ".join(sent)
+
+
+def daily_report_html(records: list[dict], kev_recent: list[dict], alerts: list[dict], cfg: dict) -> tuple[str, str]:
+    """Rapport quotidien : synthèse 24 h en texte et HTML (le classeur est joint)."""
+    now = dt.datetime.now(UTC)
+    d1 = now - dt.timedelta(days=1)
+    new = [r for r in records if (parse_dt(r["published"]) or now) >= d1]
+    crit = [r for r in new if (r["score"] or 0) >= cfg["critical"]]
+    kev1 = [k for k in kev_recent if (parse_dt(k.get("dateAdded")) or now) >= d1.replace(hour=0, minute=0, second=0)]
+    al = [a for a in alerts if (parse_dt(a["date"]) or now) >= d1 and not str(a.get("channels", "")).startswith("(")]
+    prio = sorted([r for r in records if is_priority(r) and (parse_dt(r["modified"]) or now) >= d1],
+                  key=priority_key, reverse=True)[:15]
+    text = (f"Dernières 24 h : {len(new)} nouvelles CVE, {len(crit)} critiques, {len(kev1)} ajouts KEV, "
+            f"{len(al)} alertes envoyées.\nLe classeur Excel complet est en pièce jointe.\n"
+            + (f"Tableau de bord : {cfg['site_url']}\n" if cfg["site_url"] else "")
+            + "\nÀ traiter en priorité :\n"
+            + "\n".join(f"- {r['id']} {r['severity']} {r['score'] or ''} {r['vendor']} {r['product']}" for r in prio))
+    color = {"CRITIQUE": "#c00000", "ÉLEVÉE": "#ed7d31", "MOYENNE": "#bf8f00", "FAIBLE": "#548235"}
+    rows = "".join(
+        f'<tr><td style="white-space:nowrap"><a href="{NVD_DETAIL}{r["id"]}">{r["id"]}</a></td>'
+        f'<td style="color:#fff;background:{color.get(r["severity"], "#7f7f7f")};padding:2px 6px">{html.escape(r["severity"])}</td>'
+        f'<td>{r["score"] if r["score"] is not None else "—"}</td>'
+        f'<td>{"Oui" if r["kev"] else ""}</td>'
+        f'<td>{html.escape((r["vendor"] + " " + r["product"]).strip())}</td>'
+        f'<td>{html.escape(r["desc"][:160])}</td></tr>' for r in prio)
+    hb = f"""<div style="font-family:Segoe UI,Arial,sans-serif;font-size:14px">
+<h2 style="margin:0 0 8px">VulnWatch — rapport quotidien</h2>
+<p><b>{len(new)}</b> nouvelles CVE · <b style="color:#c00000">{len(crit)}</b> critiques ·
+<b style="color:#7f1d1d">{len(kev1)}</b> ajouts CISA KEV · <b>{len(al)}</b> alertes envoyées (24 h)</p>
+<p>📎 Le classeur <b>VulnWatch.xlsx</b> complet est en pièce jointe.
+{f'<br>🌐 <a href="{cfg["site_url"]}">Tableau de bord en ligne</a>' if cfg["site_url"] else ""}</p>
+<h3>À traiter en priorité</h3>
+<table cellspacing="0" cellpadding="4" style="border-collapse:collapse;font-size:13px">
+<tr style="background:#1f3864;color:#fff"><th>CVE</th><th>Sévérité</th><th>CVSS</th><th>KEV</th><th>Produit</th><th>Description</th></tr>
+{rows or '<tr><td colspan="6">Rien de prioritaire dans les dernières 24 h.</td></tr>'}</table>
+<p style="color:#888;font-size:12px">Sources : NVD (NIST), CISA KEV, FIRST EPSS.</p></div>"""
+    return text, hb
 
 
 # --------------------------------------------------------------------------- sorties
 
 COLS = [  # (clé, en-tête, largeur)
-    ("id", "CVE", 17), ("severity", "Sévérité", 13), ("score", "Score CVSS", 11), ("epss", "EPSS", 9),
+    ("id", "CVE", 17), ("new", "Nouveau (24 h)", 10), ("severity", "Sévérité", 13), ("score", "Score CVSS", 11), ("epss", "EPSS", 9),
     ("kev", "Exploitée (KEV)", 11), ("ransomware", "Rançongiciel", 12), ("watch", "Parc surveillé", 18),
     ("vendor", "Fournisseur", 18), ("product", "Produit", 22), ("desc", "Description", 100),
     ("published", "Publiée le", 17), ("modified", "Modifiée le", 17), ("kev_due", "Échéance CISA", 13),
@@ -429,6 +472,8 @@ def build_outputs(site: Path, records: list[dict], kev_recent: list[dict], alert
         pub = [{**r, "watch": "✓" if r.get("watch") else ""} for r in records]
 
     recs = sorted(pub, key=lambda r: r["modified"], reverse=True)
+    for r in recs:
+        r["new"] = "Oui" if (parse_dt(r.get("first_seen")) or now) >= now - dt.timedelta(days=1) else ""
     d1, d7 = now - dt.timedelta(days=1), now - dt.timedelta(days=7)
 
     def pubdate(r):
@@ -481,6 +526,11 @@ def build_outputs(site: Path, records: list[dict], kev_recent: list[dict], alert
                     v = ""
                 row.append(v)
             w.writerow(row + [NVD_DETAIL + r["id"]])
+    with (site / "alertes.csv").open("w", encoding="utf-8-sig", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["Date", "CVE", "Motifs", "Priorité", "Canaux", "Message", "Lien"])
+        for a in alert_rows:
+            w.writerow([local(a["date"]), a["cve"], a["reasons"], a["priority"], a["channels"], a["message"], NVD_DETAIL + a["cve"]])
     with (site / "kev.csv").open("w", encoding="utf-8-sig", newline="") as f:
         w = csv.writer(f)
         w.writerow(["CVE", "Ajoutée le", "Fournisseur", "Produit", "Nom", "Description", "Action requise", "Échéance", "Rançongiciel"])
@@ -514,6 +564,9 @@ def _fmt_columns(ws, headers: list[str], first: int, last: int):
                                     ("MOYENNE", "yellow", None), ("FAIBLE", "green", None)):
                 ws.conditional_formatting.add(rng, CellIsRule(operator="equal", formula=[f'"{txt}"'],
                                                               fill=FILL[fill], font=font))
+        elif h == "Nouveau (24 h)":
+            ws.conditional_formatting.add(rng, CellIsRule(operator="equal", formula=['"Oui"'], fill=FILL["blue"],
+                                                          font=Font(bold=True)))
         elif h in ("Exploitée (KEV)",):
             ws.conditional_formatting.add(rng, CellIsRule(operator="equal", formula=['"Oui"'], fill=FILL["red"], font=WHITE_B))
         elif h == "Rançongiciel":
@@ -616,6 +669,20 @@ def build_xlsx(path: Path, recs, prio, kev_rows, alert_rows, kpi, cfg, tz):
     _table(ws, "Priorites", len(ph), p0, pend, "TableStyleMedium3")
     _fmt_columns(ws, ph, p0 + 1, pend)
     ws.column_dimensions["A"].width = 44
+    a0 = pend + 4
+    ws.cell(row=a0 - 1, column=1, value="Dernières alertes (7 jours)").font = Font(size=13, bold=True)
+    lim = dt.datetime.now(UTC) - dt.timedelta(days=7)
+    last_alerts = [a for a in alert_rows if (parse_dt(a["date"]) or lim) > lim][:30]
+    ah0 = ["Date", "CVE", "Motifs", "Priorité", "Canaux"]
+    arow0 = [[loc(a["date"]), a["cve"], a["reasons"], a["priority"], a["channels"]] for a in last_alerts]
+    arow0 = arow0 or [[None, "Aucune alerte ces 7 derniers jours.", None, None, None]]
+    aend = _write_rows(ws, a0, ah0, arow0, None, link_col=2)
+    _table(ws, "DernieresAlertes", len(ah0), a0, aend, "TableStyleMedium4")
+    _fmt_columns(ws, ah0, a0 + 1, aend)
+    for r_ in range(a0 + 1, aend + 1):
+        if ws.cell(row=r_, column=4).value == 5:
+            for c_ in range(1, 6):
+                ws.cell(row=r_, column=c_).font = Font(color="C00000", bold=True)
 
     # Vulnérabilités
     ws = wb.create_sheet("Vulnérabilités")
@@ -876,6 +943,20 @@ def run(args) -> int:
     tpl = Path(__file__).with_name("site") / "index.html"
     if tpl.exists():
         shutil.copy(tpl, site_dir / "index.html")
+
+    # 9. Rapport quotidien par courriel, avec le classeur Excel en pièce jointe
+    if notifier.email_ok() and cfg["daily_report"] and not args.no_alerts:
+        local_now = now.astimezone(ZoneInfo(cfg["tz"])) if ZoneInfo else now
+        today_local = local_now.strftime("%Y-%m-%d")
+        if (args.daily_report_now or (local_now.hour >= cfg["daily_hour"] and state.get("daily_sent") != today_local)):
+            try:
+                text, hb = daily_report_html(list(db.values()), kev_recent, alerts, cfg)
+                notifier.send_email(f"[VulnWatch] Rapport du {today_local}", text, hb, site_dir / "VulnWatch.xlsx")
+                state["daily_sent"] = today_local
+                write_json(state_dir / "state.json", state)
+                log("Rapport quotidien envoyé avec l'Excel en pièce jointe.")
+            except Exception as e:  # noqa: BLE001
+                log(f"Rapport quotidien : échec ({type(e).__name__}: {e})", "WARN")
     log("Terminé.")
     return 0
 
@@ -886,6 +967,7 @@ def main() -> int:
     ap.add_argument("--site", default="public", help="dossier de publication (Pages)")
     ap.add_argument("--test-notification", action="store_true", help="envoie une notification de test")
     ap.add_argument("--no-alerts", action="store_true", help="met à jour sans alerter")
+    ap.add_argument("--daily-report-now", action="store_true", help="envoie le rapport quotidien tout de suite")
     return run(ap.parse_args())
 
 

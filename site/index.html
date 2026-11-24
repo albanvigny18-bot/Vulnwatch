@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="VulnWatch">
+<meta name="theme-color" content="#0f172a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%9B%A1%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<title>VulnWatch — Veille des vulnérabilités</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#0f172a;--mute:#64748b;--line:#e2e8f0;--acc:#2563eb;
+--crit:#b91c1c;--high:#ea580c;--med:#ca8a04;--low:#16a34a;--na:#64748b;--kev:#7f1d1d;--watch:#1d4ed8}
+@media (prefers-color-scheme:dark){:root{--bg:#0b1120;--card:#111827;--ink:#e5e7eb;--mute:#94a3b8;--line:#1f2937;--acc:#60a5fa}}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);
+padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:12px 14px 8px;border-bottom:1px solid var(--line)}
+h1{font-size:20px;margin:0 0 2px}.sub{color:var(--mute);font-size:13px}
+.wrap{max-width:1100px;margin:0 auto;padding:12px 14px 40px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;margin-bottom:14px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.kpi b{display:block;font-size:22px}.kpi span{color:var(--mute);font-size:12px;line-height:1.25;display:block}
+.kpi.crit b{color:var(--crit)}.kpi.kev b{color:var(--kev)}.kpi.watch b{color:var(--watch)}
+.tabs{display:flex;gap:6px;overflow-x:auto;margin-top:8px;scrollbar-width:none}
+.tab{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:7px 13px;font-size:14px;white-space:nowrap;cursor:pointer}
+.tab.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.tools{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.tools input[type=search]{flex:1 1 220px;min-width:0;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:16px}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:7px 11px;font-size:13px;cursor:pointer}
+.chip.on{border-color:var(--acc);color:var(--acc);font-weight:600}
+.dl{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 14px}
+.btn{display:inline-block;text-decoration:none;background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:8px 12px;font-size:14px}
+.item{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:9px}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.id{font-weight:700;color:var(--ink);text-decoration:none;margin-right:4px}
+.b{font-size:11.5px;font-weight:700;border-radius:6px;padding:2px 7px;color:#fff;white-space:nowrap}
+.s-CRITIQUE{background:var(--crit)}.s-ÉLEVÉE{background:var(--high)}.s-MOYENNE{background:var(--med)}.s-FAIBLE{background:var(--low)}
+.s-NON,.s-AUCUNE{background:var(--na)}.b-kev{background:var(--kev)}.b-ran{background:#000}.b-watch{background:var(--watch)}
+.b-new{background:#0891b2}.b-epss{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.vp{color:var(--mute);font-size:13px;margin-top:4px}.desc{margin-top:5px;font-size:14px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.item.open .desc{-webkit-line-clamp:unset}.meta{color:var(--mute);font-size:12px;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.item.open .meta{-webkit-line-clamp:unset}
+.more{display:block;margin:12px auto;padding:10px 18px}
+.empty{color:var(--mute);text-align:center;padding:30px}
+.health{font-size:12.5px;color:var(--mute);margin-top:18px}.bad{color:var(--crit);font-weight:600}
+footer{color:var(--mute);font-size:12px;margin-top:24px;text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <h1>VulnWatch</h1>
+  <div class="sub" id="upd">Chargement…</div>
+  <nav class="tabs" id="tabs">
+    <button class="tab on" data-t="prio">Priorités</button>
+    <button class="tab" data-t="all">Toutes les CVE</button>
+    <button class="tab" data-t="kev">CISA KEV</button>
+    <button class="tab" data-t="alerts">Alertes</button>
+  </nav>
+</header>
+<div class="wrap">
+  <section class="kpis" id="kpis"></section>
+  <div class="dl">
+    <a class="btn" href="VulnWatch.xlsx">⬇︎ Excel</a>
+    <a class="btn" href="vulns.csv">⬇︎ CSV des CVE</a>
+    <a class="btn" href="kev.csv">⬇︎ CSV KEV</a>
+    <a class="btn" href="alertes.csv">⬇︎ CSV alertes</a>
+  </div>
+  <div class="tools" id="tools">
+    <input type="search" id="q" placeholder="Rechercher : CVE, produit, fournisseur, mot-clé…" autocomplete="off">
+    <button class="chip" data-f="CRITIQUE">Critiques</button>
+    <button class="chip" data-f="ÉLEVÉE">Élevées</button>
+    <button class="chip" data-f="kev">Exploitées (KEV)</button>
+    <button class="chip" data-f="watch">Mon parc</button>
+    <button class="chip" data-f="epss">EPSS ≥ 10 %</button>
+  </div>
+  <main id="list"></main>
+  <div class="health" id="health"></div>
+  <footer>Sources : NVD (NIST) · CISA Known Exploited Vulnerabilities · FIRST EPSS — mise à jour automatique toutes les heures.</footer>
+</div>
+<script>
+(function(){
+  var D=null, tab='prio', shown=60, filt={};
+  var $=function(id){return document.getElementById(id)};
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function fmt(iso){if(!iso)return'';var d=new Date(iso);return isNaN(d)?iso:d.toLocaleString('fr-CA',{dateStyle:'medium',timeStyle:'short'})}
+  function pct(x){return x==null?'':(x*100).toFixed(x<0.1?1:0)+' %'}
+  function ago(iso){var m=(Date.now()-new Date(iso))/60000;if(m<60)return Math.round(m)+' min';if(m<1440)return Math.round(m/60)+' h';return Math.round(m/1440)+' j'}
+
+  function vulnCard(r){
+    var sev=r.severity||'NON ÉVALUÉE', cls='s-'+sev.split(' ')[0];
+    var h='<div class="item"><div class="top"><a class="id" href="https://nvd.nist.gov/vuln/detail/'+esc(r.id)+'" target="_blank" rel="noopener">'+esc(r.id)+'</a>'+
+      '<span class="b '+cls+'">'+esc(sev)+(r.score!=null?' '+r.score.toFixed(1):'')+'</span>';
+    if(r['new'])h+='<span class="b b-new">NOUVEAU</span>';
+    if(r.kev)h+='<span class="b b-kev">EXPLOITÉE</span>';
+    if(r.ransomware==='Known')h+='<span class="b b-ran">RANÇONGICIEL</span>';
+    if(r.watch)h+='<span class="b b-watch">PARC'+(r.watch!=='✓'?' : '+esc(r.watch):'')+'</span>';
+    if(r.epss!=null)h+='<span class="b b-epss">EPSS '+pct(r.epss)+'</span>';
+    h+='</div>';
+    var vp=[r.vendor,r.product].filter(Boolean).join(' · ');
+    if(vp)h+='<div class="vp">'+esc(vp)+'</div>';
+    h+='<div class="desc">'+esc(r.desc)+'</div><div class="meta">Publiée '+fmt(r.published)+' · modifiée '+fmt(r.modified)+
+      (r.kev_due?' · échéance CISA '+esc(r.kev_due):'')+(r.cwe?' · '+esc(r.cwe):'')+'</div></div>';
+    return h;
+  }
+  function kevCard(k){
+    return '<div class="item"><div class="top"><a class="id" href="https://nvd.nist.gov/vuln/detail/'+esc(k.cveID)+'" target="_blank" rel="noopener">'+esc(k.cveID)+'</a>'+
+      '<span class="b b-kev">KEV '+esc(k.dateAdded)+'</span>'+(k.knownRansomwareCampaignUse==='Known'?'<span class="b b-ran">RANÇONGICIEL</span>':'')+
+      '</div><div class="vp">'+esc(k.vendorProject)+' · '+esc(k.product)+'</div><div class="desc"><b>'+esc(k.vulnerabilityName)+'.</b> '+esc(k.shortDescription)+
+      '</div><div class="meta">Action : '+esc(k.requiredAction)+' · échéance '+esc(k.dueDate)+'</div></div>';
+  }
+  function alertCard(a){
+    return '<div class="item"><div class="top"><a class="id" href="https://nvd.nist.gov/vuln/detail/'+esc(a.cve)+'" target="_blank" rel="noopener">'+esc(a.cve)+'</a>'+
+      '<span class="b '+(a.priority>=5?'s-CRITIQUE':'s-ÉLEVÉE')+'">P'+esc(a.priority)+'</span></div><div class="desc">'+esc(a.reasons)+
+      '</div><div class="meta">'+fmt(a.date)+' · '+esc(a.channels)+'</div></div>';
+  }
+  function match(r,q){
+    if(q){var hay=(r.id+' '+r.vendor+' '+r.product+' '+r.desc+' '+(r.watch||'')+' '+(r.cveID||'')+' '+(r.vendorProject||'')+' '+(r.vulnerabilityName||'')+' '+(r.shortDescription||'')+' '+(r.reasons||'')).toLowerCase();
+      if(hay.indexOf(q)<0)return false}
+    if(tab==='kev'||tab==='alerts')return true;
+    var sevs=['CRITIQUE','ÉLEVÉE'].filter(function(s){return filt[s]});
+    if(sevs.length&&sevs.indexOf(r.severity)<0)return false;
+    if(filt.kev&&!r.kev)return false;
+    if(filt.watch&&!r.watch)return false;
+    if(filt.epss&&!(r.epss>=0.1))return false;
+    return true;
+  }
+  function prioList(){
+    return D.vulns.filter(function(r){return r.kev||r.watch||(r.score||0)>=7||(r.epss||0)>=0.1})
+      .sort(function(a,b){return (b.kev-a.kev)||((!!b.watch)-(!!a.watch))||((b.score||0)-(a.score||0))||((b.epss||0)-(a.epss||0))});
+  }
+  function render(){
+    if(!D)return;
+    var q=$('q').value.trim().toLowerCase(), src, card;
+    if(tab==='prio'){src=prioList();card=vulnCard}
+    else if(tab==='all'){src=D.vulns;card=vulnCard}
+    else if(tab==='kev'){src=D.kev;card=kevCard}
+    else {src=D.alerts;card=alertCard}
+    document.querySelectorAll('.chip').forEach(function(c){c.style.display=(tab==='kev'||tab==='alerts')?'none':''});
+    var rows=src.filter(function(r){return match(r,q)});
+    var html=rows.slice(0,shown).map(card).join('');
+    if(!rows.length)html='<div class="empty">Aucun résultat.</div>';
+    if(rows.length>shown)html+='<button class="btn more" id="more">Afficher plus ('+(rows.length-shown)+' restantes)</button>';
+    $('list').innerHTML=html;
+    var m=$('more');if(m)m.onclick=function(){shown+=100;render()};
+  }
+  function header(){
+    var k=D.kpi;
+    $('upd').innerHTML='Mise à jour il y a '+ago(k.updated)+' ('+fmt(k.updated)+') · '+k.total+' CVE suivies';
+    var cards=[['Nouvelles CVE (24 h)',k.new_24h,''],['Nouvelles CVE (7 j)',k.new_7d,''],['Critiques ≥ '+k.critical_score+' (7 j)',k.critical_7d,'crit'],
+      ['Ajouts KEV (7 j)',k.kev_7d,'kev'],['Mon parc (7 j)',k.watch_7d,'watch'],['Alertes envoyées (7 j)',k.alerts_7d,'']];
+    $('kpis').innerHTML=cards.map(function(c){return '<div class="kpi '+c[2]+'"><b>'+c[1]+'</b><span>'+c[0]+'</span></div>'}).join('');
+    var hs=Object.keys(k.health||{}).map(function(s){var h=k.health[s];return h.fails?'<span class="bad">'+esc(s)+' : '+h.fails+' échec(s)</span>':esc(s)+' : OK'});
+    $('health').innerHTML='État des sources — '+hs.join(' · ')+(k.kev_version?' · catalogue KEV '+esc(k.kev_version):'');
+    if((Date.now()-new Date(k.updated))/3600000>3)$('upd').innerHTML+=' <span class="bad">⚠︎ données de plus de 3 h</span>';
+  }
+  $('tabs').addEventListener('click',function(e){var t=e.target.closest('.tab');if(!t)return;
+    document.querySelectorAll('.tab').forEach(function(x){x.classList.toggle('on',x===t)});tab=t.dataset.t;shown=60;render()});
+  $('tools').addEventListener('click',function(e){var c=e.target.closest('.chip');if(!c)return;var f=c.dataset.f;filt[f]=!filt[f];c.classList.toggle('on',filt[f]);shown=60;render()});
+  $('q').addEventListener('input',function(){shown=60;render()});
+  $('list').addEventListener('click',function(e){var it=e.target.closest('.item');if(it&&!e.target.closest('a'))it.classList.toggle('open')});
+  fetch('data.json?t='+Date.now(),{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()})
+    .then(function(d){D=d;header();render()})
+    .catch(function(e){$('upd').textContent='Impossible de charger les données ('+e.message+').'});
+})();
+</script>
+</body>
+</html>
