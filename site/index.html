@@ -91,9 +91,9 @@ h2{font-size:18px;letter-spacing:-.01em;margin:22px 0 10px}
 .kpi .trend.up{color:var(--p1)}
 .kpi .trend.down{color:var(--ok)}
 .kpi .trend.flat{color:var(--mute);font-weight:500}
-.kpi.p1 b{color:var(--p1)}.kpi.p2 b{color:var(--p2)}.kpi.kev b{color:var(--kev)}.kpi.parc b{color:var(--parc)}
+.kpi.p1 b{color:var(--p1)}.kpi.p2 b{color:var(--p2)}.kpi.kev b{color:var(--kev)}.kpi.parc b{color:var(--parc)}.kpi.ok b{color:var(--ok)}
 :root[data-theme="dark"] .kpi.kev b,:root[data-theme="dark"] .kpi .trend.up{color:#f87171}
-:root[data-theme="dark"] .kpi .trend.down{color:#4ade80}
+:root[data-theme="dark"] .kpi .trend.down,:root[data-theme="dark"] .kpi.ok b{color:#4ade80}
 .ctlbar{display:flex;align-items:center;gap:6px;flex-wrap:nowrap}
 .tr-btn{border:1px solid var(--line);background:var(--surface2);color:var(--ink2);border-radius:10px;padding:5px 10px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s,border-color .15s}
 .tr-btn.on{background:var(--brandsoft);border-color:var(--brand);color:var(--brand)}
@@ -189,6 +189,52 @@ footer{max-width:1120px;margin:20px auto 0;padding:0 16px 28px;color:var(--mute)
 .chart-tip.on{opacity:1}
 .chart-tip b{display:block;font-size:13px;margin-bottom:1px}
 .chart-tip span{opacity:.82;font-size:11.5px}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.v.mitigated{border-left-color:var(--ok)}
+.btn.ok{background:var(--oks);border-color:color-mix(in srgb,var(--ok) 36%,transparent);color:var(--ok)}
+.btn.ok:hover{background:color-mix(in srgb,var(--ok) 14%,var(--surface))}
+.btn.danger{color:var(--p1);border-color:color-mix(in srgb,var(--p1) 30%,transparent)}
+.card-act{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:10px}
+.card-act .more{margin-top:0}
+.mit-box{margin-top:10px;border-radius:12px;padding:10px 12px;font-size:13.5px;background:var(--oks);border:1px solid color-mix(in srgb,var(--ok) 28%,transparent);color:var(--ink)}
+.mit-box-hd{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.mit-box-hd b{color:var(--ok);font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+.mit-proof{margin:4px 0 0;color:var(--ink2);font-size:13.5px;line-height:1.5}
+.mit-meta{font-size:12px;color:var(--mute);margin-top:4px;font-variant-numeric:tabular-nums}
+.mit-summary{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--oks);border:1px solid color-mix(in srgb,var(--ok) 26%,transparent);border-radius:14px;padding:12px 14px;margin:12px 0;font-size:14px;color:var(--ink)}
+.mit-row{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--ok);border-radius:var(--r);box-shadow:var(--sh);padding:14px 16px}
+.mit-row.warn{border-left-color:var(--p3)}
+.mit-row.mute{border-left-color:var(--p4)}
+.mit-row.exp{border-left-color:var(--p1)}
+.mit-badge{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;padding:2px 8px;border-radius:7px;background:var(--oks);color:var(--ok);white-space:nowrap}
+.mit-badge.warn{background:var(--p3s);color:var(--p3)}
+.mit-badge.mute{background:var(--p4s);color:var(--p4)}
+.mit-badge.exp{background:var(--p1s);color:var(--p1)}
+.vh-badges{display:flex;align-items:center;gap:6px;flex:none;flex-wrap:wrap;justify-content:flex-end}
+.st-badge{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:750;border-radius:8px;padding:3px 8px;white-space:nowrap;line-height:1.25}
+.st-badge.mit{background:var(--oks);color:var(--ok);border:1px solid color-mix(in srgb,var(--ok) 32%,transparent)}
+.st-badge.rev{background:var(--p2s);color:var(--p2);border:1px solid color-mix(in srgb,var(--p2) 38%,transparent)}
+.st-badge.soon{background:var(--p3s);color:var(--p3);border:1px solid color-mix(in srgb,var(--p3) 34%,transparent)}
+.st-badge.part{background:var(--brandsoft);color:var(--brand);border:1px solid color-mix(in srgb,var(--brand) 30%,transparent)}
+.v.needs-rev{border-left-color:var(--p2)}
+.mit-exp-box{margin-top:10px;border-radius:12px;padding:10px 12px;font-size:13.5px;background:var(--p3s);border:1px solid color-mix(in srgb,var(--p3) 34%,transparent);color:var(--ink)}
+.mit-exp-box b{color:var(--p2);font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+.mit-presets{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.mit-presets button{border:1px solid var(--line);background:var(--surface2);color:var(--ink2);border-radius:8px;padding:4px 9px;font-size:12px;font-weight:600;cursor:pointer}
+.mit-presets button:hover{border-color:var(--brand);color:var(--brand);background:var(--brandsoft)}
+.mit-hint{display:block;font-size:12px;color:var(--mute);margin-top:4px;font-weight:400;line-height:1.4}
+.modal-bg{position:fixed;inset:0;z-index:60;background:rgba(15,23,42,.52);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:16px}
+.modal-bg.open{display:flex}
+.modal{width:100%;max-width:540px;max-height:90vh;overflow-y:auto;background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:0 20px 48px rgba(15,23,42,.26);padding:20px}
+.modal-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+.modal-hd h3{margin:0;font-size:18px;letter-spacing:-.01em}
+.modal-hd p{margin:3px 0 0;font-size:13px;color:var(--mute)}
+.modal-ft{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;flex-wrap:wrap}
+:root[data-theme="dark"] .mit-box-hd b,:root[data-theme="dark"] .mit-badge,:root[data-theme="dark"] .btn.ok,:root[data-theme="dark"] .st-badge.mit{color:#4ade80}
+:root[data-theme="dark"] .mit-badge.exp{color:#f87171}
+:root[data-theme="dark"] .st-badge.rev{color:#fb923c}
+:root[data-theme="dark"] .st-badge.soon{color:#facc15}
+:root[data-theme="dark"] .mit-exp-box b{color:#fbbf24}
 @media (prefers-reduced-motion:reduce){.chart-bar,.chart-tip{transition:none}}
 </style>
 <script>
@@ -230,6 +276,7 @@ footer{max-width:1120px;margin:20px auto 0;padding:0 16px 28px;color:var(--mute)
     <button class="tab" data-go="home">Accueil</button>
     <button class="tab" data-go="prio">Urgences</button>
     <button class="tab" data-go="parc">Mon parc</button>
+    <button class="tab" data-go="mitigations">Mitigations</button>
     <button class="tab" data-go="explore">Explorer</button>
     <button class="tab" data-go="views">Vues expertes</button>
     <button class="tab" data-go="kev">Failles exploitées (CISA)</button>
@@ -256,13 +303,71 @@ footer{max-width:1120px;margin:20px auto 0;padding:0 16px 28px;color:var(--mute)
   This product uses the NVD API but is not endorsed or certified by the NVD.<br>
   Données ouvertes : <a href="data.json">JSON</a> · <a href="vulns.csv">CSV</a> · <a href="kev.csv">KEV</a> · <a href="feed.xml">RSS</a> · <a href="VulnWatch.xlsx">Excel</a></p>
 </footer>
+<div class="modal-bg" id="mitModal" role="dialog" aria-modal="true" aria-labelledby="mitModalTitle">
+  <div class="modal">
+    <div class="modal-hd">
+      <div>
+        <h3 id="mitModalTitle">Enregistrer une mitigation</h3>
+        <p id="mitModalSub">Documente l'action réalisée sur un actif de ton parc pour démontrer la correction et arrêter les rappels continus.</p>
+      </div>
+      <button type="button" class="btn sm" id="mitClose" aria-label="Fermer">✕</button>
+    </div>
+    <form class="form" id="mitForm">
+      <input type="hidden" id="mitEditId">
+      <div class="g2">
+        <label class="full" id="mitCveSelWrap" style="display:none">Vulnérabilité liée à ton parc
+          <select class="in" id="mitCveSel"></select>
+        </label>
+        <label class="full" id="mitCveReadWrap">Identifiant CVE (lié à ton parc)
+          <input class="in" id="mitCve" readonly autocomplete="off" autocapitalize="characters">
+        </label>
+        <label class="full">Actif concerné (de ton parc)
+          <select class="in" id="mitAssetSel" required></select>
+        </label>
+        <label>Statut de mitigation
+          <select class="in" id="mitStatus">
+            <option value="Corrigée">Corrigée (patch / mise à jour)</option>
+            <option value="Contournement">Contournement appliqué</option>
+            <option value="Risque accepté">Risque accepté</option>
+            <option value="Non applicable">Non applicable</option>
+          </select>
+        </label>
+        <label>Date de mitigation
+          <input class="in" id="mitDate" type="date" required>
+        </label>
+        <label class="full">Date d'expiration / rappel de révision (facultatif)
+          <input class="in" id="mitExpires" type="date">
+          <div class="mit-presets" role="group" aria-label="Raccourcis de date de révision">
+            <button type="button" data-mit-exp="30">+30 jours</button>
+            <button type="button" data-mit-exp="90">+90 jours</button>
+            <button type="button" data-mit-exp="180">+6 mois</button>
+            <button type="button" data-mit-exp="365">+1 an</button>
+            <button type="button" data-mit-exp="0">Aucune</button>
+          </div>
+          <small class="mit-hint">Utile pour une acceptation de risque ou un contournement : à cette date, la faille réapparaîtra automatiquement dans les rappels pour révision périodique.</small>
+        </label>
+        <label class="full">Responsable / valideur (facultatif)
+          <input class="in" id="mitOwner" placeholder="ex. Équipe réseau / Responsable SSI">
+        </label>
+        <label class="full">Preuve / action réalisée
+          <textarea class="in" id="mitProof" style="min-height:92px;font-family:inherit" required placeholder="ex. Mis à jour vers la version corrigée, règle pare-feu appliquée, ticket #INC-4821, scan de validation OK."></textarea>
+        </label>
+      </div>
+      <div class="modal-ft">
+        <button type="button" class="btn" id="mitCancel">Annuler</button>
+        <button type="submit" class="btn pri" id="mitSubmit">Enregistrer la mitigation</button>
+      </div>
+    </form>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
 (function(){
 'use strict';
-var D=null, view='home', sub='', simple=true, PARC=[], q='', qShown=40, parcShown=40, curRows=[], EDIT={}, chartScope='all', chartRO=null;
+var D=null, view='home', sub='', simple=true, PARC=[], MITS=[], q='', qShown=40, parcShown=40, curRows=[], EDIT={}, chartScope='all', chartRO=null;
 var theme='white', autoFr=true, TR={}, trBusy=false, trFailed=false, trSeq=0;
+var showMitPrio=false, showMitAlerts=false, mitQ='', mitFilter='all', expMitFilter='all', mitLastFocus=null;
 var $=function(id){return document.getElementById(id)};
 var app=$('app');
 function store(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
@@ -271,8 +376,9 @@ try{
   theme=store('vw-theme')||'white';
   autoFr=store('vw-tr-auto')!=='off';
   PARC=JSON.parse(store('vw-parc')||'[]')||[];
+  MITS=JSON.parse(store('vw-mitigations')||'[]')||[];
   TR=JSON.parse(store('vw-tr-fr-v1')||'{}')||{};
-}catch(e){PARC=[];TR={}}
+}catch(e){PARC=[];MITS=[];TR={}}
 function applyTheme(t){
   theme=(t==='dark'||t==='light'||t==='white')?t:'white';
   document.documentElement.setAttribute('data-theme',theme);
@@ -306,7 +412,7 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){retur
 function norm(s){return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')}
 function nrm(s){return ' '+norm(s).replace(/[^a-z0-9]+/g,' ').trim()+' '}
 function fmt(iso){if(!iso)return'';var d=new Date(iso);return isNaN(d)?iso:d.toLocaleString('fr-CA',{dateStyle:'medium',timeStyle:'short'})}
-function fdate(iso){if(!iso)return'';var d=new Date(iso);return isNaN(d)?iso:d.toLocaleDateString('fr-CA',{dateStyle:'medium'})}
+function fdate(iso){if(!iso)return'';var s=String(iso).trim();var d=new Date(/^\d{4}-\d{2}-\d{2}$/.test(s)?s+'T12:00:00':s);return isNaN(d)?iso:d.toLocaleDateString('fr-CA',{dateStyle:'medium'})}
 function pct(x){return x==null?'—':(x*100).toFixed(x<0.1?1:0)+' %'}
 function ago(iso){var m=(Date.now()-new Date(iso))/60000;if(m<60)return Math.max(1,Math.round(m))+' min';if(m<1440)return Math.round(m/60)+' h';return Math.round(m/1440)+' j'}
 function toast(t){var e=$('toast');e.textContent=t;e.classList.add('on');setTimeout(function(){e.classList.remove('on')},1800)}
@@ -353,17 +459,174 @@ function matchAsset(r,a){
   return !!v&&hs.indexOf(' '+v+' ')>=0;
 }
 var parcCache=null;
-function parcResults(){
+function todayISO(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function addDaysISO(days){var d=new Date();d.setDate(d.getDate()+days);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function isMitigationExpired(m){return !!(m&&m.expires&&/^\d{4}-\d{2}-\d{2}$/.test(m.expires)&&m.expires<=todayISO())}
+function daysUntilISO(iso){if(!iso||!/^\d{4}-\d{2}-\d{2}$/.test(iso))return null;var t0=new Date(todayISO()+'T12:00:00').getTime(),t1=new Date(iso+'T12:00:00').getTime();return Math.round((t1-t0)/86400000)}
+function saveMits(){parcCache=null;store('vw-mitigations',JSON.stringify(MITS))}
+function assetLabel(a){return (a.name||'').trim()||((a.vendor||'')+' '+(a.product||'')).trim()}
+function isGlobalAsset(s){var x=norm(s).trim();return !x||x==='*'||x==='tout le parc'||x==='tous'||x==='all'||x==='global'}
+function mitigationsForCve(cve){
+  var id=String(cve||'').trim().toUpperCase();
+  if(!id)return [];
+  return MITS.filter(function(m){return String(m.cve||'').trim().toUpperCase()===id});
+}
+function activeMitigationsForCve(cve){
+  return mitigationsForCve(cve).filter(function(m){return !isMitigationExpired(m)});
+}
+function expiredMitigationsForCve(cve){
+  return mitigationsForCve(cve).filter(isMitigationExpired);
+}
+function mitigationMatchesAsset(m,a){
+  if(isGlobalAsset(m.asset))return true;
+  var ma=norm(m.asset).trim();
+  if(!ma)return true;
+  var lbl=norm(assetLabel(a)).trim(), nm=norm(a.name||'').trim(), vp=norm(((a.vendor||'')+' '+(a.product||'')).trim()).trim(), pr=norm(a.product||'').trim();
+  return ma===lbl||(nm&&ma===nm)||(vp&&ma===vp)||(pr&&ma===pr);
+}
+function findAssetMitigation(cve,a){
+  var ms=activeMitigationsForCve(cve);
+  for(var i=0;i<ms.length;i++){if(mitigationMatchesAsset(ms[i],a))return ms[i]}
+  return null;
+}
+function validParcAssets(){
+  return PARC.filter(function(a){return (a.vendor||'').trim()||(a.product||'').trim()});
+}
+function findVulnById(cve){
+  var id=String(cve||'').trim().toUpperCase();
+  if(!D||!id)return null;
+  return D.vulns.find(function(x){return x.id===id})||null;
+}
+function matchedParcAssets(r){
+  var assets=validParcAssets();
+  if(!assets.length||!r)return [];
+  return assets.filter(function(a){return matchAsset(r,a)});
+}
+function matchedParcForKev(k){
+  if(!k)return [];
+  var r=findVulnById(k.cveID);
+  if(r)return matchedParcAssets(r);
+  var assets=validParcAssets();
+  if(!assets.length)return [];
+  var pseudo={vendor:k.vendorProject||'',product:k.product||'',affected:(k.vendorProject||'')+' '+(k.product||''),packages:'',desc:k.shortDescription||''};
+  return assets.filter(function(a){return matchAsset(pseudo,a)});
+}
+function watchAssetsFromRow(r){
+  if(!r||!r.watch)return [];
+  return String(r.watch).split(';').map(function(s){return s.trim()}).filter(Boolean).map(function(name){return {name:name,vendor:'',product:''}});
+}
+function parcHitsForRow(r){
+  if(!r)return [];
+  if(r._mine){
+    var comb=(r._hits||[]).concat(r._mitHits||[]);
+    return comb.filter(function(v,i,arr){return arr.indexOf(v)===i});
+  }
+  var local=matchedParcAssets(r);
+  if(local.length)return local;
+  return watchAssetsFromRow(r);
+}
+function parcHitsForCve(cve){
+  var r=findVulnById(cve);
+  if(r)return parcHitsForRow(r);
+  if(D&&D.kev){
+    var id=String(cve||'').trim().toUpperCase();
+    var k=D.kev.find(function(x){return x.cveID===id});
+    if(k)return matchedParcForKev(k);
+  }
+  return [];
+}
+function isMitigationForParc(m){
+  var hits=parcHitsForCve(m.cve);
+  if(hits.length){
+    return isGlobalAsset(m.asset)||hits.some(function(a){return mitigationMatchesAsset(m,a)});
+  }
+  if(findVulnById(m.cve))return false;
+  var assets=validParcAssets();
+  if(!assets.length)return false;
+  return isGlobalAsset(m.asset)||assets.some(function(a){return mitigationMatchesAsset(m,a)});
+}
+function isCveMitigated(cve,hits){
+  var targetHits=(hits&&hits.length)?hits:parcHitsForCve(cve);
+  if(!targetHits.length)return false;
+  var ms=activeMitigationsForCve(cve);
+  if(!ms.length)return false;
+  if(ms.some(function(m){return isGlobalAsset(m.asset)}))return true;
+  return targetHits.every(function(a){return ms.some(function(m){return mitigationMatchesAsset(m,a)})});
+}
+function activeVulns(){
+  if(!D)return [];
+  return D.vulns.filter(function(r){return !isCveMitigated(r.id)});
+}
+function splitParcResults(){
   if(parcCache)return parcCache;
-  if(!PARC.length)return (parcCache=[]);
-  var assets=PARC.filter(function(a){return (a.vendor||'').trim()||(a.product||'').trim()}), out=[];
+  if(!PARC.length||!D)return (parcCache={active:[],mitigated:[]});
+  var assets=validParcAssets(), active=[], mitigated=[];
   D.vulns.forEach(function(r){
     var hits=assets.filter(function(a){return matchAsset(r,a)});
     if(!hits.length)return;
-    var best={crit:Math.max.apply(null,hits.map(function(h){return h.crit==='Haute'?3:h.crit==='Basse'?1:2})),exposed:hits.some(function(h){return h.exposed==='Oui'})};
-    out.push(Object.assign({},r,{priority:prioFor(r,best),_hits:hits,_mine:true,risk:Math.min(100,(r.risk||0)+best.crit*3+(best.exposed?5:0))}));
+    var activeHits=[], mitHits=[];
+    hits.forEach(function(a){if(findAssetMitigation(r.id,a))mitHits.push(a);else activeHits.push(a)});
+    var ms=activeMitigationsForCve(r.id).filter(function(m){return isGlobalAsset(m.asset)||hits.some(function(a){return mitigationMatchesAsset(m,a)})});
+    if(activeHits.length){
+      var best={crit:Math.max.apply(null,activeHits.map(function(h){return h.crit==='Haute'?3:h.crit==='Basse'?1:2})),exposed:activeHits.some(function(h){return h.exposed==='Oui'})};
+      active.push(Object.assign({},r,{priority:prioFor(r,best),_hits:activeHits,_mitHits:mitHits,_mits:ms,_mine:true,risk:Math.min(100,(r.risk||0)+best.crit*3+(best.exposed?5:0))}));
+    }else{
+      var bestM={crit:Math.max.apply(null,hits.map(function(h){return h.crit==='Haute'?3:h.crit==='Basse'?1:2})),exposed:hits.some(function(h){return h.exposed==='Oui'})};
+      mitigated.push(Object.assign({},r,{priority:prioFor(r,bestM),_hits:hits,_mitHits:hits,_mits:ms,_mine:true,_mitigated:true}));
+    }
   });
-  return (parcCache=out.sort(byPrio));
+  return (parcCache={active:active.sort(byPrio),mitigated:mitigated.sort(byPrio)});
+}
+function parcResults(){return splitParcResults().active}
+function mitBoxHTML(ms){
+  var m=ms[0];
+  var extra=ms.length>1?' (+'+(ms.length-1)+' autre'+(ms.length>2?'s':'')+')':'';
+  var expTxt=m.expires?' · Révision le '+fdate(m.expires):'';
+  return '<div class="mit-box"><div class="mit-box-hd"><b>✓ Mitigée · '+esc(m.status||'Corrigée')+'</b><span class="mit-meta">'+esc(m.asset||'Tout le parc')+(m.date?' · '+esc(fdate(m.date)):'')+esc(expTxt)+extra+'</span></div>'+
+    (m.proof?'<p class="mit-proof">'+esc(m.proof)+'</p>':'')+
+    (m.owner?'<div class="mit-meta">Validé par : '+esc(m.owner)+'</div>':'')+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'+
+      '<button type="button" class="btn sm" data-mit-edit="'+esc(m.id)+'">Modifier la preuve</button>'+
+      '<button type="button" class="btn sm danger" data-mit-del="'+esc(m.id)+'">Réactiver le rappel</button>'+
+    '</div></div>';
+}
+function expiredMitNoticeHTML(expMs){
+  if(!expMs||!expMs.length)return '';
+  var m=expMs[0];
+  return '<div class="mit-exp-box"><div class="mit-box-hd"><b>⏰ Révision périodique requise</b><span class="mit-meta">'+esc(m.status||'Mitigée')+' · '+esc(m.asset||'Tout le parc')+' · expirée le '+esc(fdate(m.expires))+'</span></div>'+
+    (m.proof?'<p class="mit-proof">'+esc(m.proof)+'</p>':'')+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button type="button" class="btn sm pri" data-mit-edit="'+esc(m.id)+'">Réviser / prolonger</button></div></div>';
+}
+function evalRowMitigation(r){
+  var parcHits=parcHitsForRow(r);
+  if(!parcHits.length){
+    return {inParc:false,parcHits:[],mitParcHits:[],expParcHits:[],activeParcHits:[],ms:[],expMs:[],isMit:false,needsRev:false,partial:false,soonDays:null};
+  }
+  var ms=activeMitigationsForCve(r.id).filter(function(m){
+    return isGlobalAsset(m.asset)||parcHits.some(function(a){return mitigationMatchesAsset(m,a)});
+  });
+  var expMs=expiredMitigationsForCve(r.id).filter(function(m){
+    return isGlobalAsset(m.asset)||parcHits.some(function(a){return mitigationMatchesAsset(m,a)});
+  });
+  var mitParcHits=[], expParcHits=[], activeParcHits=[];
+  parcHits.forEach(function(a){
+    if(ms.some(function(m){return mitigationMatchesAsset(m,a)}))mitParcHits.push(a);
+    else{
+      activeParcHits.push(a);
+      if(expMs.some(function(m){return mitigationMatchesAsset(m,a)}))expParcHits.push(a);
+    }
+  });
+  var isMit=activeParcHits.length===0&&mitParcHits.length>0;
+  var needsRev=!isMit&&expParcHits.length>0;
+  var partial=!isMit&&mitParcHits.length>0;
+  var soonDays=null;
+  if(isMit&&ms.length){
+    ms.forEach(function(m){
+      var d=daysUntilISO(m.expires);
+      if(d!=null&&d>0&&d<=14&&(soonDays==null||d<soonDays))soonDays=d;
+    });
+  }
+  return {inParc:true,parcHits:parcHits,mitParcHits:mitParcHits,expParcHits:expParcHits,activeParcHits:activeParcHits,ms:ms,expMs:expMs,isMit:isMit,needsRev:needsRev,partial:partial,soonDays:soonDays};
 }
 /* ---------- fiche ---------- */
 function card(r){
@@ -373,21 +636,42 @@ function card(r){
   var plain=plainBase;
   var todo=(r._mine||!r.todo)?fallbackTodo(p,r):((tr&&tr.todo)?tr.todo:r.todo);
   var descTxt=(tr&&tr.desc)?tr.desc:(r.desc||'');
-  if(r._mine)plain+=' Elle concerne : '+r._hits.map(function(h){return h.name||((h.vendor||'')+' '+(h.product||'')).trim()}).join(', ')+'.';
+  var st=evalRowMitigation(r);
+  var ms=st.ms, expMs=st.expMs, isMit=st.isMit, needsRev=st.needsRev, partial=st.partial, parcHits=st.parcHits;
+  var displayHits=r._mine?(r._hits||[]):parcHits;
+  if(r._mine)plain+=' Elle concerne : '+r._hits.map(function(h){return assetLabel(h)}).join(', ')+'.';
   var tags='';
   tags+=r.score!=null?'<span class="t '+(r.score>=9?'crit':r.score>=7?'high':'')+'">Gravité '+r.score.toFixed(1)+'/10</span>':'<span class="t">Gravité non évaluée</span>';
   if(r.kev||r.ssvc_exploitation==='Active')tags+='<span class="t kev">Exploitée</span>';
   if(r.msf)tags+='<span class="t msf">Outil d\'attaque public</span>';else if(/^Preuve/.test(r.exploit_maturity||''))tags+='<span class="t msf">Code d\'attaque publié</span>';
   if(r.ransomware==='Known')tags+='<span class="t kev">Rançongiciels</span>';
-  if(r._mine||r.watch)tags+='<span class="t parc">Mon parc</span>';
+  if(parcHits.length){
+    var pLbl=parcHits.length===1?'Mon parc : '+assetLabel(parcHits[0]):'Mon parc ('+parcHits.length+' actifs)';
+    tags+='<span class="t parc">'+esc(pLbl)+'</span>';
+  }else if(r.watch){tags+='<span class="t parc">Mon parc</span>'}
   if(r['new'])tags+='<span class="t new">Nouveau</span>';
   if(r.patch_available==='Oui')tags+='<span class="t ok">Correctif disponible</span>';
+  if(isMit)tags+='<span class="t ok">✓ Mitigée'+(ms[0]&&ms[0].status&&ms[0].status!=='Corrigée'?' ('+esc(ms[0].status)+')':'')+'</span>';
+  else if(needsRev)tags+='<span class="t high">⏰ Révision requise</span>';
+  else if(partial)tags+='<span class="t ok">Mitigée sur '+st.mitParcHits.length+'/'+parcHits.length+' actif'+(parcHits.length>1?'s':'')+'</span>';
   if(!simple&&r.epss!=null)tags+='<span class="t">EPSS '+pct(r.epss)+'</span>';
   if(!simple&&r.risk!=null)tags+='<span class="t">Risque '+r.risk+'/100</span>';
+  var hdrStatus='';
+  if(isMit){
+    var m0=ms[0]||{}, mAsset=(parcHits.length===1)?assetLabel(parcHits[0]):(m0.asset&&!isGlobalAsset(m0.asset)?m0.asset:'');
+    var mTip='Mitigée ('+(m0.status||'Corrigée')+')'+(mAsset?' sur '+mAsset:'')+(m0.expires?' · révision prévue le '+fdate(m0.expires):'');
+    hdrStatus+='<span class="st-badge mit" title="'+esc(mTip)+'">✓ Mitigée</span>';
+    if(st.soonDays!=null)hdrStatus+='<span class="st-badge soon" title="Révision périodique prévue dans '+st.soonDays+' jour'+(st.soonDays>1?'s':'')+'">⏰ Révision J-'+st.soonDays+'</span>';
+  }else if(needsRev){
+    var e0=expMs[0]||{}, eAsset=st.expParcHits.length===1?assetLabel(st.expParcHits[0]):(e0.asset||'Tout le parc');
+    hdrStatus+='<span class="st-badge rev" title="Révision périodique échue le '+esc(fdate(e0.expires))+' ('+esc(eAsset)+')">⏰ Révision</span>';
+  }else if(partial){
+    hdrStatus+='<span class="st-badge part" title="Mitigée sur '+esc(st.mitParcHits.map(assetLabel).join(', '))+' ; active sur '+esc(st.activeParcHits.map(assetLabel).join(', '))+'">✓ '+st.mitParcHits.length+'/'+parcHits.length+' mitigé</span>';
+  }
   var body=simple
     ?'<p class="plain" data-tr-id="'+esc(r.id)+'" data-tr-field="plain">'+esc(plain)+'</p>'
     :'<p class="plain"><b>'+esc(PLABEL[p])+'.</b> '+esc(r.justification||'')+'</p><p class="plain" style="font-size:13.5px" data-tr-id="'+esc(r.id)+'" data-tr-field="desc">'+esc(descTxt)+'</p>';
-  var mine=r._mine?r._hits.map(function(h){return (h.name||h.product)+(h.version?' (ta version : '+h.version+')':'')}).join(', '):'';
+  var mine=displayHits.length?displayHits.map(function(h){return (h.name||h.product)+(h.version?' (ta version : '+h.version+')':'')}).join(', '):'';
   var vec=(r.vector||'').split('/').reduce(function(o,x){var k=x.split(':');if(k[1])o[k[0]]=k[1];return o},{});
   var rows=[[simple?'Pourquoi cette priorité':'En clair',simple?r.justification:plain],[simple?'Description':'',simple?descTxt:''],
     ['Tes équipements',mine],['Versions touchées',r.versions||r.pkg_ranges],['Version corrigée',r.pkg_fixed],['Type d\'attaque',r.tags],['Catégorie',r.family],
@@ -403,10 +687,19 @@ function card(r){
     (r.ticket_url?'<a class="btn sm" target="_blank" rel="noopener" href="'+esc(r.ticket_url)+'">Ticket ↗</a>':'')+'</div>';
   var title=prodName(r);
   if(r._mine){var h0=r._hits[0],hp=[h0.vendor,h0.product].filter(Boolean).join(' ');if(hp&&norm(title).indexOf(norm(h0.product||h0.vendor))<0)title=hp+' (et autres produits)'}
-  return '<article class="v '+p+'" data-cve="'+esc(r.id)+'"><div class="vh"><div class="vt"><h3>'+esc(title)+'</h3><div class="vid">'+esc(r.id)+' · '+esc(sev.toLowerCase())+(r.published?' · '+fdate(r.published):'')+'</div></div><span class="prio '+p+'" title="'+esc(PLABEL[p])+'">'+p+'</span></div>'+
-    '<div class="tags">'+tags+'</div>'+body+'<div class="todo"><b>Que faire</b><span data-tr-id="'+esc(r.id)+'" data-tr-field="todo">'+esc(todo)+'</span></div>'+
+  var defaultAsset=(st.activeParcHits.length===1)?assetLabel(st.activeParcHits[0]):(parcHits.length===1?assetLabel(parcHits[0]):'');
+  var actionArea=isMit
+    ?mitBoxHTML(ms)
+    :'<div class="todo"><b>Que faire</b><span data-tr-id="'+esc(r.id)+'" data-tr-field="todo">'+esc(todo)+'</span></div>'+
+     (st.inParc?expiredMitNoticeHTML(expMs):'')+
+     (st.mitParcHits.length?'<div class="mit-meta">Déjà mitigée sur : '+esc(st.mitParcHits.map(assetLabel).join(', '))+'</div>':'');
+  var footerAct=(!st.inParc||isMit)
+    ?'<div class="card-act"><span class="more">Touche pour voir le détail</span></div>'
+    :'<div class="card-act"><button type="button" class="btn sm ok" data-mit-open="'+esc(r.id)+'" data-mit-prod="'+esc(title)+'" data-mit-prio="'+esc(p)+'" data-mit-asset="'+esc(defaultAsset)+'">✓ Marquer comme mitigée</button><span class="more">Touche pour voir le détail</span></div>';
+  return '<article class="v '+p+(isMit?' mitigated':needsRev?' needs-rev':'')+'" data-cve="'+esc(r.id)+'"><div class="vh"><div class="vt"><h3>'+esc(title)+'</h3><div class="vid">'+esc(r.id)+' · '+esc(sev.toLowerCase())+(r.published?' · '+fdate(r.published):'')+'</div></div><div class="vh-badges">'+hdrStatus+'<span class="prio '+p+'" title="'+esc(PLABEL[p])+'">'+p+'</span></div></div>'+
+    '<div class="tags">'+tags+'</div>'+body+actionArea+
     '<div class="det"><dl class="kv">'+rows.filter(function(x){return x[0]&&x[1]}).map(function(x){return '<dt>'+esc(x[0])+'</dt><dd'+(x[0]==='Description'?' data-tr-id="'+esc(r.id)+'" data-tr-field="desc"':'')+'>'+esc(x[1])+'</dd>'}).join('')+'</dl>'+links+'</div>'+
-    '<div class="more">Touche pour voir le détail</div></article>';
+    footerAct+'</article>';
 }
 function listHTML(rows,n,moreId){
   if(!rows.length)return '<div class="empty"><div class="ico">✅</div>Rien à afficher ici pour le moment.</div>';
@@ -427,8 +720,10 @@ function test(r,t){
   var yes=function(b){return alts.indexOf('oui')>=0||alts.indexOf('yes')>=0?b:!b};
   if(k==='p'||k==='priorite')return alts.indexOf(norm(r.priority))>=0;
   if(k==='kev'||k==='exploitee')return yes(!!r.kev);
-  if(k==='parc')return yes(!!r.watch);
+  if(k==='parc')return yes(!!r.watch||matchedParcAssets(r).length>0);
   if(k==='nouveau')return yes(!!r['new']);
+  if(k==='mitigee'||k==='mitige')return yes(evalRowMitigation(r).isMit);
+  if(k==='revision')return yes(evalRowMitigation(r).needsRev);
   if(k==='correctif')return yes(r.patch_available==='Oui');
   if(k==='ransomware'||k==='rancongiciel')return yes(r.ransomware==='Known');
   if(k==='exploit'){var em=norm(r.exploit_maturity);return alts.some(function(a){
@@ -448,24 +743,28 @@ function runQ(rows,s){
 /* ---------- écrans ---------- */
 var S={};
 S.home=function(){
-  var k=D.kpi, mine=parcResults(), mineUrg=mine.filter(function(r){return r.priority==='P1'||r.priority==='P2'});
+  var k=D.kpi, ps=splitParcResults(), mine=ps.active, mineMit=ps.mitigated, mineUrg=mine.filter(function(r){return r.priority==='P1'||r.priority==='P2'});
+  var actAll=activeVulns(), p1Act=actAll.filter(function(r){return r.priority==='P1'}).length, p2Act=actAll.filter(function(r){return r.priority==='P2'}).length;
   var m1=mine.filter(function(r){return r.priority==='P1'}).length, m2=mineUrg.length-m1;
   var hasParc=PARC.length>0, cls=hasParc?(m1?'alert':m2?'':'calm'):'';
-  var big=hasParc?(m1?m1+' urgence'+(m1>1?'s':'')+' pour ton parc':m2?'Rien d\'urgent — '+m2+' à traiter cette semaine':'Rien d\'urgent pour ton parc 👍'):(k.p1||0)+' failles urgentes dans le monde';
-  var subt=hasParc?(mine.length+' faille'+(mine.length>1?'s':'')+' connue'+(mine.length>1?'s':'')+' concerne'+(mine.length>1?'nt':'')+' tes équipements : '+m1+' urgente'+(m1>1?'s':'')+' (48 h), '+m2+' importante'+(m2>1?'s':'')+' (cette semaine). '+(m1?'Commence par celles marquées P1.':''))
+  var big=hasParc?(m1?m1+' urgence'+(m1>1?'s':'')+' pour ton parc':m2?'Rien d\'urgent — '+m2+' à traiter cette semaine':'Rien d\'urgent pour ton parc 👍'):p1Act+' failles urgentes actives dans le monde';
+  var mitNote=mineMit.length?' ('+mineMit.length+' déjà mitigée'+(mineMit.length>1?'s':'')+' et écartée'+(mineMit.length>1?'s':'')+' des rappels)':'';
+  var subt=hasParc?(mine.length+' faille'+(mine.length>1?'s':'')+' active'+(mine.length>1?'s':'')+' concerne'+(mine.length>1?'nt':'')+' tes équipements : '+m1+' urgente'+(m1>1?'s':'')+' (48 h), '+m2+' importante'+(m2>1?'s':'')+' (cette semaine)'+mitNote+'. '+(m1?'Commence par celles marquées P1.':''))
     :'Ajoute tes équipements pour savoir en 30 secondes ce qui te concerne vraiment. Ta liste reste sur ton appareil.';
+  var parcMits=MITS.filter(isMitigationForParc);
   var h='<section class="hero '+cls+'"><small>Situation au '+esc(fmt(k.updated))+'</small><div class="big">'+esc(big)+'</div><p>'+esc(subt)+'</p><div class="cta">'+
     (hasParc?'<button class="btn ghost" data-go="parc">Voir mon parc →</button>':'<button class="btn" data-go="parc">+ Ajouter mon parc</button>')+
-    '<button class="btn ghost" data-go="prio">Urgences mondiales</button></div></section>';
+    '<button class="btn ghost" data-go="prio">Urgences mondiales</button>'+
+    (hasParc&&parcMits.length?'<button class="btn ghost" data-go="mitigations">Mitigations ('+parcMits.length+')</button>':'')+'</div></section>';
   function kpiTrends(){
     var nowMs=Date.parse(k.updated)||Date.now(), d24=nowMs-86400000, d48=nowMs-172800000, d7=nowMs-604800000, d8=nowMs-691200000;
     var st=Array.isArray(D.stats)?D.stats:[], prevSt=st.length>=2?st[st.length-2]:null;
     function pubMs(r){var t=Date.parse(r.published||r.modified||'');return isNaN(t)?0:t}
     function added24(rows){return rows.filter(function(r){return r['new']||pubMs(r)>=d24}).length}
-    var p1D=prevSt&&prevSt.p1!=null?(k.p1||0)-prevSt.p1:added24(D.vulns.filter(function(r){return r.priority==='P1'}));
-    var p2D=prevSt&&prevSt.p2!=null?(k.p2||0)-prevSt.p2:added24(D.vulns.filter(function(r){return r.priority==='P2'}));
-    var kevD=added24(D.vulns.filter(function(r){return r.kev}));
-    var msfD=added24(D.vulns.filter(function(r){return r.msf}));
+    var p1D=prevSt&&prevSt.p1!=null?p1Act-prevSt.p1:added24(actAll.filter(function(r){return r.priority==='P1'}));
+    var p2D=prevSt&&prevSt.p2!=null?p2Act-prevSt.p2:added24(actAll.filter(function(r){return r.priority==='P2'}));
+    var kevD=added24(actAll.filter(function(r){return r.kev}));
+    var msfD=added24(actAll.filter(function(r){return r.msf}));
     var prev24=D.vulns.filter(function(r){var t=pubMs(r);return t>=d48&&t<d24}).length;
     var new24D=(prev24||prevSt==null)?(k.new_24h||0)-prev24:(k.new_24h||0)-(prevSt.new||0);
     var kev24=D.kev.filter(function(x){var t=Date.parse(x.dateAdded||'');return !isNaN(t)&&t>=d24}).length;
@@ -475,6 +774,7 @@ S.home=function(){
     return {p1:p1D,p2:p2D,kev:kevD,weapon:msfD,new24:new24D,kev7d:kev7D,parc:parcD};
   }
   function trendHTML(delta){
+    if(delta==null)return '';
     var d=Number(delta)||0;
     var dir=d>0?'up':d<0?'down':'flat';
     var txt=d>0?'+'+d:d<0?String(d):'0';
@@ -487,18 +787,23 @@ S.home=function(){
     return '<span class="trend '+dir+'" title="'+esc(desc)+'" aria-label="'+esc(desc)+'">'+arrow+esc(txt)+'</span>';
   }
   var tr=kpiTrends();
-  var tiles=[['p1',k.p1,'Urgentes (P1)','prio',tr.p1],['p2',k.p2,'Importantes (P2)','prio:P2',tr.p2],['kev',D.vulns.filter(function(r){return r.kev}).length,'Déjà exploitées','q:kev:oui',tr.kev],
-    ['p1',k.weapon,'Outil d\'attaque public','q:exploit:metasploit',tr.weapon],['',k.new_24h,'Nouvelles (24 h)','q:nouveau:oui',tr.new24],['kev',k.kev_7d,'Ajoutées à la liste CISA (7 j)','kev',tr.kev7d]];
-  if(hasParc)tiles.splice(2,0,['parc',mine.length,'Concernent mon parc','parc',tr.parc]);
+  var tiles=[['p1',p1Act,'Urgentes (P1)','prio',tr.p1],['p2',p2Act,'Importantes (P2)','prio:P2',tr.p2],['kev',actAll.filter(function(r){return r.kev}).length,'Déjà exploitées','q:kev:oui',tr.kev],
+    ['p1',actAll.filter(function(r){return r.msf}).length,'Outil d\'attaque public','q:exploit:metasploit',tr.weapon],['',k.new_24h,'Nouvelles (24 h)','q:nouveau:oui',tr.new24],['kev',k.kev_7d,'Ajoutées à la liste CISA (7 j)','kev',tr.kev7d]];
+  if(hasParc)tiles.splice(2,0,['parc',mine.length,'Actives sur mon parc','parc',tr.parc]);
+  var actMits=parcMits.filter(function(m){return !isMitigationExpired(m)}).length;
+  var expMits=parcMits.length-actMits;
+  if(hasParc)tiles.push(['ok',actMits,'Mitigées (mon parc)','mitigations',null]);
+  if(hasParc&&expMits)tiles.push(['p2',expMits,'Révisions à faire','mitigations:expired',null]);
   h+='<div class="grid">'+tiles.map(function(t){return '<div class="kpi '+t[0]+'" data-tile="'+esc(t[3])+'"><div class="kpi-val"><b>'+(t[1]||0)+'</b>'+trendHTML(t[4])+'</div><span>'+esc(t[2])+'</span></div>'}).join('')+'</div>';
   var scope=(hasParc&&chartScope==='parc')?'parc':'all';
-  var chartSrc=scope==='parc'?mine:D.vulns;
-  h+='<h2>Répartition par niveau de priorité</h2><div class="card chart-card"><div class="chart-hd"><span class="chart-meta">'+chartSrc.length+' vulnérabilité'+(chartSrc.length>1?'s':'')+' · touche une barre pour filtrer</span>'+
+  var chartSrc=scope==='parc'?mine:actAll;
+  var mitHiddenCount=(scope==='parc'?mineMit.length:(D.vulns.length-actAll.length));
+  h+='<h2>Répartition par niveau de priorité</h2><div class="card chart-card"><div class="chart-hd"><span class="chart-meta">'+chartSrc.length+' vulnérabilité'+(chartSrc.length>1?'s':'')+' active'+(chartSrc.length>1?'s':'')+(mitHiddenCount?' · '+mitHiddenCount+' mitigée'+(mitHiddenCount>1?'s':'')+' exclue'+(mitHiddenCount>1?'s':''):'')+' · touche une barre pour filtrer</span>'+
     (hasParc?'<div class="seg" role="group" aria-label="Périmètre du graphique"><button type="button" data-cscope="all" class="'+(scope==='all'?'on':'')+'">Toutes</button><button type="button" data-cscope="parc" class="'+(scope==='parc'?'on':'')+'">Mon parc</button></div>':'')+
     '</div><div class="chart-wrap" id="prioChart" role="img" aria-label="Graphique en barres de la répartition des vulnérabilités par priorité P1 à P4"></div><div class="chart-tip" id="prioTip" aria-hidden="true"></div></div>';
   h+='<h2>La situation en clair</h2><div class="card syn">'+D.synthese.map(function(p){return '<p>'+esc(p)+'</p>'}).join('')+'</div>';
-  var urg=(mineUrg.length?mineUrg:D.vulns.filter(function(r){return r.priority==='P1'}).sort(byPrio)).slice(0,6);
-  h+='<h2>'+(mineUrg.length?'Tes urgences':'Les urgences du moment')+'</h2>'+listHTML(urg,6,'x');
+  var urg=(mineUrg.length?mineUrg:actAll.filter(function(r){return r.priority==='P1'}).sort(byPrio)).slice(0,6);
+  h+='<h2>'+(mineUrg.length?'Tes urgences actives':'Les urgences du moment')+'</h2>'+listHTML(urg,6,'x');
   h+='<h2>Comment lire les priorités</h2><div class="card legend">'+['P1','P2','P3','P4'].map(function(p){return '<span class="prio '+p+'">'+p+'</span><span>'+esc(PLABEL[p])+'</span>'}).join('')+'</div>';
   return h;
 };
@@ -509,7 +814,7 @@ function renderPrioChart(){
   if(!wrap||!D)return;
   if(!window.d3){wrap.innerHTML='<div class="empty" style="padding:28px 12px">Chargement du graphique…</div>';return}
   var hasParc=PARC.length>0, scope=(hasParc&&chartScope==='parc')?'parc':'all';
-  var rows=scope==='parc'?parcResults():D.vulns;
+  var rows=scope==='parc'?parcResults():activeVulns();
   var total=rows.length;
   var counts={P1:0,P2:0,P3:0,P4:0};
   rows.forEach(function(r){var p=r.priority||'P4';if(counts[p]!=null)counts[p]++});
@@ -587,11 +892,15 @@ function renderPrioChart(){
 window.__vwD3Ready=function(){if(view==='home'&&D)renderPrioChart()};
 S.prio=function(){
   var only=sub==='P2'?['P2']:['P1','P2'];
-  var rows=D.vulns.filter(function(r){return only.indexOf(r.priority)>=0}).sort(byPrio); curRows=rows;
-  return '<h1>Urgences</h1><p class="lead">Les failles qui demandent une action rapide, partout dans le monde, de la plus urgente à la moins urgente.</p>'+
-    '<div class="chips"><button class="chip'+(sub!=='P2'?' on':'')+'" data-go="prio">P1 et P2 ('+((D.kpi.p1||0)+(D.kpi.p2||0))+')</button><button class="chip'+(sub==='P2'?' on':'')+'" data-go="prio:P2">P2 seulement</button>'+
+  var allPrio=D.vulns.filter(function(r){return only.indexOf(r.priority)>=0}).sort(byPrio);
+  var mitCount=allPrio.filter(function(r){return isCveMitigated(r.id)}).length;
+  var rows=showMitPrio?allPrio:allPrio.filter(function(r){return !isCveMitigated(r.id)}); curRows=rows;
+  var actP12=D.vulns.filter(function(r){return (r.priority==='P1'||r.priority==='P2')&&!isCveMitigated(r.id)}).length;
+  return '<h1>Urgences</h1><p class="lead">Les failles actives qui demandent une action rapide. Les failles déjà mitigées sur ton parc sont automatiquement écartées.</p>'+
+    '<div class="chips"><button class="chip'+(sub!=='P2'?' on':'')+'" data-go="prio">P1 et P2 ('+actP12+')</button><button class="chip'+(sub==='P2'?' on':'')+'" data-go="prio:P2">P2 seulement</button>'+
+    (mitCount?'<button class="chip'+(showMitPrio?' on':'')+'" id="toggleMitPrio">'+(showMitPrio?'Mitigées incluses ('+mitCount+')':'Masquées car mitigées ('+mitCount+')')+'</button>':'')+
     '<button class="chip" data-q="kev:oui">Déjà exploitées</button><button class="chip" data-q="exploit:metasploit">Outil d\'attaque public</button><button class="chip" data-q="famille:périmétrique p:P1,P2">VPN et pare-feu</button></div>'+
-    '<div class="bar"><span class="count">'+rows.length+' failles</span><button class="btn sm" id="exp">Exporter pour Excel</button></div>'+listHTML(rows,qShown,'more');
+    '<div class="bar"><span class="count">'+rows.length+' faille'+(rows.length>1?'s':'')+(mitCount&&!showMitPrio?' active'+(rows.length>1?'s':'')+' · '+mitCount+' mitigée'+(mitCount>1?'s':'')+' masquée'+(mitCount>1?'s':''):'')+'</span><button class="btn sm" id="exp">Exporter pour Excel</button></div>'+listHTML(rows,qShown,'more');
 };
 function assetForm(a,i){
   if(!EDIT[i]&&((a.vendor||'').trim()||(a.product||'').trim())){
@@ -609,13 +918,16 @@ function assetEdit(a,i){
     s('crit','Importance pour ton activité',['Moyenne','Haute','Basse'])+s('exposed','Accessible depuis Internet ?',['Non','Oui'])+f('owner','Responsable (facultatif)','ex. Équipe réseau')+'</div></div>';
 }
 S.parc=function(){
-  var res=parcResults(); curRows=res;
-  var h='<h1>Mon parc</h1><p class="lead">Ajoute tes équipements et logiciels : VulnWatch te montre <b>uniquement les failles qui te concernent</b>, triées par urgence. Aucun compte nécessaire.</p>'+
-    '<div class="note">🔒 Ta liste reste <b>uniquement sur cet appareil</b>, dans ce navigateur. Rien n\'est envoyé, ni à l\'auteur de VulnWatch, ni à personne.</div>';
+  var ps=splitParcResults(), res=ps.active, mitRes=ps.mitigated; curRows=res;
+  var h='<h1>Mon parc</h1><p class="lead">Ajoute tes équipements et logiciels : VulnWatch te montre <b>uniquement les failles actives qui te concernent</b>, en écartant celles que tu as déjà mitigées.</p>'+
+    '<div class="note">🔒 Ta liste et ton historique de mitigation restent <b>uniquement sur cet appareil</b>, dans ce navigateur. Rien n\'est envoyé sans ton action.</div>';
   if(PARC.length){
     var u=res.filter(function(r){return r.priority==='P1'||r.priority==='P2'}).length;
-    h+='<h2>'+res.length+' faille'+(res.length>1?'s':'')+' te concerne'+(res.length>1?'nt':'')+(u?' — dont '+u+' à traiter rapidement':'')+'</h2>'+
-      (res.length?'<div class="bar"><span class="count">Ouvre une fiche pour comparer ta version aux versions touchées.</span><button class="btn sm" id="exp">Exporter pour Excel</button></div>':'')+listHTML(res,parcShown,'pmore');
+    h+='<h2>'+res.length+' faille'+(res.length>1?'s':'')+' active'+(res.length>1?'s':'')+' sur ton parc'+(u?' — dont '+u+' à traiter rapidement':'')+'</h2>'+
+      (res.length?'<div class="bar"><span class="count">Marque une faille comme mitigée avec ta preuve pour stopper ses rappels.</span><button class="btn sm" id="exp">Exporter pour Excel</button></div>':'')+listHTML(res,parcShown,'pmore');
+    if(mitRes.length){
+      h+='<div class="mit-summary"><span><b>✓ '+mitRes.length+' vulnérabilité'+(mitRes.length>1?'s':'')+' mitigée'+(mitRes.length>1?'s':'')+' sur ton parc</b> — retirée'+(mitRes.length>1?'s':'')+' des rappels continus.</span><button type="button" class="btn sm" data-go="mitigations">Voir l\'historique →</button></div>';
+    }
   }
   h+='<h2>Mes équipements ('+PARC.length+')</h2>'+(PARC.length?'':'<p class="lead">Exemple : « VPN du siège » · Fortinet · FortiOS · 7.2.5 · Haute · Oui. Seuls le fournisseur et le produit sont indispensables.</p>')+
     '<div class="form" id="assets">'+PARC.map(assetForm).join('')+'</div>'+
@@ -629,13 +941,51 @@ var SAVED=[['Déjà exploitées','kev:oui'],['Outil d\'attaque public','exploit:
   ['Probabilité d\'attaque en hausse','vue:"EPSS en hausse"'],['Nouvelles critiques','nouveau:oui gravite>=9'],['Critiques sans correctif','gravite>=9 correctif:non'],
   ['Bibliothèques open source','paquet:*'],['Rançongiciels','ransomware:oui']];
 S.explore=function(){
-  var rows=q?runQ(D.vulns,q):[]; curRows=rows;
+  var rawRows=q?runQ(D.vulns,q):[];
+  var stMap={};
+  var nMit=0, nRev=0, nAct=0;
+  rawRows.forEach(function(r){
+    var st=evalRowMitigation(r);
+    stMap[r.id]=st;
+    if(st.isMit)nMit++;
+    else if(st.needsRev)nRev++;
+    else nAct++;
+  });
+  var rows=rawRows.filter(function(r){
+    var st=stMap[r.id];
+    if(expMitFilter==='mit')return st.isMit;
+    if(expMitFilter==='rev')return st.needsRev||(st.isMit&&st.soonDays!=null);
+    if(expMitFilter==='act')return !st.isMit;
+    return true;
+  });
+  curRows=rows;
+  var saved=SAVED.slice();
+  var parcMits=MITS.filter(isMitigationForParc);
+  if(validParcAssets().length){
+    saved.unshift(['Mon parc','parc:oui']);
+    if(parcMits.length){
+      saved.push(['Mitigées (mon parc)','parc:oui mitigee:oui']);
+      if(parcMits.some(isMitigationExpired))saved.push(['À réviser (mon parc)','parc:oui revision:oui']);
+    }
+  }
+  var summaryParts=[rows.length+' résultat'+(rows.length>1?'s':'')];
+  if(expMitFilter==='all'){
+    if(nMit)summaryParts.push(nMit+' mitigée'+(nMit>1?'s':''));
+    if(nRev)summaryParts.push(nRev+' à réviser');
+  }
+  var filterBar=(q&&(nMit||nRev))?'<div class="chips" style="margin-top:8px">'+
+    '<button type="button" class="chip'+(expMitFilter==='all'?' on':'')+'" data-exp-f="all">Tous ('+rawRows.length+')</button>'+
+    '<button type="button" class="chip'+(expMitFilter==='act'?' on':'')+'" data-exp-f="act">Actives ('+(rawRows.length-nMit)+')</button>'+
+    (nMit?'<button type="button" class="chip'+(expMitFilter==='mit'?' on':'')+'" data-exp-f="mit">✓ Mitigées ('+nMit+')</button>':'')+
+    (nRev?'<button type="button" class="chip'+(expMitFilter==='rev'?' on':'')+'" data-exp-f="rev">⏰ Révision ('+nRev+')</button>':'')+
+    '</div>':'';
   return '<h1>Explorer</h1><p class="lead">Cherche un produit, un éditeur ou une CVE, ou choisis une recherche toute prête.</p>'+
     '<div class="search"><input id="q" type="search" enterkeyhint="search" value="'+esc(q)+'" placeholder="ex. Fortinet, Chrome, CVE-2024-3400…" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="btn" id="hb" aria-label="Aide">?</button></div>'+
-    '<div class="chips">'+SAVED.map(function(s){return '<button class="chip'+(q===s[1]?' on':'')+'" data-q=\''+esc(s[1])+'\'>'+esc(s[0])+'</button>'}).join('')+'</div>'+
+    '<div class="chips">'+saved.map(function(s){return '<button class="chip'+(q===s[1]?' on':'')+'" data-q=\''+esc(s[1])+'\'>'+esc(s[0])+'</button>'}).join('')+'</div>'+
     '<div class="card help" id="help" style="margin-top:10px"><b>Recherche avancée (pour les pros)</b> — combine les critères ; « - » devant un critère l\'exclut ; une virgule veut dire « ou ».<br>'+
-    ['p:P1,P2','gravite>=9','epss>=10%','risque>=80','age<=7','kev:oui','correctif:non','exploit:metasploit','exploit:poc','fournisseur:fortinet','produit:"pan-os"','famille:ot','tag:rce','vue:"RCE pré-auth"','av:internet','pr:aucun','ui:aucune','paquet:npm','source:cna','tri:risque'].map(function(x){return '<span class="mono">'+esc(x)+'</span>'}).join(' ')+'</div>'+
-    (q?'<div class="bar"><span class="count">'+rows.length+' résultat'+(rows.length>1?'s':'')+'</span><button class="btn sm" id="exp">Exporter pour Excel</button></div>'+listHTML(rows,qShown,'more')
+    ['p:P1,P2','gravite>=9','epss>=10%','risque>=80','age<=7','kev:oui','parc:oui','mitigee:oui','mitigee:non','revision:oui','correctif:non','exploit:metasploit','exploit:poc','fournisseur:fortinet','produit:"pan-os"','famille:ot','tag:rce','vue:"RCE pré-auth"','av:internet','pr:aucun','ui:aucune','paquet:npm','source:cna','tri:risque'].map(function(x){return '<span class="mono">'+esc(x)+'</span>'}).join(' ')+'</div>'+
+    filterBar+
+    (q?'<div class="bar"><span class="count">'+esc(summaryParts.join(' · '))+'</span><button class="btn sm" id="exp">Exporter pour Excel</button></div>'+listHTML(rows,qShown,'more')
       :'<div class="empty"><div class="ico">🔎</div>Tape un nom de produit ou choisis une recherche ci-dessus.</div>');
 };
 S.views=function(){
@@ -650,14 +1000,159 @@ S.kev=function(){
       var vName=(tr&&tr.title)?tr.title:k.vulnerabilityName;
       var vDesc=(tr&&tr.desc)?tr.desc:k.shortDescription;
       var vAct=(tr&&tr.action)?tr.action:k.requiredAction;
-      return '<article class="v P1" style="cursor:default"><div class="vh"><div class="vt"><h3>'+esc(k.vendorProject+' '+k.product)+'</h3><div class="vid"><a target="_blank" rel="noopener" href="https://nvd.nist.gov/vuln/detail/'+esc(k.cveID)+'">'+esc(k.cveID)+'</a> · ajoutée le '+esc(k.dateAdded)+'</div></div><span class="prio P1">Exploitée</span></div>'+
-      (k.knownRansomwareCampaignUse==='Known'?'<div class="tags"><span class="t kev">Utilisée par des rançongiciels</span></div>':'')+
-      '<p class="plain"><b data-tr-id="kev:'+esc(k.cveID)+'" data-tr-field="title">'+esc(vName)+'</b>. <span data-tr-id="kev:'+esc(k.cveID)+'" data-tr-field="desc">'+esc(vDesc)+'</span></p><div class="todo"><b>À corriger avant le '+esc(k.dueDate)+'</b><span data-tr-id="kev:'+esc(k.cveID)+'" data-tr-field="action">'+esc(vAct)+'</span></div></article>';
+      var kevHits=matchedParcForKev(k);
+      var kevRow=findVulnById(k.cveID);
+      if(!kevHits.length&&kevRow&&kevRow.watch)kevHits=watchAssetsFromRow(kevRow);
+      var inParc=kevHits.length>0;
+      var ms=inParc?activeMitigationsForCve(k.cveID).filter(function(m){return isGlobalAsset(m.asset)||kevHits.some(function(a){return mitigationMatchesAsset(m,a)})}):[];
+      var expMs=inParc?expiredMitigationsForCve(k.cveID).filter(function(m){return isGlobalAsset(m.asset)||kevHits.some(function(a){return mitigationMatchesAsset(m,a)})}):[];
+      var isMit=inParc&&isCveMitigated(k.cveID,kevHits);
+      var needsRev=inParc&&!isMit&&expMs.length>0;
+      var defaultAsset=kevHits.length===1?assetLabel(kevHits[0]):'';
+      var prod=k.vendorProject+' '+k.product;
+      var kTags='';
+      if(k.knownRansomwareCampaignUse==='Known')kTags+='<span class="t kev">Utilisée par des rançongiciels</span>';
+      if(inParc){
+        var pLbl=kevHits.length===1?'Mon parc : '+assetLabel(kevHits[0]):'Mon parc ('+kevHits.length+' actifs)';
+        kTags+='<span class="t parc">'+esc(pLbl)+'</span>';
+      }
+      if(isMit)kTags+='<span class="t ok">✓ Mitigée</span>';
+      else if(needsRev)kTags+='<span class="t high">⏰ Révision échue</span>';
+      var kHdr=isMit?'<span class="st-badge mit">✓ Mitigée</span>':(needsRev?'<span class="st-badge rev">⏰ Révision</span>':'');
+      var kAction=isMit
+        ?mitBoxHTML(ms)
+        :'<div class="todo"><b>À corriger avant le '+esc(k.dueDate)+'</b><span data-tr-id="kev:'+esc(k.cveID)+'" data-tr-field="action">'+esc(vAct)+'</span></div>'+
+          (inParc?expiredMitNoticeHTML(expMs)+'<div class="card-act"><button type="button" class="btn sm ok" data-mit-open="'+esc(k.cveID)+'" data-mit-prod="'+esc(prod)+'" data-mit-prio="P1" data-mit-asset="'+esc(defaultAsset)+'">✓ Marquer comme mitigée</button></div>':'');
+      return '<article class="v P1'+(isMit?' mitigated':needsRev?' needs-rev':'')+'" style="cursor:default"><div class="vh"><div class="vt"><h3>'+esc(prod)+'</h3><div class="vid"><a target="_blank" rel="noopener" href="https://nvd.nist.gov/vuln/detail/'+esc(k.cveID)+'">'+esc(k.cveID)+'</a> · ajoutée le '+esc(k.dateAdded)+'</div></div><div class="vh-badges">'+kHdr+'<span class="prio P1">Exploitée</span></div></div>'+
+      (kTags?'<div class="tags">'+kTags+'</div>':'')+
+      '<p class="plain"><b data-tr-id="kev:'+esc(k.cveID)+'" data-tr-field="title">'+esc(vName)+'</b>. <span data-tr-id="kev:'+esc(k.cveID)+'" data-tr-field="desc">'+esc(vDesc)+'</span></p>'+
+      kAction+'</article>';
     }).join('')+'</div>';
 };
 S.alerts=function(){
-  return '<h1>Alertes envoyées</h1><p class="lead">Les alertes émises par cette installation de VulnWatch.</p><div class="list">'+(D.alerts.length?D.alerts.slice(0,200).map(function(a){
-    return '<div class="card" style="padding:12px 14px"><b>'+esc(a.cve)+'</b> <span class="prio '+(a.priority>=5?'P1':'P2')+'" style="font-size:11px">'+(a.priority>=5?'Urgent':'Important')+'</span><div style="margin-top:4px">'+esc(a.reasons)+'</div><div class="count">'+esc(fmt(a.date))+' · '+esc(a.channels)+'</div></div>'}).join(''):'<div class="empty">Aucune alerte pour le moment.</div>')+'</div>';
+  var all=D.alerts.slice(0,200);
+  var suppressed=all.filter(function(a){return isCveMitigated(a.cve)});
+  var active=all.filter(function(a){return !isCveMitigated(a.cve)});
+  var shown=showMitAlerts?all:active;
+  var h='<h1>Alertes envoyées</h1><p class="lead">Les alertes concernant ton parc sont automatiquement comparées à ton historique de mitigation pour éviter les rappels continus.</p>';
+  if(all.length){
+    h+='<div class="mit-summary"><span><b>'+active.length+' alerte'+(active.length>1?'s':'')+' active'+(active.length>1?'s':'')+'</b>'+(suppressed.length?' · '+suppressed.length+' rappel'+(suppressed.length>1?'s':'')+' écarté'+(suppressed.length>1?'s':'')+' (déjà mitigé'+(suppressed.length>1?'s':'')+' sur ton parc)':'')+'</span>'+
+      (suppressed.length?'<button type="button" class="btn sm" id="toggleMitAlerts">'+(showMitAlerts?'Masquer les mitigées':'Afficher les mitigées ('+suppressed.length+')')+'</button>':'')+'</div>';
+  }
+  h+='<div class="list">'+(shown.length?shown.map(function(a){
+    var hits=parcHitsForCve(a.cve);
+    var inParc=hits.length>0;
+    var ms=inParc?activeMitigationsForCve(a.cve).filter(function(m){return isGlobalAsset(m.asset)||hits.some(function(h){return mitigationMatchesAsset(m,h)})}):[];
+    var expMs=inParc?expiredMitigationsForCve(a.cve).filter(function(m){return isGlobalAsset(m.asset)||hits.some(function(h){return mitigationMatchesAsset(m,h)})}):[];
+    var isMit=inParc&&isCveMitigated(a.cve,hits);
+    var defAsset=hits.length===1?assetLabel(hits[0]):'';
+    var actBtn='';
+    if(inParc){
+      actBtn=isMit&&ms[0]
+        ?'<button type="button" class="btn sm danger" data-mit-del="'+esc(ms[0].id)+'">Réactiver</button>'
+        :expMs.length
+        ?'<button type="button" class="btn sm pri" data-mit-edit="'+esc(expMs[0].id)+'">Réviser / prolonger</button>'
+        :'<button type="button" class="btn sm ok" data-mit-open="'+esc(a.cve)+'" data-mit-prio="'+(a.priority>=5?'P1':'P2')+'" data-mit-asset="'+esc(defAsset)+'">✓ Marquer comme mitigée</button>';
+    }
+    return '<div class="card" style="padding:12px 14px;'+(isMit?'border-left:5px solid var(--ok)':expMs.length?'border-left:5px solid var(--p3)':'')+'">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap"><div><b><a target="_blank" rel="noopener" href="https://nvd.nist.gov/vuln/detail/'+esc(a.cve)+'">'+esc(a.cve)+'</a></b> '+
+      (isMit?'<span class="mit-badge">✓ Mitigée — rappel désactivé</span>':(expMs.length?'<span class="mit-badge exp">⏰ Révision échue</span> ':'')+'<span class="prio '+(a.priority>=5?'P1':'P2')+'" style="font-size:11px">'+(a.priority>=5?'Urgent':'Important')+'</span>')+
+      '</div>'+actBtn+
+      '</div><div style="margin-top:6px">'+esc(a.reasons)+'</div>'+
+      (isMit&&ms[0]?'<div class="mit-meta" style="margin-top:6px">Preuve ('+esc(ms[0].status)+' · '+esc(ms[0].asset||'Tout le parc')+(ms[0].date?' · '+esc(fdate(ms[0].date)):'')+(ms[0].expires?' · révision le '+esc(fdate(ms[0].expires)):'')+') : '+esc(ms[0].proof)+'</div>':'')+
+      (!isMit&&expMs.length?'<div class="mit-meta" style="margin-top:6px">Mitigation précédente expirée le '+esc(fdate(expMs[0].expires))+' ('+esc(expMs[0].status)+' · '+esc(expMs[0].asset||'Tout le parc')+') : '+esc(expMs[0].proof)+'</div>':'')+
+      '<div class="count" style="margin-top:4px">'+esc(fmt(a.date))+' · '+esc(a.channels)+'</div></div>';
+  }).join(''):'<div class="empty"><div class="ico">✅</div>'+(suppressed.length?'Toutes les alertes récentes de ton parc sont déjà mitigées.':'Aucune alerte pour le moment.')+'</div>')+'</div>';
+  return h;
+};
+S.mitigations=function(){
+  if(sub==='expired'){mitFilter='expired';sub=''}
+  var hasParc=validParcAssets().length>0;
+  var ps=splitParcResults(), allParcVulns=ps.active.concat(ps.mitigated);
+  var total=MITS.length;
+  var nExp=MITS.filter(function(m){return isMitigationForParc(m)&&isMitigationExpired(m)}).length;
+  var nFix=MITS.filter(function(m){return m.status==='Corrigée'}).length;
+  var nWrk=MITS.filter(function(m){return m.status==='Contournement'}).length;
+  var nOth=total-nFix-nWrk;
+  var blockedCount=MITS.filter(function(m){
+    if(isMitigationExpired(m))return false;
+    var hits=parcHitsForCve(m.cve);
+    return hits.length>0&&(isGlobalAsset(m.asset)||hits.some(function(a){return mitigationMatchesAsset(m,a)}));
+  }).length;
+  var filtered=MITS.slice().sort(function(a,b){
+    var ea=isMitigationExpired(a)?0:1, eb=isMitigationExpired(b)?0:1;
+    if(ea!==eb)return ea-eb;
+    return String(b.date||'').localeCompare(String(a.date||''))||String(b.updatedAt||'').localeCompare(String(a.updatedAt||''));
+  }).filter(function(m){
+    if(mitFilter==='expired'){if(!isMitigationForParc(m)||!isMitigationExpired(m))return false}
+    else if(mitFilter==='other'){if(m.status!=='Risque accepté'&&m.status!=='Non applicable')return false}
+    else if(mitFilter!=='all'&&m.status!==mitFilter)return false;
+    if(mitQ){
+      var hay=norm([m.cve,m.asset,m.product,m.status,m.owner,m.proof,m.expires].join(' '));
+      if(hay.indexOf(norm(mitQ))<0)return false;
+    }
+    return true;
+  });
+  var h='<h1>Historique des mitigations</h1><p class="lead">Registre de preuve de tes corrections, contournements et acceptations de risque — <b>uniquement pour les vulnérabilités liées aux actifs de ton parc</b>.</p>';
+  if(!hasParc){
+    h+='<div class="note" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><span>🖥️ La mitigation concerne uniquement les vulnérabilités liées à <b>Mon parc</b>. Ajoute d\'abord tes équipements pour enregistrer tes mitigations.</span><button type="button" class="btn sm pri" data-go="parc">Configurer mon parc →</button></div>';
+  }
+  h+='<div class="grid" style="margin-top:0;margin-bottom:14px">'+
+    '<div class="kpi ok" data-mit-f="all"><div class="kpi-val"><b>'+total+'</b></div><span>Total enregistrées</span></div>'+
+    '<div class="kpi ok" data-mit-f="Corrigée"><div class="kpi-val"><b>'+nFix+'</b></div><span>Corrigées (patch)</span></div>'+
+    '<div class="kpi p2" data-mit-f="Contournement"><div class="kpi-val"><b>'+nWrk+'</b></div><span>Contournements</span></div>'+
+    '<div class="kpi" data-mit-f="other"><div class="kpi-val"><b>'+nOth+'</b></div><span>Risque accepté / N/A</span></div>'+
+    '<div class="kpi '+(nExp?'p1':'')+'" data-mit-f="expired"><div class="kpi-val"><b>'+nExp+'</b></div><span>À réviser (expirées)</span></div>'+
+    '<div class="kpi parc" data-go="parc"><div class="kpi-val"><b>'+blockedCount+'</b></div><span>Rappels parc bloqués</span></div></div>';
+  h+='<div class="bar">'+(hasParc
+      ?'<button type="button" class="btn pri" id="addMit">+ Enregistrer une mitigation</button>'
+      :'<button type="button" class="btn pri" data-go="parc">+ Ajouter mes équipements d\'abord</button>')+
+    '<span style="display:flex;gap:6px;flex-wrap:wrap">'+
+      (total?'<button type="button" class="btn sm" id="expMitCsv">Exporter (CSV / Excel)</button>':'')+
+      (total?'<button type="button" class="btn sm" id="cpyMitGh">Copier pour GitHub (MITIGATIONS)</button>':'')+
+      (hasParc?'<button type="button" class="btn sm" id="impMitBtn">Importer un registre</button>':'')+
+    '</span></div>';
+  h+='<div id="impMitBox" style="display:none;margin-bottom:12px" class="card"><p class="lead">Colle un registre (seules les entrées liées à un actif de ton parc seront importées) : <span class="mono">CVE;Actif;Statut;Date;Responsable;Preuve;Expiration</span> (la colonne Expiration est facultative, format <span class="mono">AAAA-MM-JJ</span>).</p><textarea class="in" id="impMitT" placeholder="CVE-2024-3400;VPN du siège;Risque accepté;2025-05-12;RSSI;Isolé derrière pare-feu interne;2025-08-12"></textarea><p style="margin-bottom:0"><button type="button" class="btn pri" id="impMitGo">Importer</button></p></div>';
+  if(total){
+    h+='<div class="search"><input id="mitSearch" type="search" value="'+esc(mitQ)+'" placeholder="Filtrer par CVE, actif, responsable ou preuve…" autocomplete="off"></div>';
+    var fChips=[['all','Toutes ('+total+')']];
+    if(nExp)fChips.push(['expired','À réviser ('+nExp+')']);
+    fChips=fChips.concat([['Corrigée','Corrigées'],['Contournement','Contournements'],['Risque accepté','Risque accepté'],['Non applicable','Non applicable']]);
+    h+='<div class="chips" style="margin-bottom:10px">'+fChips.map(function(c){
+      return '<button type="button" class="chip'+(mitFilter===c[0]?' on':'')+'" data-mit-f="'+esc(c[0])+'">'+esc(c[1])+'</button>';
+    }).join('')+'</div>';
+  }
+  if(!filtered.length){
+    var emptyTxt=total?'Aucune mitigation ne correspond à ce filtre.'
+      :(!hasParc?'Configure d\'abord tes équipements dans « Mon parc » pour pouvoir mitiger les vulnérabilités qui les concernent.'
+      :(!allParcVulns.length?'Aucune vulnérabilité ne touche actuellement ton parc. Dès qu\'une faille concernera tes équipements, tu pourras la marquer comme mitigée.'
+      :'Aucune mitigation enregistrée pour le moment. Touche « ✓ Marquer comme mitigée » sur une faille de ton parc ou clique sur « + Enregistrer une mitigation ».'));
+    h+='<div class="empty"><div class="ico">'+(total?'🔎':'🛡️')+'</div>'+esc(emptyTxt)+'</div>';
+  }else{
+    h+='<div class="list">'+filtered.map(function(m){
+      var hits=parcHitsForCve(m.cve);
+      var liveInParc=hits.length>0&&(isGlobalAsset(m.asset)||hits.some(function(a){return mitigationMatchesAsset(m,a)}));
+      var forParc=isMitigationForParc(m);
+      var exp=isMitigationExpired(m);
+      var remDays=m.expires?daysUntilISO(m.expires):null;
+      var rowCls=exp?' exp':!forParc?' mute':m.status==='Contournement'?' warn':(m.status==='Risque accepté'||m.status==='Non applicable')?' mute':'';
+      var bCls=exp?' exp':!forParc?' mute':m.status==='Contournement'?' warn':(m.status==='Risque accepté'||m.status==='Non applicable')?' mute':'';
+      var expMeta=m.expires?(exp?' · expirée le '+fdate(m.expires):' · révision le '+fdate(m.expires)+(remDays!=null&&remDays<=14?' (dans '+remDays+' j)':'')):'';
+      var footNote=!forParc
+        ?'Hors parc actuel — ignorée (la mitigation concerne uniquement les vulnérabilités liées à ton parc)'
+        :exp
+        ?'⚠ Date de révision atteinte — cette faille est de nouveau active sur ton parc'
+        :(liveInParc?'✓ Active sur ton parc — rappel supprimé':'Archivée dans ton registre d\'audit');
+      return '<article class="mit-row'+rowCls+'"><div class="vh"><div class="vt"><h3><a target="_blank" rel="noopener" href="https://nvd.nist.gov/vuln/detail/'+esc(m.cve)+'">'+esc(m.cve)+'</a>'+(m.product?' · '+esc(m.product):'')+'</h3>'+
+        '<div class="vid">Actif : <b>'+esc(m.asset||'Tout le parc')+'</b>'+(m.date?' · le '+esc(fdate(m.date)):'')+(m.owner?' · par '+esc(m.owner):'')+esc(expMeta)+'</div></div>'+
+        '<span class="mit-badge'+bCls+'">'+(!forParc?'Hors parc · ':exp?'⏰ À réviser · ':'')+esc(m.status||'Corrigée')+'</span></div>'+
+        '<p class="mit-proof" style="margin-top:8px"><b>Preuve :</b> '+esc(m.proof||'—')+'</p>'+
+        '<div class="card-act"><span class="mit-meta">'+esc(footNote)+'</span>'+
+        '<span style="display:flex;gap:6px;flex-wrap:wrap">'+(forParc?'<button type="button" class="btn sm'+(exp?' pri':'')+'" data-mit-edit="'+esc(m.id)+'">'+(exp?'Réviser / prolonger':'Modifier')+'</button>':'')+'<button type="button" class="btn sm danger" data-mit-del="'+esc(m.id)+'">'+(exp||!forParc?'Supprimer':'Réactiver l\'alerte')+'</button></span></div></article>';
+    }).join('')+'</div>';
+  }
+  h+='<div class="note" style="margin-top:14px">🔔 Pour que les <b>alertes automatiques horaires</b> (ntfy, courriel, Teams/Slack et tickets GitHub) ignorent aussi tes failles mitigées sur ton parc (et te rappellent automatiquement après la date d\'expiration), clique sur « Copier pour GitHub (MITIGATIONS) » et colle le résultat dans le secret GitHub <span class="mono">MITIGATIONS</span> de ton dépôt.</div>';
+  return h;
 };
 S.learn=function(){
   return '<h1>Comprendre</h1><p class="lead">Les mots de la cybersécurité, expliqués simplement.</p><div class="card"><dl class="gl">'+D.glossaire.map(function(g){return '<dt>'+esc(g.terme)+'</dt><dd>'+esc(g.def)+'</dd>'}).join('')+'</dl></div>'+
@@ -692,7 +1187,7 @@ S.settings=function(){
     '<div class="bar" style="margin:10px 0 6px"><span class="count">Thème d\'affichage</span><div class="seg" role="group" aria-label="Thème visuel"><button type="button" data-theme-set="white" class="'+(theme==='white'?'on':'')+'">Blanc</button><button type="button" data-theme-set="light" class="'+(theme==='light'?'on':'')+'">Clair</button><button type="button" data-theme-set="dark" class="'+(theme==='dark'?'on':'')+'">Sombre</button></div></div>'+
     '<div class="bar" style="margin:6px 0 0"><span class="count">Traduction automatique des fiches en français naturel</span><button type="button" class="tr-btn'+(autoFr?' on':'')+'" id="setTrToggle">'+(autoFr?'Activée (FR auto)':'Désactivée (VO)')+'</button></div></div>';
   h+='<div class="card"><b>État de l\'installation</b><div class="status" style="margin-top:8px">'+[['ntfy','Notifications sur téléphone (ntfy)','NTFY_TOPIC'],['courriel','Courriel et rapport quotidien','SMTP_USER, SMTP_PASSWORD, MAIL_TO'],
-    ['webhook','Teams / Slack / Discord','WEBHOOK_URL'],['inventaire','Inventaire secret','INVENTAIRE'],['cle_nvd','Clé NVD','NVD_API_KEY'],['excel_chiffre','Excel complet chiffré','EXCEL_PASSWORD']].map(function(c){
+    ['webhook','Teams / Slack / Discord','WEBHOOK_URL'],['inventaire','Inventaire secret','INVENTAIRE'],['mitigations','Registre des mitigations','MITIGATIONS'],['cle_nvd','Clé NVD','NVD_API_KEY'],['excel_chiffre','Excel complet chiffré','EXCEL_PASSWORD']].map(function(c){
       return '<span class="'+(ch[c[0]]?'okk':'nok')+'">'+(ch[c[0]]?'✓':'○')+'</span><span>'+esc(c[1])+(ch[c[0]]?'':' <span class="count">— secret '+esc(c[2])+'</span>')+'</span>'}).join('')+'</div>'+
     (repo?'<p style="margin-bottom:0"><a class="btn sm" target="_blank" rel="noopener" href="https://github.com/'+esc(repo)+'/settings/secrets/actions">Ouvrir les secrets GitHub ↗</a></p>':'')+'</div>';
   h+='<h2>Générer le fichier de réglages</h2><p class="lead">Change les valeurs, touche « Générer », copie, puis colle à la place du contenu de reglages.yml.</p><div class="form">'+FIELDS.map(function(f,i){
@@ -707,17 +1202,17 @@ S.settings=function(){
   return h;
 };
 S.more=function(){
-  var items=[['views','📊','Vues expertes','20 analyses prêtes à l\'emploi'],['kev','🔥','Failles exploitées (CISA)','La liste officielle des failles attaquées'],['learn','📖','Comprendre','Les mots expliqués simplement'],
+  var items=[['mitigations','🛡️','Historique des mitigations','Preuves de correction et arrêt des rappels'],['views','📊','Vues expertes','20 analyses prêtes à l\'emploi'],['kev','🔥','Failles exploitées (CISA)','La liste officielle des failles attaquées'],['learn','📖','Comprendre','Les mots expliqués simplement'],
     ['install','🚀','Mon propre VulnWatch','Mes alertes et mon Excel, gratuitement'],['alerts','🔔','Alertes envoyées','Historique de cette installation'],['settings','⚙️','Réglages','Pour l\'administrateur de cette installation']];
   return '<h1>Plus</h1><div class="sheet">'+items.map(function(i){return '<button data-go="'+i[0]+'"><span style="font-size:24px">'+i[1]+'</span><div><b>'+esc(i[2])+'</b><span class="s">'+esc(i[3])+'</span></div></button>'}).join('')+
     '<a class="btn" href="VulnWatch.xlsx" style="justify-content:flex-start;padding:14px">📗&nbsp; Télécharger l\'Excel complet</a></div>';
 };
 /* ---------- navigation ---------- */
-var MORE=['views','kev','alerts','learn','settings','install','more'];
+var MORE=['mitigations','views','kev','alerts','learn','settings','install','more'];
 function go(target,push){
   var t=String(target);
   if(t.indexOf('q:')===0){q=t.slice(2);t='explore'}
-  var parts=t.split(':');view=S[parts[0]]?parts[0]:'home';sub=parts[1]||'';qShown=40;parcShown=40;
+  var parts=t.split(':');view=S[parts[0]]?parts[0]:'home';sub=parts[1]||'';qShown=40;parcShown=40;expMitFilter='all';
   document.querySelectorAll('.tabs [data-go]').forEach(function(b){b.classList.toggle('on',b.dataset.go===view)});
   document.querySelectorAll('.bnav [data-go]').forEach(function(b){b.classList.toggle('on',b.dataset.go===view||(b.dataset.go==='more'&&MORE.indexOf(view)>=0))});
   render();window.scrollTo(0,0);
@@ -739,7 +1234,7 @@ function collectVisibleForTranslate(){
   var list=[];
   if(view==='home'){
     var mine=parcResults(), mineUrg=mine.filter(function(r){return r.priority==='P1'||r.priority==='P2'});
-    list=(mineUrg.length?mineUrg:D.vulns.filter(function(r){return r.priority==='P1'}).sort(byPrio)).slice(0,6);
+    list=(mineUrg.length?mineUrg:activeVulns().filter(function(r){return r.priority==='P1'}).sort(byPrio)).slice(0,6);
   }else if(view==='prio'||view==='explore'||view==='parc'){
     list=curRows.slice(0,view==='parc'?parcShown:qShown);
   }
@@ -803,8 +1298,9 @@ function bind(){
   var m=$('more');if(m)m.onclick=function(){qShown+=60;render()};
   var pm=$('pmore');if(pm)pm.onclick=function(){parcShown+=60;render()};
   var qi=$('q');
-  if(qi){var tm;qi.oninput=function(){clearTimeout(tm);tm=setTimeout(function(){q=qi.value.trim();qShown=40;var pos=qi.selectionStart;render();var n=$('q');n.focus();try{n.setSelectionRange(pos,pos)}catch(e){}
+  if(qi){var tm;qi.oninput=function(){clearTimeout(tm);tm=setTimeout(function(){q=qi.value.trim();expMitFilter='all';qShown=40;var pos=qi.selectionStart;render();var n=$('q');n.focus();try{n.setSelectionRange(pos,pos)}catch(e){}
     try{history.replaceState(null,'','#explore'+(q?'/'+encodeURIComponent(q):''))}catch(e){}},220)};$('hb').onclick=function(){$('help').classList.toggle('on')}}
+  document.querySelectorAll('[data-exp-f]').forEach(function(b){b.onclick=function(){expMitFilter=b.dataset.expF;qShown=40;render()}});
   var ex=$('exp');if(ex)ex.onclick=exportRows;
   if(view==='home'){
     renderPrioChart();
@@ -818,11 +1314,123 @@ function bind(){
     document.querySelectorAll('[data-cscope]').forEach(function(b){b.onclick=function(){chartScope=b.dataset.cscope;render()}});
   }else if(chartRO){chartRO.disconnect();chartRO=null}
   if(view==='parc')bindParc();
+  if(view==='mitigations')bindMitigations();
+  var tmp=$('toggleMitPrio');if(tmp)tmp.onclick=function(){showMitPrio=!showMitPrio;render()};
+  var tma=$('toggleMitAlerts');if(tma)tma.onclick=function(){showMitAlerts=!showMitAlerts;render()};
   if(view==='settings'){
     bindSettings();
     var stBtn=$('setTrToggle');
     if(stBtn)stBtn.onclick=function(){toggleAutoTranslate()};
   }
+}
+function mitCsvText(){
+  return 'CVE;Actif;Statut;Date;Responsable;Preuve;Expiration\n'+MITS.map(function(m){
+    return [m.cve,m.asset||'Tout le parc',m.status||'Corrigée',m.date||'',m.owner||'',m.proof||'',m.expires||''].map(function(x){
+      return String(x||'').replace(/[\r\n]+/g,' ').replace(/;/g,',');
+    }).join(';');
+  }).join('\n');
+}
+function populateMitAssets(cve,preferredAsset){
+  var sel=$('mitAssetSel');
+  var hits=parcHitsForCve(cve);
+  var opts=[];
+  if(hits.length>1){
+    opts.push({val:'Tout le parc',label:'Tous les actifs concernés ('+hits.length+')'});
+  }
+  hits.forEach(function(a){
+    var lbl=assetLabel(a);
+    if(lbl&&!opts.some(function(o){return o.val===lbl}))opts.push({val:lbl,label:lbl});
+  });
+  if(!opts.length&&preferredAsset){
+    opts.push({val:preferredAsset,label:preferredAsset});
+  }
+  sel.innerHTML=opts.map(function(o){return '<option value="'+esc(o.val)+'">'+esc(o.label)+'</option>'}).join('');
+  if(preferredAsset&&opts.some(function(o){return o.val===preferredAsset})){
+    sel.value=preferredAsset;
+  }else if(opts.length){
+    sel.value=opts[0].val;
+  }
+  return hits;
+}
+function bindMitigations(){
+  var add=$('addMit');if(add)add.onclick=function(){openMitModal({})};
+  var csv=$('expMitCsv');if(csv)csv.onclick=function(){download('vulnwatch-mitigations.csv',mitCsvText());toast('Registre exporté pour Excel')};
+  var gh=$('cpyMitGh');if(gh)gh.onclick=function(){copyText(mitCsvText())};
+  var impBtn=$('impMitBtn');if(impBtn)impBtn.onclick=function(){var b=$('impMitBox');b.style.display=b.style.display==='none'?'block':'none';if(b.style.display==='block')$('impMitT').focus()};
+  var impGo=$('impMitGo');if(impGo)impGo.onclick=function(){
+    var parcAssets=validParcAssets();
+    if(!parcAssets.length){toast('Ajoute d\'abord tes équipements dans « Mon parc »');return}
+    var n=0, skipped=0;
+    $('impMitT').value.split(/\r?\n/).map(function(l){return l.trim()}).filter(Boolean).forEach(function(l){
+      var c=l.split(l.indexOf(';')>=0?';':',').map(function(x){return x.trim()});
+      var cve=(c[0]||'').toUpperCase();
+      if(!/^CVE-\d{4}-\d{4,}$/i.test(cve))return;
+      var asset=c[1]||'Tout le parc';
+      var probe={cve:cve,asset:asset};
+      if(!isMitigationForParc(probe)){skipped++;return}
+      var stRaw=c[2]||'Corrigée';
+      var st=/contour/i.test(stRaw)?'Contournement':/accept/i.test(stRaw)?'Risque accepté':/non.?app|n\/a/i.test(stRaw)?'Non applicable':'Corrigée';
+      var dt=c[3]||todayISO(), owner=c[4]||'', proof=c[5]||'Importé depuis le registre';
+      var expRaw=(c[6]||'').trim(), expires=/^\d{4}-\d{2}-\d{2}$/.test(expRaw)?expRaw:'';
+      var r=findVulnById(cve);
+      var exIdx=MITS.findIndex(function(m){return m.cve===cve&&norm(m.asset)===norm(asset)});
+      var rec={id:exIdx>=0?MITS[exIdx].id:('m'+Date.now()+Math.random().toString(36).slice(2,6)),cve:cve,asset:asset,product:r?prodName(r):'',status:st,date:dt,expires:expires,owner:owner,proof:proof,updatedAt:new Date().toISOString()};
+      if(exIdx>=0)MITS[exIdx]=rec;else MITS.unshift(rec);
+      n++;
+    });
+    saveMits();
+    toast(n+' mitigation(s) importée(s)'+(skipped?' · '+skipped+' ignorée(s) hors parc':''));
+    render();
+  };
+  var ms=$('mitSearch');
+  if(ms){var mt;ms.oninput=function(){clearTimeout(mt);mt=setTimeout(function(){mitQ=ms.value.trim();var pos=ms.selectionStart;render();var el=$('mitSearch');if(el){el.focus();try{el.setSelectionRange(pos,pos)}catch(e){}}},180)}}
+  document.querySelectorAll('[data-mit-f]').forEach(function(b){b.onclick=function(){mitFilter=b.dataset.mitF;render()}});
+}
+function openMitModal(opts){
+  mitLastFocus=document.activeElement;
+  var existing=opts.editId?MITS.find(function(m){return m.id===opts.editId}):null;
+  var cveSel=$('mitCveSel'), cveSelWrap=$('mitCveSelWrap'), cveReadWrap=$('mitCveReadWrap'), cveIn=$('mitCve');
+  var cve=(existing?existing.cve:opts.cve||'').toUpperCase();
+  var ps=splitParcResults(), allParcVulns=ps.active.concat(ps.mitigated);
+  if(!existing&&!cve){
+    if(!validParcAssets().length){toast('Ajoute d\'abord tes équipements dans « Mon parc »');go('parc');return}
+    if(!allParcVulns.length){toast('Aucune vulnérabilité ne touche actuellement ton parc');return}
+    cveSel.innerHTML=allParcVulns.map(function(r){
+      var hLbl=parcHitsForRow(r).map(assetLabel).join(', ');
+      return '<option value="'+esc(r.id)+'">'+esc(r.id+' — '+prodName(r)+(hLbl?' ('+hLbl+')':''))+'</option>';
+    }).join('');
+    cve=allParcVulns[0].id;
+    cveSel.value=cve;
+    cveSelWrap.style.display='block';
+    cveReadWrap.style.display='none';
+  }else{
+    if(!existing&&!parcHitsForCve(cve).length){
+      toast('La mitigation concerne uniquement les vulnérabilités liées à ton parc');
+      return;
+    }
+    cveSelWrap.style.display='none';
+    cveReadWrap.style.display='block';
+    cveIn.value=cve;
+  }
+  var r=findVulnById(cve);
+  $('mitEditId').value=existing?existing.id:'';
+  $('mitModalTitle').textContent=existing?(isMitigationExpired(existing)?'Réviser / prolonger la mitigation':'Modifier la preuve de mitigation'):'Enregistrer une mitigation';
+  $('mitModalSub').textContent=cve?(cve+(opts.product||(existing&&existing.product)||(r?prodName(r):'')?' · '+(opts.product||(existing&&existing.product)||(r?prodName(r):'')):'')+' — cette vulnérabilité sera retirée des rappels pour ton parc.'):'Documente l\'action réalisée sur un actif de ton parc pour démontrer la correction et arrêter les rappels continus.';
+  var targetAsset=existing?(existing.asset||''):(opts.asset||'');
+  var hits=populateMitAssets(cve,targetAsset);
+  $('mitStatus').value=existing?(existing.status||'Corrigée'):'Corrigée';
+  $('mitDate').value=existing?(existing.date||todayISO()):todayISO();
+  $('mitExpires').value=existing?(existing.expires||''):'';
+  var defaultOwner=existing?(existing.owner||''):(hits.length===1?(hits[0].owner||''):'');
+  $('mitOwner').value=defaultOwner;
+  $('mitProof').value=existing?(existing.proof||''):'';
+  $('mitForm').dataset.product=existing?(existing.product||''):(opts.product||(r?prodName(r):''));
+  $('mitModal').classList.add('open');
+  setTimeout(function(){(existing&&isMitigationExpired(existing)?$('mitExpires'):cveSelWrap.style.display!=='none'?cveSel:$('mitProof')).focus()},30);
+}
+function closeMitModal(){
+  $('mitModal').classList.remove('open');
+  if(mitLastFocus&&mitLastFocus.focus)try{mitLastFocus.focus()}catch(e){}
 }
 function exportRows(){
   var cols=[['CVE','id'],['Priorité','priority'],['Produit',prodName],['En clair',function(r){return r.plain||fallbackPlain(r)}],['Que faire',function(r){return (r._mine||!r.todo)?fallbackTodo(r.priority,r):r.todo}],
@@ -873,11 +1481,66 @@ function toggleAutoTranslate(){
 }
 document.addEventListener('click',function(e){
   var th=e.target.closest('[data-theme-set]');if(th){applyTheme(th.dataset.themeSet);if(view==='home'&&D)renderPrioChart();return}
+  var mo=e.target.closest('[data-mit-open]');if(mo){openMitModal({cve:mo.dataset.mitOpen,product:mo.dataset.mitProd||'',asset:mo.dataset.mitAsset||''});return}
+  var me=e.target.closest('[data-mit-edit]');if(me){openMitModal({editId:me.dataset.mitEdit});return}
+  var md=e.target.closest('[data-mit-del]');if(md){
+    var idx=MITS.findIndex(function(m){return m.id===md.dataset.mitDel});
+    if(idx>=0){MITS.splice(idx,1);saveMits();toast('Rappel réactivé pour cette vulnérabilité');render()}
+    return;
+  }
   var g=e.target.closest('[data-go]');if(g){e.preventDefault();if(g.dataset.go==='explore'&&g.closest('.tabs,.bnav'))q='';go(g.dataset.go);return}
   var tl=e.target.closest('[data-tile]');if(tl){go(tl.dataset.tile);return}
   var c=e.target.closest('[data-q]');if(c){q=c.dataset.q;go('explore');return}
-  var v=e.target.closest('.v');if(v&&!e.target.closest('a,button,input,select,textarea')){v.classList.toggle('open');var mo=v.querySelector('.more');if(mo)mo.textContent=v.classList.contains('open')?'Touche pour refermer':'Touche pour voir le détail'}
+  var v=e.target.closest('.v');if(v&&!e.target.closest('a,button,input,select,textarea')){v.classList.toggle('open');var el=v.querySelector('.more');if(el)el.textContent=v.classList.contains('open')?'Touche pour refermer':'Touche pour voir le détail'}
 });
+$('mitClose').onclick=closeMitModal;
+$('mitCancel').onclick=closeMitModal;
+$('mitModal').addEventListener('click',function(e){if(e.target===$('mitModal'))closeMitModal()});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&$('mitModal').classList.contains('open'))closeMitModal()});
+$('mitCveSel').onchange=function(){
+  var cve=this.value;
+  var r=findVulnById(cve);
+  var hits=populateMitAssets(cve,'');
+  $('mitForm').dataset.product=r?prodName(r):'';
+  $('mitModalSub').textContent=cve+(r?' · '+prodName(r):'')+' — cette vulnérabilité sera retirée des rappels pour ton parc.';
+  if(!$('mitOwner').value&&hits.length===1&&hits[0].owner)$('mitOwner').value=hits[0].owner;
+};
+document.querySelectorAll('[data-mit-exp]').forEach(function(b){
+  b.onclick=function(){
+    var d=+b.dataset.mitExp;
+    $('mitExpires').value=d>0?addDaysISO(d):'';
+  };
+});
+$('mitForm').onsubmit=function(e){
+  e.preventDefault();
+  var editId=$('mitEditId').value.trim();
+  var fromSel=$('mitCveSelWrap').style.display!=='none';
+  var cve=(fromSel?$('mitCveSel').value:$('mitCve').value).trim().toUpperCase();
+  if(!/^CVE-\d{4}-\d{4,}$/i.test(cve)){toast('Sélectionne une vulnérabilité liée à ton parc');return}
+  if(!editId&&!parcHitsForCve(cve).length){toast('La mitigation concerne uniquement les vulnérabilités liées à ton parc');return}
+  var asset=$('mitAssetSel').value;
+  if(!asset){toast('Sélectionne un actif de ton parc');return}
+  var status=$('mitStatus').value;
+  var date=$('mitDate').value||todayISO();
+  var expires=$('mitExpires').value.trim();
+  var owner=$('mitOwner').value.trim();
+  var proof=$('mitProof').value.trim();
+  if(!proof){toast('Indique une preuve ou l\'action réalisée');$('mitProof').focus();return}
+  var prod=this.dataset.product||'';
+  if(!prod){var r=findVulnById(cve);if(r)prod=prodName(r)}
+  var rec={id:editId||('m'+Date.now()+Math.random().toString(36).slice(2,6)),cve:cve,asset:asset,product:prod,status:status,date:date,expires:expires,owner:owner,proof:proof,updatedAt:new Date().toISOString()};
+  if(editId){
+    var idx=MITS.findIndex(function(m){return m.id===editId});
+    if(idx>=0)MITS[idx]=rec;else MITS.unshift(rec);
+  }else{
+    var dup=MITS.findIndex(function(m){return m.cve===cve&&norm(m.asset)===norm(asset)});
+    if(dup>=0)MITS[dup]=rec;else MITS.unshift(rec);
+  }
+  saveMits();
+  closeMitModal();
+  toast(isMitigationExpired(rec)?'Enregistrée (date de révision déjà atteinte)':expires?'Mitigation enregistrée — révision le '+fdate(expires)+' ✓':'Mitigation enregistrée — rappel désactivé ✓');
+  render();
+};
 $('btnTr').onclick=toggleAutoTranslate;
 $('mSimple').onclick=function(){simple=true;store('vw-mode','simple');render()};
 $('mExpert').onclick=function(){simple=false;store('vw-mode','expert');render()};

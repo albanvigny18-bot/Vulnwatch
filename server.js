@@ -395,54 +395,100 @@ function buildFallbackKev() {
   };
 }
 
-async function fetchJsonWithTimeout(url, timeoutMs = 6000) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: { "User-Agent": "VulnWatch-Preview/2.0" },
-    });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timer);
+async function fetchJsonWithTimeout(url, timeoutMs = 15000, extraHeaders = {}, retries = 1) {
+  let lastReason = "";
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, {
+        signal: controller.signal,
+        headers: { "User-Agent": "VulnWatch-Preview/2.0", ...extraHeaders },
+      });
+      if (res.ok) {
+        return { data: await res.json(), ok: true, reason: "" };
+      }
+      lastReason = `HTTP ${res.status}${res.headers.get("message") ? ` (${res.headers.get("message")})` : ""}`;
+      if (attempt < retries && (res.status === 429 || res.status >= 500)) {
+        await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+        continue;
+      }
+      return { data: null, ok: false, reason: lastReason };
+    } catch (err) {
+      lastReason = err?.name === "AbortError" ? `timeout (${timeoutMs} ms)` : (err?.message || "erreur réseau");
+      if (attempt < retries) {
+        await new Promise((r) => setTimeout(r, 1200 * (attempt + 1)));
+        continue;
+      }
+      return { data: null, ok: false, reason: lastReason };
+    } finally {
+      clearTimeout(timer);
+    }
   }
+  return { data: null, ok: false, reason: lastReason };
 }
 
 let cachedData = null;
 let cachedAt = 0;
+let cachedTtlMs = 0;
+let inFlightData = null;
+let lastGoodKev = null;
+let lastGoodNvd = null;
 const CACHE_TTL_MS = 30 * 60 * 1000;
+const FAIL_CACHE_TTL_MS = 60 * 1000;
 
 async function getLiveData() {
-  if (cachedData && Date.now() - cachedAt < CACHE_TTL_MS) {
+  if (cachedData && Date.now() - cachedAt < cachedTtlMs) {
     return cachedData;
   }
+  if (inFlightData) {
+    return inFlightData;
+  }
 
-  const end = new Date();
-  const start = new Date(end.getTime() - 7 * 86400000);
-  const fmtNvd = (d) => d.toISOString().replace(/\.\d{3}Z$/, ".000");
-  const nvdQuery = `${NVD_URL}?pubStartDate=${encodeURIComponent(fmtNvd(start))}&pubEndDate=${encodeURIComponent(fmtNvd(end))}&resultsPerPage=120`;
+  inFlightData = (async () => {
+    const end = new Date();
+    const start = new Date(end.getTime() - 7 * 86400000);
+    const fmtNvd = (d) => d.toISOString().replace(/\.\d{3}Z$/, ".000");
+    const nvdQuery = `${NVD_URL}?pubStartDate=${encodeURIComponent(fmtNvd(start))}&pubEndDate=${encodeURIComponent(fmtNvd(end))}&resultsPerPage=120`;
+    const nvdHeaders = process.env.NVD_API_KEY ? { apiKey: process.env.NVD_API_KEY } : {};
 
-  const [kevPayload, nvdPayload] = await Promise.all([
-    (async () => {
-      for (const url of KEV_URLS) {
-        const data = await fetchJsonWithTimeout(url, 6000);
-        if (data?.vulnerabilities) return data;
-      }
-      return null;
-    })(),
-    fetchJsonWithTimeout(nvdQuery, 7000),
-  ]);
+    const [kevRes, nvdRes] = await Promise.all([
+      (async () => {
+        for (const url of KEV_URLS) {
+          const r = await fetchJsonWithTimeout(url, 10000, {}, 1);
+          if (r.ok && r.data?.vulnerabilities) return r;
+        }
+        return { data: null, ok: false, reason: "indisponible" };
+      })(),
+      fetchJsonWithTimeout(nvdQuery, 15000, nvdHeaders, 1),
+    ]);
 
-  const kevOk = Boolean(kevPayload);
-  const nvdOk = Boolean(nvdPayload?.vulnerabilities);
+    const kevOk = Boolean(kevRes.ok && kevRes.data?.vulnerabilities);
+    const nvdOk = Boolean(nvdRes.ok && nvdRes.data?.vulnerabilities);
+    if (kevOk) lastGoodKev = kevRes.data;
+    if (nvdOk) lastGoodNvd = nvdRes.data;
+    if (!nvdOk) console.warn("NVD fetch failed:", nvdRes.reason);
 
-  cachedData = buildDataset(kevPayload || buildFallbackKev(), nvdPayload || { vulnerabilities: [] }, kevOk, nvdOk);
-  cachedAt = Date.now();
-  return cachedData;
+    const ds = buildDataset(
+      kevOk ? kevRes.data : (lastGoodKev || buildFallbackKev()),
+      nvdOk ? nvdRes.data : (lastGoodNvd || { vulnerabilities: [] }),
+      kevOk,
+      nvdOk
+    );
+    if (!nvdOk && nvdRes.reason) ds.kpi.health.NVD.reason = nvdRes.reason;
+    ds.kpi.channels.cle_nvd = Boolean(process.env.NVD_API_KEY);
+
+    cachedData = ds;
+    cachedAt = Date.now();
+    cachedTtlMs = (kevOk && nvdOk) ? CACHE_TTL_MS : FAIL_CACHE_TTL_MS;
+    return cachedData;
+  })();
+
+  try {
+    return await inFlightData;
+  } finally {
+    inFlightData = null;
+  }
 }
 
 function escapeCsv(val) {

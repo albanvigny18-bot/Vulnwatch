@@ -155,6 +155,7 @@ def load_config() -> dict:
         "mail_to": _env("MAIL_TO"),
         "email_min_priority": _envi("EMAIL_MIN_PRIORITY", 4),
         "inventory_csv": os.environ.get("INVENTAIRE", "") or "",
+        "mitigations_csv": os.environ.get("MITIGATIONS", "") or "",
         "excel_password": _env("EXCEL_PASSWORD"),
         "webhook_url": _env("WEBHOOK_URL"),
         "webhook_type": (_env("WEBHOOK_TYPE", "") or "").lower(),
@@ -699,7 +700,8 @@ def build_outputs(site: Path, records: list[dict], kev_recent: list[dict], alert
             "mots_cles": [str(w) for w in (SETTINGS.get("mots_cles") or [])],
         },
         "channels": {"ntfy": bool(cfg["ntfy_topic"]), "courriel": bool(cfg["smtp_user"] and cfg["mail_to"]),
-                     "webhook": bool(cfg["webhook_url"]), "inventaire": bool(inventory), "cle_nvd": bool(cfg["nvd_key"]),
+                     "webhook": bool(cfg["webhook_url"]), "inventaire": bool(inventory),
+                     "mitigations": bool(cfg.get("mitigations_csv")), "cle_nvd": bool(cfg["nvd_key"]),
                      "excel_chiffre": bool(cfg["excel_password"])},
     }
     kev_rows = sorted(kev_recent, key=lambda k: k.get("dateAdded", ""), reverse=True)
@@ -981,15 +983,23 @@ def run(args) -> int:
         except Exception as e:  # noqa: BLE001
             mark("EPSS", False, str(e))
 
-    # 8. Classification experte + inventaire d'actifs
+    # 8. Classification experte + inventaire d'actifs + comparaison aux mitigations
     inventory = classify.parse_inventory(cfg["inventory_csv"])
+    mitigations = classify.parse_mitigations(cfg["mitigations_csv"])
     if inventory:
         log(f"Inventaire : {len(inventory)} actifs")
+    if mitigations:
+        log(f"Mitigations : {len(mitigations)} entrée(s) enregistrée(s)")
+    mitigated_cves: set[str] = set()
     for r in db.values():
         if r.get("severity") in (None, "", "NON ÉVALUÉE") and r.get("score") is not None:
             r["severity"] = sev_from_score(r["score"])
         classify.classify(r)
-        classify.apply_inventory(r, classify.match_inventory(r, inventory), cfg["watchlist"])
+        hits = classify.match_inventory(r, inventory)
+        active_hits, fully_mitigated, _ = classify.filter_mitigated(r["id"], hits, mitigations)
+        if fully_mitigated:
+            mitigated_cves.add(r["id"])
+        classify.apply_inventory(r, active_hits, [] if fully_mitigated else cfg["watchlist"])
 
     # 9. Vue enrichie (priorité P1-P4, justification, risque)
     xcfg = {"critical": cfg["critical"]}
@@ -1004,6 +1014,8 @@ def run(args) -> int:
             created = 0
             if not (first_run and cfg["silent_first"]):
                 for cid, v in sorted(view.items(), key=lambda kv: priority_key(kv[1]), reverse=True):
+                    if cid in mitigated_cves:
+                        continue
                     if v["priority"] in want and cid not in tickets_map and created < 15:
                         tickets_map[cid] = tickets.create_ticket(http, cfg["gh_token"], cfg["gh_repo"], v)
                         created += 1
@@ -1017,12 +1029,12 @@ def run(args) -> int:
             db[cid]["ticket_status"], db[cid]["ticket_url"] = t["status"], t["url"]
             view[cid]["ticket_status"], view[cid]["ticket_url"] = t["status"], t["url"]
 
-    # 11. Alertes
+    # 11. Alertes (compare avec l'historique des mitigations pour éviter les rappels continus)
     sent_keys = {k for a in alerts for k in a.get("keys", [])}
     cand: dict[str, dict] = {}
 
     def add(cid, key, reason, prio, kev=None):
-        if key in sent_keys:
+        if key in sent_keys or cid in mitigated_cves:
             return
         c = cand.setdefault(cid, {"reasons": [], "keys": [], "prio": 1, "kev": kev})
         if reason not in c["reasons"]:
@@ -1038,6 +1050,8 @@ def run(args) -> int:
                 why += ", utilisée par des rançongiciels"
             add(k["cveID"], "KEV:" + k["cveID"], why, 5, k)
     for cid, v in view.items():
+        if cid in mitigated_cves:
+            continue
         s_, e_ = v.get("score"), v.get("epss")
         if v["priority"] == "P1":
             add(cid, "P1:" + cid, "Passée en priorité P1", 5)

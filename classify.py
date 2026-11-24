@@ -15,6 +15,7 @@ Inventaire (secret INVENTAIRE, format CSV, séparateur ; ou ,) :
 from __future__ import annotations
 
 import csv
+from datetime import date
 import io
 import re
 
@@ -166,3 +167,91 @@ def apply_inventory(rec: dict, hits: list[dict], watch_terms: list[str]) -> None
     rec["asset_exposed"] = any(h["exposed"] for h in hits)
     names = [h["asset"] for h in hits] + terms
     rec["watch"] = "; ".join(dict.fromkeys(names))
+
+
+def parse_mitigations(text: str) -> list[dict]:
+    """Parse le registre des mitigations (CSV ; ou ,) : CVE;Actif;Statut;Date;Responsable;Preuve;Expiration."""
+    if not text or not text.strip():
+        return []
+    sample = text[:2000]
+    delim = ";" if sample.count(";") >= sample.count(",") else ","
+    rows = []
+    lines = [l for l in text.strip().splitlines() if l.strip()]
+    if not lines:
+        return []
+    first_low = lines[0].lower()
+    has_header = (not first_low.strip().startswith("cve-")) and any(k in first_low for k in ("cve", "actif", "statut", "preuve"))
+    if has_header:
+        rdr = csv.DictReader(io.StringIO("\n".join(lines)), delimiter=delim)
+        for row in rdr:
+            r = {(k or "").strip().lower(): (v or "").strip() for k, v in row.items()}
+            g = lambda *ks: next((r[k] for k in ks if r.get(k)), "")  # noqa: E731
+            cve = g("cve", "id", "cve_id").upper()
+            if not cve:
+                continue
+            rows.append({
+                "cve": cve,
+                "asset": g("actif", "asset", "nom", "equipement", "équipement"),
+                "status": g("statut", "status", "type") or "Corrigée",
+                "date": g("date", "date_mitigation"),
+                "owner": g("responsable", "proprietaire", "propriétaire", "owner", "auteur"),
+                "proof": g("preuve", "proof", "action", "note", "commentaire", "details", "détails"),
+                "expires": g("expiration", "date_expiration", "rappel", "revision", "révision", "expires", "review_date"),
+            })
+    else:
+        for cols in csv.reader(io.StringIO("\n".join(lines)), delimiter=delim):
+            cols = [c.strip() for c in cols]
+            if not cols or not cols[0]:
+                continue
+            rows.append({
+                "cve": cols[0].upper(),
+                "asset": cols[1] if len(cols) > 1 else "",
+                "status": (cols[2] if len(cols) > 2 else "") or "Corrigée",
+                "date": cols[3] if len(cols) > 3 else "",
+                "owner": cols[4] if len(cols) > 4 else "",
+                "proof": cols[5] if len(cols) > 5 else "",
+                "expires": cols[6] if len(cols) > 6 else "",
+            })
+    return rows
+
+
+def _is_mitigation_expired(entry: dict, today_iso: str) -> bool:
+    exp = (entry.get("expires") or "").strip()
+    return bool(exp and re.match(r"^\d{4}-\d{2}-\d{2}$", exp) and exp <= today_iso)
+
+
+def filter_mitigated(
+    cve_id: str,
+    hits: list[dict],
+    mitigations: list[dict],
+    today: str | None = None,
+) -> tuple[list[dict], bool, list[dict]]:
+    """Compare une CVE et ses actifs touchés au registre des mitigations actives (non expirées).
+
+    La mitigation concerne uniquement les vulnérabilités liées à au moins un actif du parc (hits non vide).
+    Renvoie (actifs_restants, entierement_mitigee, mitigations_correspondantes).
+    Une entrée avec actif vide, '*' ou 'tout le parc' couvre tous les actifs du parc touchés par cette CVE.
+    Une entrée dont la date d'expiration/révision est atteinte ou dépassée n'écarte plus les alertes.
+    """
+    if not mitigations or not hits:
+        return hits, False, []
+    today_iso = today or date.today().isoformat()
+    cid = (cve_id or "").strip().upper()
+    entries = [m for m in mitigations if m.get("cve") == cid and not _is_mitigation_expired(m, today_iso)]
+    if not entries:
+        return hits, False, []
+    global_entries = [m for m in entries if not m.get("asset") or _norm(m["asset"]) in ("", "tout le parc", "tous", "all") or m["asset"].strip() == "*"]
+    if global_entries:
+        return [], True, entries
+    remaining = []
+    matched_m = []
+    for h in hits:
+        hn = _norm(h.get("asset") or "")
+        hp = _norm(f"{h.get('vendor') or ''} {h.get('product') or ''}")
+        hit_m = [m for m in entries if _norm(m.get("asset") or "") in (hn, hp) or (hn and _norm(m.get("asset") or "") in hn)]
+        if hit_m:
+            matched_m.extend(hit_m)
+        else:
+            remaining.append(h)
+    return remaining, len(remaining) == 0, matched_m
+

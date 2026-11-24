@@ -63,6 +63,7 @@ jobs:
           MAIL_TO: ${{ secrets.MAIL_TO }}
           WATCHLIST: ${{ secrets.WATCHLIST }}
           INVENTAIRE: ${{ secrets.INVENTAIRE }}
+          MITIGATIONS: ${{ secrets.MITIGATIONS }}
           EXCEL_PASSWORD: ${{ secrets.EXCEL_PASSWORD }}
           WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
           WEBHOOK_TYPE: ${{ vars.WEBHOOK_TYPE }}

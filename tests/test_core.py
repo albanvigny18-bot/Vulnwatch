@@ -166,3 +166,22 @@ def test_control_characters_do_not_break_excel(tmp_path):
                   [{"date": vw.iso(NOW), "cve": "CVE-1", "reasons": "x\x0b", "priority": 5, "channels": "ntfy", "message": "m\x0b"}],
                   kpi, {"critical": 9, "tz": "America/Toronto"}, dt.timezone.utc, [], [])
     assert (tmp_path / "x.xlsx").exists()
+
+
+def test_mitigations_only_apply_to_parc():
+    mits = classify.parse_mitigations(
+        "CVE;Actif;Statut;Date;Responsable;Preuve;Expiration\n"
+        "CVE-2026-0001;Tout le parc;Corrigée;2026-11-20;SSI;Patch appliqué;\n"
+        "CVE-2026-0002;VPN;Risque accepté;2026-11-01;SSI;Isolé;2026-11-15\n"
+    )
+    # Sans actif du parc touché (hits=[]), une mitigation ne s'applique jamais
+    rem, full, matched = classify.filter_mitigated("CVE-2026-0001", [], mits, today="2026-11-24")
+    assert rem == [] and not full and matched == []
+    # Avec un actif du parc touché, la mitigation active s'applique
+    vpn = {"asset": "VPN", "vendor": "Fortinet", "product": "FortiOS"}
+    rem, full, matched = classify.filter_mitigated("CVE-2026-0001", [vpn], mits, today="2026-11-24")
+    assert rem == [] and full and len(matched) == 1
+    # Une mitigation expirée ne bloque plus l'actif touché
+    rem, full, matched = classify.filter_mitigated("CVE-2026-0002", [vpn], mits, today="2026-11-24")
+    assert rem == [vpn] and not full and matched == []
+
