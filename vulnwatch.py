@@ -792,9 +792,12 @@ def run(args) -> int:
     if args.test_notification:
         ch = notifier.send("VulnWatch : test", ["Si tu lis ceci, les alertes fonctionnent. ✅"], 3,
                            "https://nvd.nist.gov/", ["white_check_mark"])
-        log(f"Notification de test envoyée via : {ch or 'AUCUN CANAL CONFIGURÉ'}")
-        if not ch:
-            return 1
+        if ch and not ch.startswith("("):
+            log(f"Notification de test envoyée via : {ch}")
+        else:
+            # Ne bloque jamais la veille : on signale le problème et on continue.
+            log("Notification de test NON envoyée : aucun canal actif ou envoi refusé "
+                f"(canaux configurés : {', '.join(notifier.channels()) or 'aucun'}). Vérifie le secret NTFY_TOPIC.", "ERREUR")
 
     now = dt.datetime.now(UTC)
     state = read_json(state_dir / "state.json", {})
