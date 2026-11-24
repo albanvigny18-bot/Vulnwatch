@@ -256,7 +256,7 @@ Ce qui reste à faire une seule fois :
 | `WEBHOOK_TYPE` | auto | `teams`, `slack`, `discord` ou `generic` |
 | `RETENTION_DAYS` / `KEV_HISTORY_DAYS` | `30` / `90` | historique |
 | `INITIAL_DAYS` | `7` | profondeur du premier passage |
-| `ENRICH_MAX_PER_RUN` | `250` | CVE enrichies par passage (Vulnrichment) |
+| `ENRICH_MAX_PER_RUN` | `600` | CVE enrichies par passage (Vulnrichment) |
 | `USE_EXPLOIT_SOURCES` / `USE_VULNRICHMENT` / `USE_GITHUB_ADVISORIES` | `true` | activer ou couper une source |
 | `HIDE_WATCHLIST` | `false` | masquer aussi les mots-clés `WATCHLIST` en public |
 | `TIMEZONE` | `America/Toronto` | fuseau horaire |

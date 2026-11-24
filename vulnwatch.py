@@ -119,7 +119,7 @@ def load_config() -> dict:
         "ticket_min_priority": _env("TICKET_PRIORITY", "P1"),
         "gh_token": _env("GITHUB_TOKEN"),
         "gh_repo": _env("GITHUB_REPOSITORY"),
-        "enrich_max": _envi("ENRICH_MAX_PER_RUN", 250),
+        "enrich_max": _envi("ENRICH_MAX_PER_RUN", 600),
         "use_ghsa": _envb("USE_GITHUB_ADVISORIES", True),
         "use_exploits": _envb("USE_EXPLOIT_SOURCES", True),
         "use_vulnrichment": _envb("USE_VULNRICHMENT", True),
@@ -819,7 +819,11 @@ def run(args) -> int:
 
     # 5. CISA Vulnrichment / CVE.org : SSVC, versions affectées, score CNA si la NVD n'a pas encore analysé
     if cfg["use_vulnrichment"]:
-        todo = [cid for cid, r in sorted(db.items(), key=lambda kv: kv[1].get("modified", ""), reverse=True)
+        def _urgency(kv):  # d'abord : exploitées, sans score NVD, puis les plus graves, puis les plus récentes
+            r = kv[1]
+            return (0 if r.get("kev") else 1 if r.get("score") is None else 2 if (r.get("score") or 0) >= 7 else 3,
+                    -(r.get("score") or 0), r.get("modified", "") and -int(re.sub(r"\D", "", r["modified"])[:12] or 0))
+        todo = [cid for cid, r in sorted(db.items(), key=_urgency)
                 if not r.get("vr_checked") or (r.get("score") is None and (parse_dt(r["vr_checked"]) or now) < now - dt.timedelta(hours=12))]
         todo = todo[: cfg["enrich_max"]]
         found = 0

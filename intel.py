@@ -217,6 +217,7 @@ def vr_url(cve: str) -> str:
 
 
 def fetch_cve5(http, cve: str):
+    """Vulnrichment (GitHub) d'abord, puis l'API officielle CVE.org en secours."""
     for url in (vr_url(cve), CVEORG_URL.format(cve=cve)):
         try:
             return http.get_json(url, tries=1, timeout=30, quiet=True)
