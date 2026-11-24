@@ -1,0 +1,8 @@
+{
+  "name": "VulnWatch",
+  "description": "Veille des vulnérabilités en français clair : priorités P1-P4, tendances 24 h, suivi de parc et traduction automatique en français.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

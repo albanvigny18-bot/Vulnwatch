@@ -13,15 +13,26 @@
 <title>VulnWatch — Veille des vulnérabilités en clair</title>
 <style>
 :root{
-  --bg:#f4f6fb;--surface:#fff;--surface2:#f8fafc;--ink:#0b1324;--ink2:#334155;--mute:#64748b;--line:#e3e8f0;
+  color-scheme:light;
+  --bg:#ffffff;--surface:#ffffff;--surface2:#f8fafc;--ink:#0b1324;--ink2:#334155;--mute:#64748b;--line:#e2e8f0;
+  --brand:#2563eb;--brandsoft:#eff6ff;
+  --p1:#d92d20;--p1s:#fef2f2;--p2:#ea580c;--p2s:#fff7ed;--p3:#ca8a04;--p3s:#fefce8;--p4:#64748b;--p4s:#f1f5f9;
+  --ok:#16a34a;--oks:#f0fdf4;--kev:#991b1b;--msf:#6d28d9;--parc:#1d4ed8;
+  --r:16px;--sh:0 1px 2px rgba(15,23,42,.04);
+}
+:root[data-theme="light"]{
+  color-scheme:light;
+  --bg:#f4f6fb;--surface:#ffffff;--surface2:#f8fafc;--ink:#0b1324;--ink2:#334155;--mute:#64748b;--line:#e3e8f0;
   --brand:#2563eb;--brandsoft:#e8efff;
   --p1:#d92d20;--p1s:#fdecea;--p2:#f97316;--p2s:#fff1e6;--p3:#ca8a04;--p3s:#fef7dc;--p4:#64748b;--p4s:#eef2f6;
   --ok:#16a34a;--oks:#e9f8ef;--kev:#7a1414;--msf:#6d28d9;--parc:#1d4ed8;
-  --r:16px;--sh:0 1px 2px rgba(15,23,42,.05),0 4px 16px rgba(15,23,42,.06);
+  --sh:0 1px 2px rgba(15,23,42,.05),0 4px 16px rgba(15,23,42,.06);
 }
-@media (prefers-color-scheme:dark){:root{
+:root[data-theme="dark"]{
+  color-scheme:dark;
   --bg:#070d1a;--surface:#0f172a;--surface2:#131d33;--ink:#e8edf6;--ink2:#cbd5e1;--mute:#94a3b8;--line:#1e293b;
-  --brandsoft:#16244a;--p1s:#3a1210;--p2s:#3a1f0c;--p3s:#33290a;--p4s:#1c2536;--oks:#0f2b1a;--sh:none}}
+  --brandsoft:#16244a;--p1s:#3a1210;--p2s:#3a1f0c;--p3s:#33290a;--p4s:#1c2536;--oks:#0f2b1a;--sh:none;
+}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;font:15px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -72,10 +83,22 @@ h2{font-size:18px;letter-spacing:-.01em;margin:22px 0 10px}
 @media (max-width:760px){.grid{grid-template-columns:repeat(2,1fr)}}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;cursor:pointer;box-shadow:var(--sh);transition:transform .12s}
 .kpi:active{transform:scale(.98)}
-.kpi b{display:block;font-size:26px;font-weight:780;letter-spacing:-.02em}
+.kpi-val{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:2px}
+.kpi b{display:block;font-size:26px;font-weight:780;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.15}
 .kpi span{font-size:12.5px;color:var(--mute)}
+.kpi .trend{display:inline-flex;align-items:center;gap:2px;font-size:12px;font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1}
+.kpi .trend svg{width:13px;height:13px;flex:none}
+.kpi .trend.up{color:var(--p1)}
+.kpi .trend.down{color:var(--ok)}
+.kpi .trend.flat{color:var(--mute);font-weight:500}
 .kpi.p1 b{color:var(--p1)}.kpi.p2 b{color:var(--p2)}.kpi.kev b{color:var(--kev)}.kpi.parc b{color:var(--parc)}
-@media (prefers-color-scheme:dark){.kpi.kev b{color:#f87171}}
+:root[data-theme="dark"] .kpi.kev b,:root[data-theme="dark"] .kpi .trend.up{color:#f87171}
+:root[data-theme="dark"] .kpi .trend.down{color:#4ade80}
+.ctlbar{display:flex;align-items:center;gap:6px;flex-wrap:nowrap}
+.tr-btn{border:1px solid var(--line);background:var(--surface2);color:var(--ink2);border-radius:10px;padding:5px 10px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s,border-color .15s}
+.tr-btn.on{background:var(--brandsoft);border-color:var(--brand);color:var(--brand)}
+.tr-note{font-size:12px;color:var(--mute);margin-left:4px;white-space:nowrap}
+@media (max-width:760px){.theme-seg{display:none}.tr-note{display:none}}
 .syn p{margin:0 0 10px;font-size:15.5px;line-height:1.6;color:var(--ink2)}.syn p:last-child{margin:0}
 .legend{display:grid;grid-template-columns:auto 1fr;gap:8px 12px;align-items:center}
 .list{display:grid;gap:10px}
@@ -145,7 +168,50 @@ footer{max-width:1120px;margin:20px auto 0;padding:0 16px 28px;color:var(--mute)
 .toast.on{opacity:1}
 .skel{height:92px;border-radius:var(--r);background:linear-gradient(90deg,var(--surface) 0,var(--surface2) 50%,var(--surface) 100%);background-size:200% 100%;animation:sk 1.2s infinite;border:1px solid var(--line)}
 @keyframes sk{to{background-position:-200% 0}}
+.chart-card{position:relative;padding:18px 18px 14px}
+.chart-hd{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.chart-meta{font-size:13px;color:var(--mute);font-variant-numeric:tabular-nums}
+.chart-wrap{position:relative;width:100%;min-height:240px}
+.chart-wrap svg{display:block;width:100%;height:auto;overflow:visible}
+.chart-grid line{stroke:var(--line);stroke-dasharray:3 3}
+.chart-grid path{display:none}
+.chart-axis text{fill:var(--mute);font-size:12px;font-variant-numeric:tabular-nums}
+.chart-axis .domain{stroke:var(--line)}
+.chart-axis .tick line{display:none}
+.chart-bar{cursor:pointer;transition:opacity .16s ease,filter .16s ease}
+.chart-bar:hover,.chart-bar:focus-visible{opacity:.86;filter:brightness(1.06);outline:none}
+.chart-bar:focus-visible{stroke:var(--ink);stroke-width:2}
+.chart-val{fill:var(--ink);font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;pointer-events:none}
+.chart-pct{fill:var(--mute);font-size:11.5px;font-weight:500;font-variant-numeric:tabular-nums;pointer-events:none}
+.chart-xlabel{fill:var(--ink);font-size:13px;font-weight:700}
+.chart-xsub{fill:var(--mute);font-size:11.5px}
+.chart-tip{position:absolute;z-index:15;pointer-events:none;background:var(--ink);color:var(--bg);border-radius:10px;padding:8px 11px;font-size:12.5px;line-height:1.4;box-shadow:0 8px 24px rgba(15,23,42,.22);opacity:0;transform:translate(-50%,-100%) translateY(-8px);transition:opacity .14s ease;white-space:nowrap;font-variant-numeric:tabular-nums}
+.chart-tip.on{opacity:1}
+.chart-tip b{display:block;font-size:13px;margin-bottom:1px}
+.chart-tip span{opacity:.82;font-size:11.5px}
+@media (prefers-reduced-motion:reduce){.chart-bar,.chart-tip{transition:none}}
 </style>
+<script>
+(function(){
+  function loadFallback(){
+    var s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js';
+    s.onload=function(){if(window.__vwD3Ready)window.__vwD3Ready()};
+    document.head.appendChild(s);
+  }
+  var local=document.createElement('script');
+  local.src='vendor/d3.min.js';
+  local.onload=function(){if(window.__vwD3Ready)window.__vwD3Ready()};
+  local.onerror=loadFallback;
+  document.head.appendChild(local);
+  try{
+    var savedTheme=localStorage.getItem('vw-theme')||'white';
+    document.documentElement.setAttribute('data-theme',savedTheme);
+    var mc=document.querySelector('meta[name="theme-color"]');
+    if(mc)mc.setAttribute('content',savedTheme==='dark'?'#070d1a':'#ffffff');
+  }catch(e){}
+})();
+</script>
 </head>
 <body>
 <header class="top">
@@ -153,7 +219,12 @@ footer{max-width:1120px;margin:20px auto 0;padding:0 16px 28px;color:var(--mute)
     <a class="logo" href="#home" data-go="home"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 4 8 13v17c0 15 10 26 24 30 14-4 24-15 24-30V13z" fill="#2563eb"/><path d="m22 32 7 7 13-14" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>VulnWatch</a>
     <span class="pill" id="st"><span class="dot"></span>Chargement…</span>
     <span class="sp"></span>
-    <div class="seg" role="group" aria-label="Niveau de détail"><button id="mSimple" class="on">Simple</button><button id="mExpert">Expert</button></div>
+    <div class="ctlbar">
+      <span class="tr-note" id="trStatus" aria-live="polite"></span>
+      <button type="button" class="tr-btn on" id="btnTr" title="Traduction automatique en français des descriptions anglaises">FR auto</button>
+      <div class="seg theme-seg" role="group" aria-label="Thème visuel"><button type="button" data-theme-set="white">Blanc</button><button type="button" data-theme-set="light">Clair</button><button type="button" data-theme-set="dark">Sombre</button></div>
+      <div class="seg" role="group" aria-label="Niveau de détail"><button id="mSimple" class="on">Simple</button><button id="mExpert">Expert</button></div>
+    </div>
   </div>
   <nav class="tabs" id="tabs">
     <button class="tab" data-go="home">Accueil</button>
@@ -190,11 +261,47 @@ footer{max-width:1120px;margin:20px auto 0;padding:0 16px 28px;color:var(--mute)
 <script>
 (function(){
 'use strict';
-var D=null, view='home', sub='', simple=true, PARC=[], q='', qShown=40, parcShown=40, curRows=[], EDIT={};
+var D=null, view='home', sub='', simple=true, PARC=[], q='', qShown=40, parcShown=40, curRows=[], EDIT={}, chartScope='all', chartRO=null;
+var theme='white', autoFr=true, TR={}, trBusy=false, trFailed=false, trSeq=0;
 var $=function(id){return document.getElementById(id)};
 var app=$('app');
 function store(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
-try{simple=store('vw-mode')!=='expert';PARC=JSON.parse(store('vw-parc')||'[]')||[]}catch(e){PARC=[]}
+try{
+  simple=store('vw-mode')!=='expert';
+  theme=store('vw-theme')||'white';
+  autoFr=store('vw-tr-auto')!=='off';
+  PARC=JSON.parse(store('vw-parc')||'[]')||[];
+  TR=JSON.parse(store('vw-tr-fr-v1')||'{}')||{};
+}catch(e){PARC=[];TR={}}
+function applyTheme(t){
+  theme=(t==='dark'||t==='light'||t==='white')?t:'white';
+  document.documentElement.setAttribute('data-theme',theme);
+  store('vw-theme',theme);
+  var mc=document.querySelector('meta[name="theme-color"]');
+  if(mc)mc.setAttribute('content',theme==='dark'?'#070d1a':theme==='light'?'#f4f6fb':'#ffffff');
+  document.querySelectorAll('[data-theme-set]').forEach(function(b){b.classList.toggle('on',b.dataset.themeSet===theme)});
+}
+function saveTrCache(){
+  try{
+    var keys=Object.keys(TR);
+    if(keys.length>400){keys.slice(0,keys.length-400).forEach(function(k){delete TR[k]})}
+    store('vw-tr-fr-v1',JSON.stringify(TR));
+  }catch(e){}
+}
+var EN_RE=/\b(the|and|with|from|allows|remote|attacker|attackers|vulnerability|execute|arbitrary|crafted|prior to|apply mitigations|discontinue|improper|buffer|overflow|injection|authentication|privilege|escalation|vendor|instructions|versions?|before|through|via|could|may|lead to|denial of service|cross-site|memory corruption|unspecified|affected|unauthenticated|bypass)\b/i;
+function looksEnglish(s){
+  if(!s||typeof s!=='string')return false;
+  var m=s.match(new RegExp(EN_RE.source,'gi'));
+  return !!(m&&m.length>=2);
+}
+function updateTrUI(){
+  var btn=$('btnTr');
+  if(btn){
+    btn.classList.toggle('on',autoFr);
+    btn.textContent=autoFr?'FR auto':'VO';
+    btn.setAttribute('aria-pressed',autoFr?'true':'false');
+  }
+}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function norm(s){return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')}
 function nrm(s){return ' '+norm(s).replace(/[^a-z0-9]+/g,' ').trim()+' '}
@@ -261,7 +368,11 @@ function parcResults(){
 /* ---------- fiche ---------- */
 function card(r){
   var p=r.priority||'P4', sev=r.severity||'NON ÉVALUÉE';
-  var plain=r.plain||fallbackPlain(r), todo=(r._mine||!r.todo)?fallbackTodo(p,r):r.todo;
+  var tr=autoFr?TR[r.id]:null;
+  var plainBase=(tr&&tr.plain)?tr.plain:(r.plain||fallbackPlain(r));
+  var plain=plainBase;
+  var todo=(r._mine||!r.todo)?fallbackTodo(p,r):((tr&&tr.todo)?tr.todo:r.todo);
+  var descTxt=(tr&&tr.desc)?tr.desc:(r.desc||'');
   if(r._mine)plain+=' Elle concerne : '+r._hits.map(function(h){return h.name||((h.vendor||'')+' '+(h.product||'')).trim()}).join(', ')+'.';
   var tags='';
   tags+=r.score!=null?'<span class="t '+(r.score>=9?'crit':r.score>=7?'high':'')+'">Gravité '+r.score.toFixed(1)+'/10</span>':'<span class="t">Gravité non évaluée</span>';
@@ -273,10 +384,12 @@ function card(r){
   if(r.patch_available==='Oui')tags+='<span class="t ok">Correctif disponible</span>';
   if(!simple&&r.epss!=null)tags+='<span class="t">EPSS '+pct(r.epss)+'</span>';
   if(!simple&&r.risk!=null)tags+='<span class="t">Risque '+r.risk+'/100</span>';
-  var body=simple?'<p class="plain">'+esc(plain)+'</p>':'<p class="plain"><b>'+esc(PLABEL[p])+'.</b> '+esc(r.justification||'')+'</p><p class="plain" style="font-size:13.5px">'+esc(r.desc||'')+'</p>';
+  var body=simple
+    ?'<p class="plain" data-tr-id="'+esc(r.id)+'" data-tr-field="plain">'+esc(plain)+'</p>'
+    :'<p class="plain"><b>'+esc(PLABEL[p])+'.</b> '+esc(r.justification||'')+'</p><p class="plain" style="font-size:13.5px" data-tr-id="'+esc(r.id)+'" data-tr-field="desc">'+esc(descTxt)+'</p>';
   var mine=r._mine?r._hits.map(function(h){return (h.name||h.product)+(h.version?' (ta version : '+h.version+')':'')}).join(', '):'';
   var vec=(r.vector||'').split('/').reduce(function(o,x){var k=x.split(':');if(k[1])o[k[0]]=k[1];return o},{});
-  var rows=[[simple?'Pourquoi cette priorité':'En clair',simple?r.justification:plain],[simple?'Description de l\'éditeur':'',simple?r.desc:''],
+  var rows=[[simple?'Pourquoi cette priorité':'En clair',simple?r.justification:plain],[simple?'Description':'',simple?descTxt:''],
     ['Tes équipements',mine],['Versions touchées',r.versions||r.pkg_ranges],['Version corrigée',r.pkg_fixed],['Type d\'attaque',r.tags],['Catégorie',r.family],
     ['Depuis où ?',{N:'Réseau / Internet',A:'Réseau local',L:'Accès à la machine',P:'Accès physique'}[vec.AV]],['Accès nécessaire',{N:'Aucun compte',L:'Compte simple',H:'Compte administrateur'}[vec.PR]],
     ['Action de la victime',{N:'Aucune',R:'Requise (clic, ouverture…)',P:'Passive',A:'Active'}[vec.UI]],
@@ -290,9 +403,9 @@ function card(r){
     (r.ticket_url?'<a class="btn sm" target="_blank" rel="noopener" href="'+esc(r.ticket_url)+'">Ticket ↗</a>':'')+'</div>';
   var title=prodName(r);
   if(r._mine){var h0=r._hits[0],hp=[h0.vendor,h0.product].filter(Boolean).join(' ');if(hp&&norm(title).indexOf(norm(h0.product||h0.vendor))<0)title=hp+' (et autres produits)'}
-  return '<article class="v '+p+'"><div class="vh"><div class="vt"><h3>'+esc(title)+'</h3><div class="vid">'+esc(r.id)+' · '+esc(sev.toLowerCase())+(r.published?' · '+fdate(r.published):'')+'</div></div><span class="prio '+p+'" title="'+esc(PLABEL[p])+'">'+p+'</span></div>'+
-    '<div class="tags">'+tags+'</div>'+body+'<div class="todo"><b>Que faire</b>'+esc(todo)+'</div>'+
-    '<div class="det"><dl class="kv">'+rows.filter(function(x){return x[0]&&x[1]}).map(function(x){return '<dt>'+esc(x[0])+'</dt><dd>'+esc(x[1])+'</dd>'}).join('')+'</dl>'+links+'</div>'+
+  return '<article class="v '+p+'" data-cve="'+esc(r.id)+'"><div class="vh"><div class="vt"><h3>'+esc(title)+'</h3><div class="vid">'+esc(r.id)+' · '+esc(sev.toLowerCase())+(r.published?' · '+fdate(r.published):'')+'</div></div><span class="prio '+p+'" title="'+esc(PLABEL[p])+'">'+p+'</span></div>'+
+    '<div class="tags">'+tags+'</div>'+body+'<div class="todo"><b>Que faire</b><span data-tr-id="'+esc(r.id)+'" data-tr-field="todo">'+esc(todo)+'</span></div>'+
+    '<div class="det"><dl class="kv">'+rows.filter(function(x){return x[0]&&x[1]}).map(function(x){return '<dt>'+esc(x[0])+'</dt><dd'+(x[0]==='Description'?' data-tr-id="'+esc(r.id)+'" data-tr-field="desc"':'')+'>'+esc(x[1])+'</dd>'}).join('')+'</dl>'+links+'</div>'+
     '<div class="more">Touche pour voir le détail</div></article>';
 }
 function listHTML(rows,n,moreId){
@@ -344,16 +457,134 @@ S.home=function(){
   var h='<section class="hero '+cls+'"><small>Situation au '+esc(fmt(k.updated))+'</small><div class="big">'+esc(big)+'</div><p>'+esc(subt)+'</p><div class="cta">'+
     (hasParc?'<button class="btn ghost" data-go="parc">Voir mon parc →</button>':'<button class="btn" data-go="parc">+ Ajouter mon parc</button>')+
     '<button class="btn ghost" data-go="prio">Urgences mondiales</button></div></section>';
-  var tiles=[['p1',k.p1,'Urgentes (P1)','prio'],['p2',k.p2,'Importantes (P2)','prio:P2'],['kev',D.vulns.filter(function(r){return r.kev}).length,'Déjà exploitées','q:kev:oui'],
-    ['p1',k.weapon,'Outil d\'attaque public','q:exploit:metasploit'],['',k.new_24h,'Nouvelles (24 h)','q:nouveau:oui'],['kev',k.kev_7d,'Ajoutées à la liste CISA (7 j)','kev']];
-  if(hasParc)tiles.splice(2,0,['parc',mine.length,'Concernent mon parc','parc']);
-  h+='<div class="grid">'+tiles.map(function(t){return '<div class="kpi '+t[0]+'" data-tile="'+esc(t[3])+'"><b>'+(t[1]||0)+'</b><span>'+esc(t[2])+'</span></div>'}).join('')+'</div>';
+  function kpiTrends(){
+    var nowMs=Date.parse(k.updated)||Date.now(), d24=nowMs-86400000, d48=nowMs-172800000, d7=nowMs-604800000, d8=nowMs-691200000;
+    var st=Array.isArray(D.stats)?D.stats:[], prevSt=st.length>=2?st[st.length-2]:null;
+    function pubMs(r){var t=Date.parse(r.published||r.modified||'');return isNaN(t)?0:t}
+    function added24(rows){return rows.filter(function(r){return r['new']||pubMs(r)>=d24}).length}
+    var p1D=prevSt&&prevSt.p1!=null?(k.p1||0)-prevSt.p1:added24(D.vulns.filter(function(r){return r.priority==='P1'}));
+    var p2D=prevSt&&prevSt.p2!=null?(k.p2||0)-prevSt.p2:added24(D.vulns.filter(function(r){return r.priority==='P2'}));
+    var kevD=added24(D.vulns.filter(function(r){return r.kev}));
+    var msfD=added24(D.vulns.filter(function(r){return r.msf}));
+    var prev24=D.vulns.filter(function(r){var t=pubMs(r);return t>=d48&&t<d24}).length;
+    var new24D=(prev24||prevSt==null)?(k.new_24h||0)-prev24:(k.new_24h||0)-(prevSt.new||0);
+    var kev24=D.kev.filter(function(x){var t=Date.parse(x.dateAdded||'');return !isNaN(t)&&t>=d24}).length;
+    var kevDrop=D.kev.filter(function(x){var t=Date.parse(x.dateAdded||'');return !isNaN(t)&&t>=d8&&t<d7}).length;
+    var kev7D=kev24-kevDrop;
+    var parcD=added24(mine);
+    return {p1:p1D,p2:p2D,kev:kevD,weapon:msfD,new24:new24D,kev7d:kev7D,parc:parcD};
+  }
+  function trendHTML(delta){
+    var d=Number(delta)||0;
+    var dir=d>0?'up':d<0?'down':'flat';
+    var txt=d>0?'+'+d:d<0?String(d):'0';
+    var arrow=d>0
+      ?'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3M4 7l4-4 4 4"/></svg>'
+      :d<0
+      ?'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v10M4 9l4 4 4-4"/></svg>'
+      :'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 8h10"/></svg>';
+    var desc=d>0?'En hausse de '+d+' sur 24 h':d<0?'En baisse de '+Math.abs(d)+' sur 24 h':'Stable sur 24 h';
+    return '<span class="trend '+dir+'" title="'+esc(desc)+'" aria-label="'+esc(desc)+'">'+arrow+esc(txt)+'</span>';
+  }
+  var tr=kpiTrends();
+  var tiles=[['p1',k.p1,'Urgentes (P1)','prio',tr.p1],['p2',k.p2,'Importantes (P2)','prio:P2',tr.p2],['kev',D.vulns.filter(function(r){return r.kev}).length,'Déjà exploitées','q:kev:oui',tr.kev],
+    ['p1',k.weapon,'Outil d\'attaque public','q:exploit:metasploit',tr.weapon],['',k.new_24h,'Nouvelles (24 h)','q:nouveau:oui',tr.new24],['kev',k.kev_7d,'Ajoutées à la liste CISA (7 j)','kev',tr.kev7d]];
+  if(hasParc)tiles.splice(2,0,['parc',mine.length,'Concernent mon parc','parc',tr.parc]);
+  h+='<div class="grid">'+tiles.map(function(t){return '<div class="kpi '+t[0]+'" data-tile="'+esc(t[3])+'"><div class="kpi-val"><b>'+(t[1]||0)+'</b>'+trendHTML(t[4])+'</div><span>'+esc(t[2])+'</span></div>'}).join('')+'</div>';
+  var scope=(hasParc&&chartScope==='parc')?'parc':'all';
+  var chartSrc=scope==='parc'?mine:D.vulns;
+  h+='<h2>Répartition par niveau de priorité</h2><div class="card chart-card"><div class="chart-hd"><span class="chart-meta">'+chartSrc.length+' vulnérabilité'+(chartSrc.length>1?'s':'')+' · touche une barre pour filtrer</span>'+
+    (hasParc?'<div class="seg" role="group" aria-label="Périmètre du graphique"><button type="button" data-cscope="all" class="'+(scope==='all'?'on':'')+'">Toutes</button><button type="button" data-cscope="parc" class="'+(scope==='parc'?'on':'')+'">Mon parc</button></div>':'')+
+    '</div><div class="chart-wrap" id="prioChart" role="img" aria-label="Graphique en barres de la répartition des vulnérabilités par priorité P1 à P4"></div><div class="chart-tip" id="prioTip" aria-hidden="true"></div></div>';
   h+='<h2>La situation en clair</h2><div class="card syn">'+D.synthese.map(function(p){return '<p>'+esc(p)+'</p>'}).join('')+'</div>';
   var urg=(mineUrg.length?mineUrg:D.vulns.filter(function(r){return r.priority==='P1'}).sort(byPrio)).slice(0,6);
   h+='<h2>'+(mineUrg.length?'Tes urgences':'Les urgences du moment')+'</h2>'+listHTML(urg,6,'x');
   h+='<h2>Comment lire les priorités</h2><div class="card legend">'+['P1','P2','P3','P4'].map(function(p){return '<span class="prio '+p+'">'+p+'</span><span>'+esc(PLABEL[p])+'</span>'}).join('')+'</div>';
   return h;
 };
+var PSHORT={P1:'Sous 48 h',P2:'Cette semaine',P3:'Sous 30 j',P4:'À surveiller'};
+var PCOLOR={P1:'var(--p1)',P2:'var(--p2)',P3:'var(--p3)',P4:'var(--p4)'};
+function renderPrioChart(){
+  var wrap=$('prioChart');
+  if(!wrap||!D)return;
+  if(!window.d3){wrap.innerHTML='<div class="empty" style="padding:28px 12px">Chargement du graphique…</div>';return}
+  var hasParc=PARC.length>0, scope=(hasParc&&chartScope==='parc')?'parc':'all';
+  var rows=scope==='parc'?parcResults():D.vulns;
+  var total=rows.length;
+  var counts={P1:0,P2:0,P3:0,P4:0};
+  rows.forEach(function(r){var p=r.priority||'P4';if(counts[p]!=null)counts[p]++});
+  var data=['P1','P2','P3','P4'].map(function(p){return {prio:p,label:PLABEL[p],short:PSHORT[p],count:counts[p],share:total?(counts[p]/total)*100:0,color:PCOLOR[p]}});
+  wrap.innerHTML='';
+  if(!total){wrap.innerHTML='<div class="empty" style="padding:28px 12px">Aucune vulnérabilité à répartir pour ce périmètre.</div>';return}
+  var d3=window.d3;
+  var width=Math.max(280,Math.floor(wrap.clientWidth||680));
+  var compact=width<480;
+  var height=compact?230:260;
+  var margin={top:34,right:compact?12:20,bottom:50,left:compact?38:46};
+  var innerW=width-margin.left-margin.right;
+  var innerH=height-margin.top-margin.bottom;
+  var maxVal=d3.max(data,function(d){return d.count})||1;
+  var yMax=Math.max(4,Math.ceil(maxVal*1.16));
+  var x=d3.scaleBand().domain(data.map(function(d){return d.prio})).range([0,innerW]).padding(compact?0.3:0.36);
+  var y=d3.scaleLinear().domain([0,yMax]).nice(4).range([innerH,0]);
+  var svg=d3.select(wrap).append('svg').attr('viewBox','0 0 '+width+' '+height).attr('width',width).attr('height',height);
+  var g=svg.append('g').attr('transform','translate('+margin.left+','+margin.top+')');
+  g.append('g').attr('class','chart-grid').call(d3.axisLeft(y).ticks(4).tickSize(-innerW).tickFormat(''));
+  g.append('g').attr('class','chart-axis').call(d3.axisLeft(y).ticks(4).tickFormat(d3.format('d')));
+  var xAxis=g.append('g').attr('class','chart-axis').attr('transform','translate(0,'+innerH+')').call(d3.axisBottom(x).tickSize(0));
+  xAxis.selectAll('text').remove();
+  xAxis.selectAll('.tick').each(function(p){
+    var tick=d3.select(this);
+    tick.append('text').attr('class','chart-xlabel').attr('y',19).attr('text-anchor','middle').text(p);
+    tick.append('text').attr('class','chart-xsub').attr('y',35).attr('text-anchor','middle').text(PSHORT[p]);
+  });
+  var tip=$('prioTip');
+  var reduceMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function showTip(d,el){
+    if(!tip)return;
+    var barRect=el.getBoundingClientRect(), cardRect=wrap.parentElement.getBoundingClientRect();
+    var left=Math.min(Math.max(barRect.left-cardRect.left+barRect.width/2,88),cardRect.width-88);
+    var top=Math.max(barRect.top-cardRect.top,44);
+    tip.innerHTML='<b>'+esc(d.prio+' · '+d.count+' faille'+(d.count>1?'s':'')+' ('+Math.round(d.share)+' %)')+'</b><span>'+esc(d.label)+'</span>';
+    tip.style.left=left+'px';
+    tip.style.top=top+'px';
+    tip.classList.add('on');
+  }
+  function hideTip(){if(tip)tip.classList.remove('on')}
+  function openPriority(d){
+    hideTip();
+    if(scope==='parc')go('parc');else go('q:p:'+d.prio);
+  }
+  var barW=Math.min(x.bandwidth(),92);
+  var barOffset=(x.bandwidth()-barW)/2;
+  var bars=g.selectAll('.chart-bar').data(data).enter().append('rect')
+    .attr('class','chart-bar')
+    .attr('x',function(d){return x(d.prio)+barOffset})
+    .attr('width',barW)
+    .attr('rx',6).attr('ry',6)
+    .attr('fill',function(d){return d.color})
+    .attr('tabindex',0)
+    .attr('role','button')
+    .attr('aria-label',function(d){return d.prio+' ('+d.label+') : '+d.count+' vulnérabilité'+(d.count>1?'s':'')+' ('+Math.round(d.share)+' %)'})
+    .attr('y',reduceMotion?function(d){return d.count?Math.min(y(d.count),innerH-4):innerH}:innerH)
+    .attr('height',reduceMotion?function(d){return d.count?Math.max(4,innerH-y(d.count)):0}:0)
+    .on('mouseenter',function(e,d){showTip(d,this)})
+    .on('focus',function(e,d){showTip(d,this)})
+    .on('mouseleave',hideTip)
+    .on('blur',hideTip)
+    .on('click',function(e,d){openPriority(d)})
+    .on('keydown',function(e,d){if(e.key==='Enter'||e.key===' '){e.preventDefault();openPriority(d)}});
+  if(!reduceMotion){
+    bars.transition().duration(320).ease(d3.easeCubicOut)
+      .attr('y',function(d){return d.count?Math.min(y(d.count),innerH-4):innerH})
+      .attr('height',function(d){return d.count?Math.max(4,innerH-y(d.count)):0});
+  }
+  var labels=g.selectAll('.chart-lbl').data(data).enter().append('g')
+    .attr('transform',function(d){var topY=d.count?Math.min(y(d.count),innerH-4):innerH;return 'translate('+(x(d.prio)+x.bandwidth()/2)+','+(topY-8)+')'});
+  labels.append('text').attr('class','chart-val').attr('text-anchor','middle').attr('y',-10).text(function(d){return d.count});
+  labels.append('text').attr('class','chart-pct').attr('text-anchor','middle').attr('y',3).text(function(d){return Math.round(d.share)+' %'});
+}
+window.__vwD3Ready=function(){if(view==='home'&&D)renderPrioChart()};
 S.prio=function(){
   var only=sub==='P2'?['P2']:['P1','P2'];
   var rows=D.vulns.filter(function(r){return only.indexOf(r.priority)>=0}).sort(byPrio); curRows=rows;
@@ -414,9 +645,15 @@ S.views=function(){
 };
 S.kev=function(){
   return '<h1>Failles exploitées</h1><p class="lead">L\'agence américaine de cybersécurité (CISA) tient la liste officielle des failles <b>déjà utilisées par des pirates</b>. Voici les ajouts récents.</p><div class="list">'+
-    D.kev.slice(0,150).map(function(k){return '<article class="v P1" style="cursor:default"><div class="vh"><div class="vt"><h3>'+esc(k.vendorProject+' '+k.product)+'</h3><div class="vid"><a target="_blank" rel="noopener" href="https://nvd.nist.gov/vuln/detail/'+esc(k.cveID)+'">'+esc(k.cveID)+'</a> · ajoutée le '+esc(k.dateAdded)+'</div></div><span class="prio P1">Exploitée</span></div>'+
+    D.kev.slice(0,150).map(function(k){
+      var tr=autoFr?TR['kev:'+k.cveID]:null;
+      var vName=(tr&&tr.title)?tr.title:k.vulnerabilityName;
+      var vDesc=(tr&&tr.desc)?tr.desc:k.shortDescription;
+      var vAct=(tr&&tr.action)?tr.action:k.requiredAction;
+      return '<article class="v P1" style="cursor:default"><div class="vh"><div class="vt"><h3>'+esc(k.vendorProject+' '+k.product)+'</h3><div class="vid"><a target="_blank" rel="noopener" href="https://nvd.nist.gov/vuln/detail/'+esc(k.cveID)+'">'+esc(k.cveID)+'</a> · ajoutée le '+esc(k.dateAdded)+'</div></div><span class="prio P1">Exploitée</span></div>'+
       (k.knownRansomwareCampaignUse==='Known'?'<div class="tags"><span class="t kev">Utilisée par des rançongiciels</span></div>':'')+
-      '<p class="plain"><b>'+esc(k.vulnerabilityName)+'.</b> '+esc(k.shortDescription)+'</p><div class="todo"><b>À corriger avant le '+esc(k.dueDate)+'</b>'+esc(k.requiredAction)+'</div></article>'}).join('')+'</div>';
+      '<p class="plain"><b data-tr-id="kev:'+esc(k.cveID)+'" data-tr-field="title">'+esc(vName)+'</b>. <span data-tr-id="kev:'+esc(k.cveID)+'" data-tr-field="desc">'+esc(vDesc)+'</span></p><div class="todo"><b>À corriger avant le '+esc(k.dueDate)+'</b><span data-tr-id="kev:'+esc(k.cveID)+'" data-tr-field="action">'+esc(vAct)+'</span></div></article>';
+    }).join('')+'</div>';
 };
 S.alerts=function(){
   return '<h1>Alertes envoyées</h1><p class="lead">Les alertes émises par cette installation de VulnWatch.</p><div class="list">'+(D.alerts.length?D.alerts.slice(0,200).map(function(a){
@@ -450,7 +687,10 @@ var FIELDS=[['seuils','cvss_critique','num','Seuil « critique » (note sur 10)'
   ['sources','exploits_publics','bool','Source : exploits publics',''],['sources','analyse_cisa','bool','Source : analyse de la CISA',''],['sources','bibliotheques_open_source','bool','Source : bibliothèques open source','']];
 S.settings=function(){
   var st=D.kpi.settings||{},ch=D.kpi.channels||{},repo=D.kpi.repo||'';
-  var h='<h1>Réglages de cette installation</h1><p class="lead">Réservé à la personne qui gère cette installation. Pour ton propre usage, va plutôt dans <a href="#parc" data-go="parc">Mon parc</a> ou <a href="#install" data-go="install">Mon propre VulnWatch</a>.</p>';
+  var h='<h1>Réglages de cette installation</h1><p class="lead">Personnalise l\'affichage sur cet appareil ou génère la configuration de ton installation.</p>';
+  h+='<div class="card" style="margin-bottom:12px"><b>Apparence et traduction (sur cet appareil)</b>'+
+    '<div class="bar" style="margin:10px 0 6px"><span class="count">Thème d\'affichage</span><div class="seg" role="group" aria-label="Thème visuel"><button type="button" data-theme-set="white" class="'+(theme==='white'?'on':'')+'">Blanc</button><button type="button" data-theme-set="light" class="'+(theme==='light'?'on':'')+'">Clair</button><button type="button" data-theme-set="dark" class="'+(theme==='dark'?'on':'')+'">Sombre</button></div></div>'+
+    '<div class="bar" style="margin:6px 0 0"><span class="count">Traduction automatique des fiches en français naturel</span><button type="button" class="tr-btn'+(autoFr?' on':'')+'" id="setTrToggle">'+(autoFr?'Activée (FR auto)':'Désactivée (VO)')+'</button></div></div>';
   h+='<div class="card"><b>État de l\'installation</b><div class="status" style="margin-top:8px">'+[['ntfy','Notifications sur téléphone (ntfy)','NTFY_TOPIC'],['courriel','Courriel et rapport quotidien','SMTP_USER, SMTP_PASSWORD, MAIL_TO'],
     ['webhook','Teams / Slack / Discord','WEBHOOK_URL'],['inventaire','Inventaire secret','INVENTAIRE'],['cle_nvd','Clé NVD','NVD_API_KEY'],['excel_chiffre','Excel complet chiffré','EXCEL_PASSWORD']].map(function(c){
       return '<span class="'+(ch[c[0]]?'okk':'nok')+'">'+(ch[c[0]]?'✓':'○')+'</span><span>'+esc(c[1])+(ch[c[0]]?'':' <span class="count">— secret '+esc(c[2])+'</span>')+'</span>'}).join('')+'</div>'+
@@ -483,11 +723,81 @@ function go(target,push){
   render();window.scrollTo(0,0);
   if(push!==false)try{history.replaceState(null,'','#'+view+(view==='explore'&&q?'/'+encodeURIComponent(q):''))}catch(e){}
 }
+function collectVisibleForTranslate(){
+  if(!D||!autoFr)return [];
+  var items=[], seen={};
+  if(view==='kev'){
+    D.kev.slice(0,25).forEach(function(k){
+      var key='kev:'+k.cveID;
+      if(TR[key]||seen[key])return;
+      if(!looksEnglish(k.vulnerabilityName)&&!looksEnglish(k.shortDescription)&&!looksEnglish(k.requiredAction))return;
+      seen[key]=1;
+      items.push({id:key,title:k.vulnerabilityName||'',desc:k.shortDescription||'',action:k.requiredAction||''});
+    });
+    return items;
+  }
+  var list=[];
+  if(view==='home'){
+    var mine=parcResults(), mineUrg=mine.filter(function(r){return r.priority==='P1'||r.priority==='P2'});
+    list=(mineUrg.length?mineUrg:D.vulns.filter(function(r){return r.priority==='P1'}).sort(byPrio)).slice(0,6);
+  }else if(view==='prio'||view==='explore'||view==='parc'){
+    list=curRows.slice(0,view==='parc'?parcShown:qShown);
+  }
+  list.forEach(function(r){
+    if(TR[r.id]||seen[r.id])return;
+    var needs=looksEnglish(r.desc)||looksEnglish(r.plain)||looksEnglish(r.todo);
+    if(!needs)return;
+    seen[r.id]=1;
+    items.push({id:r.id,desc:r.desc||'',plain:r.plain||'',todo:r.todo||''});
+  });
+  return items;
+}
+function applyTranslatedBatch(map){
+  Object.keys(map||{}).forEach(function(id){
+    TR[id]=map[id];
+    var entry=map[id];
+    document.querySelectorAll('[data-tr-id="'+CSS.escape(id)+'"]').forEach(function(el){
+      var f=el.getAttribute('data-tr-field');
+      if(f&&entry[f])el.textContent=entry[f];
+    });
+  });
+  saveTrCache();
+}
+function runAutoTranslate(manual){
+  var stEl=$('trStatus');
+  if(!autoFr){if(stEl)stEl.textContent='';return}
+  if(trFailed&&!manual)return;
+  var items=collectVisibleForTranslate();
+  if(!items.length){if(stEl)stEl.textContent='';return}
+  var mySeq=++trSeq;
+  trBusy=true;
+  if(stEl)stEl.textContent='Traduction FR…';
+  var batch=items.slice(0,10);
+  fetch('api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:batch})})
+    .then(function(r){return r.json().then(function(body){if(!r.ok)throw new Error(body.error||'HTTP '+r.status);return body})})
+    .then(function(res){
+      if(mySeq!==trSeq)return;
+      trBusy=false;trFailed=false;
+      applyTranslatedBatch(res.translations||{});
+      var rest=collectVisibleForTranslate();
+      if(rest.length&&autoFr){setTimeout(function(){runAutoTranslate(false)},120)}
+      else if(stEl)stEl.textContent='';
+    })
+    .catch(function(err){
+      if(mySeq!==trSeq)return;
+      trBusy=false;trFailed=true;
+      if(stEl)stEl.textContent='';
+      if(manual)toast(err.message||'Traduction indisponible');
+    });
+}
 function render(){
   if(!D)return;
   $('mSimple').classList.toggle('on',simple);$('mExpert').classList.toggle('on',!simple);
+  applyTheme(theme);
+  updateTrUI();
   app.innerHTML=S[view]();
   bind();
+  if(autoFr&&!trFailed)runAutoTranslate(false);
 }
 function bind(){
   var m=$('more');if(m)m.onclick=function(){qShown+=60;render()};
@@ -496,8 +806,23 @@ function bind(){
   if(qi){var tm;qi.oninput=function(){clearTimeout(tm);tm=setTimeout(function(){q=qi.value.trim();qShown=40;var pos=qi.selectionStart;render();var n=$('q');n.focus();try{n.setSelectionRange(pos,pos)}catch(e){}
     try{history.replaceState(null,'','#explore'+(q?'/'+encodeURIComponent(q):''))}catch(e){}},220)};$('hb').onclick=function(){$('help').classList.toggle('on')}}
   var ex=$('exp');if(ex)ex.onclick=exportRows;
+  if(view==='home'){
+    renderPrioChart();
+    if(chartRO){chartRO.disconnect();chartRO=null}
+    var cw=$('prioChart');
+    if(cw&&typeof ResizeObserver!=='undefined'){
+      var lastW=cw.clientWidth;
+      chartRO=new ResizeObserver(function(){if(cw.clientWidth&&cw.clientWidth!==lastW){lastW=cw.clientWidth;renderPrioChart()}});
+      chartRO.observe(cw);
+    }
+    document.querySelectorAll('[data-cscope]').forEach(function(b){b.onclick=function(){chartScope=b.dataset.cscope;render()}});
+  }else if(chartRO){chartRO.disconnect();chartRO=null}
   if(view==='parc')bindParc();
-  if(view==='settings')bindSettings();
+  if(view==='settings'){
+    bindSettings();
+    var stBtn=$('setTrToggle');
+    if(stBtn)stBtn.onclick=function(){toggleAutoTranslate()};
+  }
 }
 function exportRows(){
   var cols=[['CVE','id'],['Priorité','priority'],['Produit',prodName],['En clair',function(r){return r.plain||fallbackPlain(r)}],['Que faire',function(r){return (r._mine||!r.todo)?fallbackTodo(r.priority,r):r.todo}],
@@ -537,14 +862,27 @@ function bindSettings(){
   };
   $('cpy').onclick=function(){copyText($('yml').value)};
 }
+function toggleAutoTranslate(){
+  autoFr=!autoFr;
+  store('vw-tr-auto',autoFr?'on':'off');
+  trFailed=false;
+  updateTrUI();
+  render();
+  if(autoFr){toast('Traduction française activée');runAutoTranslate(true)}
+  else{toast('Affichage en version originale')}
+}
 document.addEventListener('click',function(e){
+  var th=e.target.closest('[data-theme-set]');if(th){applyTheme(th.dataset.themeSet);if(view==='home'&&D)renderPrioChart();return}
   var g=e.target.closest('[data-go]');if(g){e.preventDefault();if(g.dataset.go==='explore'&&g.closest('.tabs,.bnav'))q='';go(g.dataset.go);return}
   var tl=e.target.closest('[data-tile]');if(tl){go(tl.dataset.tile);return}
   var c=e.target.closest('[data-q]');if(c){q=c.dataset.q;go('explore');return}
   var v=e.target.closest('.v');if(v&&!e.target.closest('a,button,input,select,textarea')){v.classList.toggle('open');var mo=v.querySelector('.more');if(mo)mo.textContent=v.classList.contains('open')?'Touche pour refermer':'Touche pour voir le détail'}
 });
+$('btnTr').onclick=toggleAutoTranslate;
 $('mSimple').onclick=function(){simple=true;store('vw-mode','simple');render()};
 $('mExpert').onclick=function(){simple=false;store('vw-mode','expert');render()};
+applyTheme(theme);
+updateTrUI();
 fetch('data.json?t='+Date.now(),{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(function(d){
   D=d;var k=d.kpi,old=(Date.now()-new Date(k.updated))/3600000>3;
   $('st').innerHTML='<span class="dot'+(old?' warn':'')+'"></span>'+(old?'Données de plus de 3 h':'À jour · il y a '+ago(k.updated));

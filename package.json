@@ -1,0 +1,16 @@
+{
+  "name": "vulnwatch",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env server.js",
+    "start": "node --env-file-if-exists=.env server.js",
+    "build": "node --check server.js",
+    "lint": "node --check server.js"
+  },
+  "dependencies": {
+    "@google/genai": "^3.6.1",
+    "d3": "^7.9.2"
+  }
+}
