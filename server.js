@@ -16,6 +16,7 @@ const D3_BUNDLE = path.join(__dirname, "node_modules", "d3", "dist", "d3.min.js"
 const NVD_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0";
 const MITRE_CVE_URL = "https://cveawg.mitre.org/api/cve";
 const EPSS_URL = "https://api.first.org/data/v1/epss";
+const OSV_URL = "https://api.osv.dev/v1/query";
 const KEV_URLS = [
   "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
   "https://raw.githubusercontent.com/cisagov/kev-data/main/known_exploited_vulnerabilities.json",
@@ -198,6 +199,8 @@ function extractCpeInfo(configs) {
   let product = "";
   const affectedList = [];
   const versionRanges = [];
+  const structuredRanges = [];
+  const seenRange = new Set();
   for (const cfg of Array.isArray(configs) ? configs : []) {
     for (const node of cfg.nodes || []) {
       for (const m of node.cpeMatch || []) {
@@ -214,12 +217,29 @@ function extractCpeInfo(configs) {
           affectedList.push(label);
         }
         let range = "";
-        if (m.versionStartIncluding && m.versionEndExcluding) range = `>= ${m.versionStartIncluding}, < ${m.versionEndExcluding}`;
-        else if (m.versionStartIncluding && m.versionEndIncluding) range = `>= ${m.versionStartIncluding}, <= ${m.versionEndIncluding}`;
-        else if (m.versionEndExcluding) range = `< ${m.versionEndExcluding}`;
-        else if (m.versionEndIncluding) range = `<= ${m.versionEndIncluding}`;
-        else if (m.versionStartIncluding) range = `>= ${m.versionStartIncluding}`;
-        else if (ver) range = ver;
+        let sRange = null;
+        if (m.versionEndExcluding) {
+          const low = m.versionStartIncluding || m.versionStartExcluding || "0";
+          range = low !== "0" ? `>= ${low}, < ${m.versionEndExcluding}` : `< ${m.versionEndExcluding}`;
+          sRange = [label, low, "<", String(m.versionEndExcluding)];
+        } else if (m.versionEndIncluding) {
+          const low = m.versionStartIncluding || m.versionStartExcluding || "0";
+          range = low !== "0" ? `>= ${low}, <= ${m.versionEndIncluding}` : `<= ${m.versionEndIncluding}`;
+          sRange = [label, low, "<=", String(m.versionEndIncluding)];
+        } else if (m.versionStartIncluding) {
+          range = `>= ${m.versionStartIncluding}`;
+          sRange = [label, String(m.versionStartIncluding), ">=", ""];
+        } else if (ver) {
+          range = ver;
+          sRange = [label, String(ver), "=", ""];
+        }
+        if (sRange && structuredRanges.length < 60) {
+          const rk = sRange.join("|");
+          if (!seenRange.has(rk)) {
+            seenRange.add(rk);
+            structuredRanges.push(sRange);
+          }
+        }
         if (range) {
           const entry = p && affectedList.length > 1 ? `${p} ${range}` : range;
           if (!versionRanges.includes(entry) && versionRanges.length < 8) versionRanges.push(entry);
@@ -232,6 +252,7 @@ function extractCpeInfo(configs) {
     product,
     affected: affectedList.join("; "),
     versions: versionRanges.join(", "),
+    ranges: structuredRanges,
   };
 }
 
@@ -336,6 +357,7 @@ function parseNvdCve(item, nowMs, cutoff1, kevMap = null) {
     product,
     affected,
     versions,
+    ranges: cpeInfo.ranges || [],
     cwe: cwes.join(", "),
     family,
     desc,
@@ -374,6 +396,7 @@ function parseMitreCve5(payload, nowMs, cutoff1, kevMap = null) {
   const affectedList = [];
   const versionList = [];
   const fixedList = [];
+  const structuredRanges = [];
   for (const a of Array.isArray(cna.affected) ? cna.affected : []) {
     const v = String(a.vendor || "").trim();
     const p = String(a.product || "").trim();
@@ -384,9 +407,17 @@ function parseMitreCve5(payload, nowMs, cutoff1, kevMap = null) {
     for (const ver of Array.isArray(a.versions) ? a.versions : []) {
       if (ver.status === "affected") {
         let s = "";
-        if (ver.lessThan) s = `< ${ver.lessThan}`;
-        else if (ver.lessThanOrEqual) s = `<= ${ver.lessThanOrEqual}`;
-        else if (ver.version && ver.version !== "0" && ver.version !== "unspecified") s = String(ver.version);
+        const low = String(ver.version || "");
+        if (ver.lessThan) {
+          s = `< ${ver.lessThan}`;
+          if (structuredRanges.length < 60) structuredRanges.push([lbl, low, "<", String(ver.lessThan)]);
+        } else if (ver.lessThanOrEqual) {
+          s = `<= ${ver.lessThanOrEqual}`;
+          if (structuredRanges.length < 60) structuredRanges.push([lbl, low, "<=", String(ver.lessThanOrEqual)]);
+        } else if (low && low !== "0" && low !== "unspecified") {
+          s = low;
+          if (structuredRanges.length < 60) structuredRanges.push([lbl, low, "=", ""]);
+        }
         if (s && !versionList.includes(s) && versionList.length < 8) versionList.push(s);
         if (ver.lessThan && !fixedList.includes(ver.lessThan) && fixedList.length < 4) fixedList.push(ver.lessThan);
       }
@@ -478,6 +509,7 @@ function parseMitreCve5(payload, nowMs, cutoff1, kevMap = null) {
     product,
     affected: affectedList.join("; ") || [vendor, product].filter(Boolean).join(" ").trim(),
     versions: versionList.join(", "),
+    ranges: structuredRanges,
     pkg_fixed: fixedList.join(", "),
     cwe: cwes.join(", "),
     family,
@@ -519,6 +551,9 @@ function mergeCveRecords(nvdRec, mitreRec, epssEntry, kevEntry, nowMs) {
     if (!base.product && mitreRec.product) base.product = mitreRec.product;
     if (!base.affected && mitreRec.affected) base.affected = mitreRec.affected;
     if (!base.versions && mitreRec.versions) base.versions = mitreRec.versions;
+    if (Array.isArray(mitreRec.ranges) && mitreRec.ranges.length) {
+      base.ranges = [...(Array.isArray(base.ranges) ? base.ranges : []), ...mitreRec.ranges].slice(0, 60);
+    }
     if (!base.pkg_fixed && mitreRec.pkg_fixed) base.pkg_fixed = mitreRec.pkg_fixed;
     if (!base.desc && mitreRec.desc) base.desc = mitreRec.desc;
     if (!base.family && mitreRec.family) base.family = mitreRec.family;
@@ -638,6 +673,7 @@ function buildDataset(kevPayload, nvdPayload, kevOk, nvdOk) {
       if (rec.vector) existing.vector = rec.vector;
       if (rec.cwe) existing.cwe = rec.cwe;
       if (rec.versions) existing.versions = rec.versions;
+      if (Array.isArray(rec.ranges) && rec.ranges.length) existing.ranges = rec.ranges;
       if (rec.ref_patch) existing.ref_patch = rec.ref_patch;
       if (rec.exploit_ref) existing.exploit_ref = rec.exploit_ref;
       existing.references = mergeReferenceLists(existing.references || [], rec.references || []);
@@ -1152,6 +1188,513 @@ async function searchCvesOnline(rawQuery, page = 0, limit = 20) {
   return out;
 }
 
+const parcScanCache = new Map();
+const PARC_SCAN_TTL_MS = 15 * 60 * 1000;
+
+const VENDOR_ALIASES = {
+  microsoft: ["microsoft", "ms"],
+  apache: ["apache", "asf"],
+  "palo alto": ["palo alto", "paloaltonetworks"],
+  paloaltonetworks: ["palo alto", "paloaltonetworks"],
+  fortinet: ["fortinet", "fortigate"],
+  vmware: ["vmware", "broadcom"],
+  broadcom: ["broadcom", "vmware"],
+  "red hat": ["red hat", "redhat"],
+  redhat: ["red hat", "redhat"],
+  f5: ["f5", "nginx"],
+  nginx: ["nginx", "f5"],
+  google: ["google", "chromium"],
+  oracle: ["oracle", "sun", "mysql"],
+  openbsd: ["openbsd", "openssh"],
+  cisco: ["cisco", "linksys"],
+  ivanti: ["ivanti", "pulse secure", "mobileiron"],
+  citrix: ["citrix", "netscaler"],
+  "check point": ["check point", "checkpoint"],
+  checkpoint: ["check point", "checkpoint"],
+  hpe: ["hpe", "hp", "hewlett packard", "aruba"],
+  dell: ["dell", "emc"],
+};
+
+const GENERIC_PRODUCTS = new Set([
+  "edge", "core", "server", "client", "agent", "cloud", "os", "pro", "studio",
+  "portal", "manager", "gateway", "router", "switch", "firewall", "viewer",
+  "player", "mail", "vpn", "http", "ssh", "connect", "access", "admin",
+  "enterprise", "desktop", "mobile", "app", "api", "sdk", "cli", "ios",
+  "web", "go", "base", "hub", "one", "plus", "net", "sync", "box", "drive",
+  "link", "guard", "shield", "protect", "secure", "backup", "monitor",
+  "control", "center", "console", "workspace", "office", "teams", "defender",
+  "windows", "linux", "kernel", "database", "http server", "web server",
+]);
+
+const APPLIANCE_VENDORS = new Set([
+  "cisco", "fortinet", "palo alto", "paloaltonetworks", "juniper", "check point",
+  "checkpoint", "sophos", "sonicwall", "ivanti", "citrix", "vmware", "broadcom",
+  "microsoft", "apple", "dell", "hpe", "synology", "qnap", "ubiquiti", "mikrotik",
+  "huawei", "watchguard", "barracuda", "arista", "netgear", "zyxel",
+]);
+
+function normWord(s) {
+  return " " + String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim() + " ";
+}
+
+function cleanVendorForQuery(v) {
+  return String(v || "")
+    .replace(/\s*\(.*?\)\s*/g, " ")
+    .replace(/[,.]?\s+(systems\s+)?(incorporated|inc\.?|llc|corporation|corp\.?|ltd\.?|limited|gmbh|s\.a\.s\.?|sas|sa|ag|co\.?|b\.v\.|plc|software foundation|foundation)\s*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function vendorTokensFor(v) {
+  const clean = normWord(cleanVendorForQuery(v)).trim();
+  if (!clean) return [];
+  const out = new Set([clean]);
+  if (VENDOR_ALIASES[clean]) VENDOR_ALIASES[clean].forEach((a) => out.add(a));
+  const first = clean.split(" ")[0];
+  if (first.length >= 3) out.add(first);
+  if (VENDOR_ALIASES[first]) VENDOR_ALIASES[first].forEach((a) => out.add(a));
+  return Array.from(out);
+}
+
+function textMatchesVendor(haystack, vendor) {
+  const toks = vendorTokensFor(vendor);
+  if (!toks.length) return true;
+  return toks.some((t) => haystack.includes(" " + t + " "));
+}
+
+function assetMatchesRecord(rec, asset) {
+  const rangeProds = Array.isArray(rec.ranges) ? rec.ranges.map((x) => x && x[0]).filter(Boolean).join(" ") : "";
+  const hs = normWord([rec.vendor, rec.product, rec.affected, rec.packages, rangeProds].join(" "));
+  const hv = normWord(rec.vendor || "");
+  const hd = normWord(rec.desc || "");
+  const p = normWord(asset.product).trim();
+  const v = normWord(cleanVendorForQuery(asset.vendor)).trim();
+  if (p) {
+    const inStruct = hs.includes(" " + p + " ");
+    const inDesc = hd.includes(" " + p + " ");
+    if (!inStruct && !inDesc) return false;
+    const isAmbiguous = GENERIC_PRODUCTS.has(p) || p.length <= 4;
+    if (v) {
+      const vInStruct = textMatchesVendor(hs, v);
+      const vInAll = vInStruct || textMatchesVendor(hd, v);
+      const recHasOtherVendor = hv.trim().length > 1 && !textMatchesVendor(hv, v);
+      if (isAmbiguous && !vInAll) return false;
+      if (recHasOtherVendor && !vInStruct) return false;
+      if (!inStruct && !vInAll) return false;
+    } else if (!inStruct && isAmbiguous) {
+      return false;
+    }
+    return true;
+  }
+  return Boolean(v) && textMatchesVendor(hs, v);
+}
+
+async function fetchOsvForAsset(asset, nowMs, cutoff1, kevMap) {
+  const prod = String(asset.product || "").trim();
+  const ver = String(asset.version || "").trim();
+  const cleanV = normWord(cleanVendorForQuery(asset.vendor)).trim();
+  if (!prod || prod.length < 2) return [];
+  if (cleanV && APPLIANCE_VENDORS.has(cleanV) && !/nginx|typescript|vscode|dotnet|azure/i.test(prod)) {
+    return [];
+  }
+
+  const names = Array.from(new Set([prod, prod.toLowerCase(), prod.toLowerCase().replace(/\s+/g, "-")])).slice(0, 2);
+  const found = new Map();
+
+  for (const pkgName of names) {
+    const body = { package: { name: pkgName } };
+    if (ver) body.version = ver;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 9000);
+    try {
+      const resp = await fetch(OSV_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json", "User-Agent": "VulnWatch/1.0" },
+        body: JSON.stringify(body),
+        signal: ctrl.signal,
+      });
+      if (!resp.ok) continue;
+      const data = await resp.json();
+      const vulns = Array.isArray(data?.vulns) ? data.vulns : [];
+      for (const v of vulns.slice(0, 60)) {
+        const aliases = Array.isArray(v.aliases) ? v.aliases : [];
+        const cveAlias = aliases.find((a) => CVE_ID_RE.test(a));
+        const ghsaId = String(v.id || "").startsWith("GHSA-") ? v.id : aliases.find((a) => /^GHSA-/i.test(a)) || "";
+        const id = (cveAlias || v.id || "").toUpperCase();
+        if (!id || found.has(id)) continue;
+        if (cleanV && (GENERIC_PRODUCTS.has(normWord(prod).trim()) || prod.length <= 4)) {
+          const osvHay = normWord([v.summary, v.details, JSON.stringify(v.affected || [])].join(" "));
+          if (!textMatchesVendor(osvHay, cleanV)) continue;
+        }
+
+        const ranges = [];
+        const fixed = [];
+        const verSummary = [];
+        const pkgNames = [];
+        for (const af of Array.isArray(v.affected) ? v.affected : []) {
+          const pName = af.package?.name || prod;
+          const eco = af.package?.ecosystem || "";
+          const pkgLabel = eco ? `${eco}:${pName}` : pName;
+          if (pkgLabel && !pkgNames.includes(pkgLabel) && pkgNames.length < 4) pkgNames.push(pkgLabel);
+          for (const rg of Array.isArray(af.ranges) ? af.ranges : []) {
+            if (rg.type === "GIT") continue;
+            let curIntro = "0";
+            for (const ev of Array.isArray(rg.events) ? rg.events : []) {
+              if (ev.introduced != null) curIntro = String(ev.introduced);
+              if (ev.fixed) {
+                ranges.push([`${asset.vendor || ""} ${pName}`.trim(), curIntro, "<", String(ev.fixed)]);
+                if (!fixed.includes(ev.fixed) && fixed.length < 4) fixed.push(String(ev.fixed));
+                if (verSummary.length < 6) verSummary.push(`${curIntro !== "0" ? `>= ${curIntro}, ` : ""}< ${ev.fixed}`);
+              } else if (ev.last_affected) {
+                ranges.push([`${asset.vendor || ""} ${pName}`.trim(), curIntro, "<=", String(ev.last_affected)]);
+                if (verSummary.length < 6) verSummary.push(`${curIntro !== "0" ? `>= ${curIntro}, ` : ""}<= ${ev.last_affected}`);
+              }
+            }
+          }
+          if (!ranges.length && Array.isArray(af.versions)) {
+            for (const exact of af.versions.slice(0, 20)) {
+              ranges.push([`${asset.vendor || ""} ${pName}`.trim(), String(exact), "=", ""]);
+            }
+          }
+        }
+
+        let score = null;
+        let vector = "";
+        let rawSev = String(v.database_specific?.severity || "").toUpperCase();
+        for (const sv of Array.isArray(v.severity) ? v.severity : []) {
+          if (sv.score && /^CVSS:/i.test(sv.score)) vector = sv.score;
+        }
+        if (rawSev === "MODERATE") rawSev = "MEDIUM";
+        if (score == null && rawSev) {
+          score = rawSev === "CRITICAL" ? 9.5 : rawSev === "HIGH" ? 7.8 : rawSev === "MEDIUM" ? 5.5 : rawSev === "LOW" ? 3.1 : null;
+        }
+        const severity = SEV_FR[rawSev] || (score == null ? "NON ÉVALUÉE" : score >= 9 ? "CRITIQUE" : score >= 7 ? "ÉLEVÉE" : score >= 4 ? "MOYENNE" : "FAIBLE");
+        const refs = mergeReferenceLists(
+          (Array.isArray(v.references) ? v.references : []).map((r) => ({
+            url: r.url,
+            tags: r.type === "ADVISORY" ? ["Vendor Advisory"] : r.type === "FIX" ? ["Patch"] : [],
+            source: "OSV / GHSA",
+          }))
+        );
+        const refPatch = refs.find((r) => r.tags.includes("Patch"))?.url || refs.find((r) => r.tags.includes("Vendor Advisory"))?.url || "";
+        const desc = String(v.summary || v.details || "").replace(/\s+/g, " ").trim().slice(0, 900);
+        const published = v.published ? `${String(v.published).slice(0, 19)}Z` : "";
+        const modified = v.modified ? `${String(v.modified).slice(0, 19)}Z` : published;
+        const pubMs = Date.parse(published) || nowMs;
+        let priority = "P4";
+        if (score != null && score >= 9) priority = "P2";
+        else if (score != null && score >= 7) priority = "P3";
+
+        const rec = {
+          id,
+          ghsa: ghsaId,
+          priority,
+          severity,
+          score,
+          score_source: ghsaId ? "GHSA / OSV" : "OSV",
+          vector,
+          risk: score == null ? 30 : Math.min(92, Math.round(score * 8)),
+          vendor: asset.vendor || "",
+          product: prod,
+          affected: [asset.vendor, prod].filter(Boolean).join(" ").trim(),
+          packages: pkgNames.join(", "),
+          versions: verSummary.join(", "),
+          ranges,
+          pkg_fixed: fixed.join(", "),
+          cwe: Array.isArray(v.database_specific?.cwe_ids) ? v.database_specific.cwe_ids.join(", ") : "",
+          family: detectFamily(asset.vendor, prod, desc),
+          desc,
+          status: "Publiée (OSV / GHSA)",
+          source: ghsaId ? "GitHub Advisories" : "OSV.dev",
+          kev: false,
+          patch_available: fixed.length || refPatch ? "Oui" : "",
+          ref_patch: refPatch,
+          references: refs,
+          new: pubMs >= cutoff1,
+          published,
+          modified,
+          justification: ghsaId ? `Avis sécurité ${ghsaId} (OSV / GitHub Advisories).` : "Vulnérabilité recensée dans la base OSV / GHSA.",
+          _sources: [ghsaId ? "GitHub Advisories (GHSA)" : "OSV.dev"],
+          _osvVersionHit: Boolean(ver),
+        };
+        if (kevMap && kevMap.has(rec.id)) {
+          applyKevToRecord(rec, kevMap.get(rec.id), nowMs);
+          rec._sources.push("CISA KEV");
+        }
+        rec.views = buildViewsForRecord(rec, nowMs);
+        found.set(id, rec);
+      }
+      if (found.size > 0) break;
+    } catch {
+      // ignore OSV timeout/errors per query
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  return Array.from(found.values());
+}
+
+async function scanSingleAssetOnline(rawAsset, kevMap) {
+  const vendor = String(rawAsset?.vendor || "").trim().slice(0, 80);
+  const product = String(rawAsset?.product || "").trim().slice(0, 80);
+  const version = String(rawAsset?.version || "").trim().slice(0, 60);
+  if (!vendor && !product) return { records: [], sources: [], nvdTotal: 0 };
+
+  const cacheKey = `${vendor.toLowerCase()}|${product.toLowerCase()}|${version.toLowerCase()}`;
+  const cached = getBoundedCache(parcScanCache, cacheKey, PARC_SCAN_TTL_MS);
+  if (cached) return cached;
+
+  const nvdHeaders = process.env.NVD_API_KEY ? { apiKey: process.env.NVD_API_KEY } : {};
+  const nowMs = Date.now();
+  const cutoff1 = nowMs - 86400000;
+  const asset = { vendor, product, version };
+  const byId = new Map();
+  const sourcesUsed = new Set();
+
+  const addSourceTag = (rec, src) => {
+    if (!rec._sources) rec._sources = [];
+    if (!rec._sources.includes(src)) rec._sources.push(src);
+  };
+
+  // 1. Full CISA KEV historical catalog (all years, in memory)
+  const matchedKevIds = [];
+  for (const [cid, k] of kevMap.entries()) {
+    const pseudo = {
+      vendor: k.vendorProject || "",
+      product: k.product || "",
+      affected: `${k.vendorProject || ""} ${k.product || ""}`.trim(),
+      packages: "",
+      desc: `${k.vulnerabilityName || ""} ${k.shortDescription || ""}`,
+    };
+    if (assetMatchesRecord(pseudo, asset)) {
+      matchedKevIds.push(cid);
+    }
+  }
+
+  // 2. NVD historical query (up to 100 newest matching CVEs across ALL years) + OSV/GHSA in parallel
+  const cleanV = cleanVendorForQuery(vendor);
+  const genericProd = /^(server|client|os|software|firmware|router|switch|firewall|appliance|http server|web server|database|core)$/i.test(product);
+  const primaryQuery = product
+    ? (cleanV && (genericProd || product.length < 5) && !product.toLowerCase().includes(cleanV.toLowerCase()) ? `${cleanV} ${product}` : (cleanV && !product.toLowerCase().includes(cleanV.toLowerCase()) ? `${cleanV} ${product}` : product))
+    : cleanV;
+
+  const fetchNvdHistory = async (kw) => {
+    const first = await fetchJsonWithTimeout(
+      `${NVD_URL}?keywordSearch=${encodeURIComponent(kw)}&resultsPerPage=100&startIndex=0`,
+      16000,
+      nvdHeaders,
+      1
+    );
+    if (!first.ok || !Array.isArray(first.data?.vulnerabilities)) return { items: [], total: 0, ok: false };
+    const total = Number(first.data.totalResults || first.data.vulnerabilities.length || 0);
+    if (total <= 100) {
+      return { items: first.data.vulnerabilities.slice().reverse(), total, ok: true };
+    }
+    // Fetch newest 100 from the tail so recent + major historical CVEs are prioritized
+    const startIdx = Math.max(0, total - 100);
+    const tail = await fetchJsonWithTimeout(
+      `${NVD_URL}?keywordSearch=${encodeURIComponent(kw)}&resultsPerPage=100&startIndex=${startIdx}`,
+      16000,
+      nvdHeaders,
+      1
+    );
+    if (tail.ok && Array.isArray(tail.data?.vulnerabilities)) {
+      return { items: tail.data.vulnerabilities.slice().reverse(), total, ok: true };
+    }
+    return { items: first.data.vulnerabilities.slice().reverse(), total, ok: true };
+  };
+
+  const [nvdPrimary, osvRecords] = await Promise.all([
+    fetchNvdHistory(primaryQuery),
+    fetchOsvForAsset(asset, nowMs, cutoff1, kevMap),
+  ]);
+
+  let nvdRes = nvdPrimary;
+  if (nvdRes.ok && nvdRes.total === 0 && product && primaryQuery !== product) {
+    nvdRes = await fetchNvdHistory(product);
+  }
+
+  if (nvdRes.ok) {
+    sourcesUsed.add("NVD historique");
+    for (const item of nvdRes.items) {
+      const rec = parseNvdCve(item, nowMs, cutoff1, kevMap);
+      if (!rec) continue;
+      if (!assetMatchesRecord(rec, asset)) continue;
+      addSourceTag(rec, "NVD historique");
+      if (rec.kev) {
+        addSourceTag(rec, "CISA KEV");
+        sourcesUsed.add("CISA KEV");
+      }
+      byId.set(rec.id, rec);
+    }
+  }
+
+  // 3. Fetch NVD details (for CPE version ranges!) on older matching CISA KEV CVEs not yet in byId (up to 10)
+  const missingKev = matchedKevIds.filter((cid) => !byId.has(cid)).slice(0, 10);
+  if (missingKev.length) {
+    sourcesUsed.add("CISA KEV");
+    const kevNvdResults = await Promise.all(
+      missingKev.map(async (cid) => {
+        const k = kevMap.get(cid);
+        const r = await fetchJsonWithTimeout(`${NVD_URL}?cveId=${encodeURIComponent(cid)}`, 10000, nvdHeaders, 0);
+        const item = r.ok && Array.isArray(r.data?.vulnerabilities) ? r.data.vulnerabilities[0] : null;
+        if (item) {
+          const parsed = parseNvdCve(item, nowMs, cutoff1, kevMap);
+          if (parsed) {
+            addSourceTag(parsed, "NVD historique");
+            addSourceTag(parsed, "CISA KEV");
+            return parsed;
+          }
+        }
+        if (!k) return null;
+        const fallback = applyKevToRecord(
+          {
+            id: cid,
+            priority: "P1",
+            severity: "CRITIQUE",
+            score: k.knownRansomwareCampaignUse === "Known" ? 9.8 : 9.0,
+            score_source: "CISA KEV",
+            risk: 92,
+            vendor: k.vendorProject || "",
+            product: k.product || "",
+            affected: `${k.vendorProject || ""} ${k.product || ""}`.trim(),
+            family: detectFamily(k.vendorProject, k.product, k.shortDescription),
+            desc: k.shortDescription || k.vulnerabilityName || "",
+            references: mergeReferenceLists(
+              String(k.notes || "")
+                .split(/\s*;\s*/)
+                .map((u) => ({ url: u, tags: ["Vendor Advisory"] }))
+            ),
+            published: k.dateAdded ? `${k.dateAdded}T00:00:00Z` : "",
+            modified: k.dateAdded ? `${k.dateAdded}T00:00:00Z` : "",
+            ranges: [],
+            _sources: ["CISA KEV"],
+          },
+          k,
+          nowMs
+        );
+        return fallback;
+      })
+    );
+    for (const rec of kevNvdResults) {
+      if (rec) byId.set(rec.id, rec);
+    }
+  }
+
+  // 4. Merge OSV / GHSA advisories
+  if (osvRecords.length) {
+    sourcesUsed.add("OSV / GHSA");
+    for (const rec of osvRecords) {
+      const existing = byId.get(rec.id);
+      if (existing) {
+        if (rec.ghsa && !existing.ghsa) existing.ghsa = rec.ghsa;
+        if (rec.pkg_fixed && !existing.pkg_fixed) existing.pkg_fixed = rec.pkg_fixed;
+        if (rec.packages && !existing.packages) existing.packages = rec.packages;
+        if (Array.isArray(rec.ranges) && rec.ranges.length) {
+          existing.ranges = [...(existing.ranges || []), ...rec.ranges].slice(0, 60);
+        }
+        existing.references = mergeReferenceLists(existing.references || [], rec.references || []);
+        addSourceTag(existing, rec.ghsa ? "GitHub Advisories (GHSA)" : "OSV.dev");
+      } else {
+        byId.set(rec.id, rec);
+      }
+    }
+  }
+
+  // 5. Batch-enrich with FIRST EPSS (chunks of 40)
+  const allRecs = Array.from(byId.values());
+  const cveIds = allRecs.map((r) => r.id).filter((id) => CVE_ID_RE.test(id));
+  if (cveIds.length) {
+    const chunks = [];
+    for (let i = 0; i < cveIds.length; i += 40) chunks.push(cveIds.slice(i, i + 40));
+    const maps = await Promise.all(chunks.slice(0, 3).map((ch) => fetchEpssBatch(ch)));
+    let anyEpss = false;
+    for (const m of maps) {
+      for (const [cid, e] of m.entries()) {
+        const rec = byId.get(cid);
+        if (rec) {
+          rec.epss = e.epss;
+          rec.epss_pct = e.percentile;
+          anyEpss = true;
+        }
+      }
+    }
+    if (anyEpss) sourcesUsed.add("FIRST EPSS");
+  }
+
+  const result = {
+    records: allRecs,
+    sources: Array.from(sourcesUsed),
+    nvdTotal: nvdRes.total || 0,
+  };
+  if (sourcesUsed.size > 0) {
+    setBoundedCache(parcScanCache, cacheKey, result, 200);
+  }
+  return result;
+}
+
+async function handleParcScan(req, res) {
+  let raw = "";
+  for await (const chunk of req) {
+    raw += chunk;
+    if (raw.length > 100000) {
+      res.writeHead(413, { "Content-Type": "application/json; charset=utf-8" });
+      res.end(JSON.stringify({ error: "Requête trop volumineuse" }));
+      return;
+    }
+  }
+  let body;
+  try {
+    body = JSON.parse(raw || "{}");
+  } catch {
+    res.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
+    res.end(JSON.stringify({ error: "JSON invalide" }));
+    return;
+  }
+  const assets = Array.isArray(body.assets) ? body.assets.slice(0, 25) : [];
+  const validAssets = assets.filter((a) => String(a?.vendor || "").trim() || String(a?.product || "").trim());
+  if (!validAssets.length) {
+    res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+    res.end(JSON.stringify({ records: [], sources: [], scannedAssets: 0 }));
+    return;
+  }
+
+  const kevMap = await getFullKevMap();
+  const merged = new Map();
+  const allSources = new Set();
+
+  // Bounded concurrency (2 at a time) to avoid NVD rate limits
+  for (let i = 0; i < validAssets.length; i += 2) {
+    const batch = validAssets.slice(i, i + 2);
+    const out = await Promise.all(batch.map((a) => scanSingleAssetOnline(a, kevMap)));
+    for (const part of out) {
+      for (const s of part.sources) allSources.add(s);
+      for (const rec of part.records) {
+        const ex = merged.get(rec.id);
+        if (!ex) {
+          merged.set(rec.id, rec);
+        } else {
+          const srcs = Array.from(new Set([...(ex._sources || []), ...(rec._sources || [])]));
+          ex._sources = srcs;
+          if (Array.isArray(rec.ranges) && rec.ranges.length && (!ex.ranges || !ex.ranges.length)) {
+            ex.ranges = rec.ranges;
+          }
+          ex.references = mergeReferenceLists(ex.references || [], rec.references || []);
+        }
+      }
+    }
+  }
+
+  res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+  res.end(
+    JSON.stringify({
+      records: Array.from(merged.values()),
+      sources: Array.from(allSources),
+      scannedAssets: validAssets.length,
+    })
+  );
+}
+
 function escapeCsv(val) {
   const s = String(val ?? "");
   return `"${s.replace(/"/g, '""')}"`;
@@ -1262,6 +1805,11 @@ const server = http.createServer(async (req, res) => {
     }
     if (pathname === "/api/translate" && req.method === "POST") {
       await handleTranslate(req, res);
+      return;
+    }
+
+    if (pathname === "/api/parc-scan" && req.method === "POST") {
+      await handleParcScan(req, res);
       return;
     }
 

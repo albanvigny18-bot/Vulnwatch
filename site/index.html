@@ -257,7 +257,108 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 :root[data-theme="dark"] .ref-tag.exp{color:#f87171}
 :root[data-theme="dark"] .ref-tag.gov{color:#fb923c}
 :root[data-theme="dark"] .ref-tag.mit{color:#facc15}
-@media (prefers-reduced-motion:reduce){.chart-bar,.chart-tip{transition:none}}
+.parc-hero{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin:14px 0;box-shadow:var(--sh)}
+.parc-hero-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.parc-hero-hd h2{margin:0;font-size:19px;letter-spacing:-.01em}
+.parc-src-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:10px;padding:9px 12px;border-radius:11px;background:var(--surface2);border:1px solid var(--line);font-size:12.5px;color:var(--ink2)}
+.parc-src-bar.busy{background:var(--brandsoft);border-color:color-mix(in srgb,var(--brand) 28%,transparent);color:var(--ink)}
+.parc-acards{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:8px;margin-top:12px}
+.parc-acard{text-align:left;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer;transition:border-color .14s ease,background .14s ease,transform .12s ease;display:flex;flex-direction:column;gap:4px;color:var(--ink)}
+.parc-acard:hover{border-color:var(--brand);background:var(--surface2)}
+.parc-acard.on{border-color:var(--brand);background:var(--brandsoft);box-shadow:0 0 0 1px color-mix(in srgb,var(--brand) 25%,transparent)}
+.parc-acard.urgent{border-left:4px solid var(--p1)}
+.parc-acard.clean{border-left:4px solid var(--ok)}
+.parc-acard-top{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.parc-acard-top b{font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.parc-acard-cnt{font-size:12px;font-weight:750;padding:1px 7px;border-radius:7px;background:var(--surface2);color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums}
+.parc-acard.urgent .parc-acard-cnt{background:var(--p1s);color:var(--p1)}
+.parc-acard.clean .parc-acard-cnt{background:var(--oks);color:var(--ok)}
+.parc-acard-sub{font-size:12px;color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.parc-acard-meta{font-size:11.5px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.t.ver-hit{background:var(--p1s);color:var(--p1)}
+.t.ver-chk{background:var(--p3s);color:var(--p3)}
+.t.hist{background:var(--surface2);color:var(--ink2);border:1px solid var(--line)}
+.t.src{background:var(--brandsoft);color:var(--brand)}
+:root[data-theme="dark"] .parc-acard.urgent .parc-acard-cnt,:root[data-theme="dark"] .t.ver-hit{color:#f87171}
+:root[data-theme="dark"] .parc-acard.clean .parc-acard-cnt{color:#4ade80}
+:root[data-theme="dark"] .t.ver-chk{color:#facc15}
+.eq-prog{height:5px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:4px}
+.eq-prog-fill{height:100%;background:var(--ok);border-radius:99px;transition:width .2s ease}
+.eq-links-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:8px 0 2px;padding:7px 10px;border-radius:10px;background:var(--surface2);border:1px solid var(--line);font-size:12px}
+.eq-links-lbl{font-weight:700;color:var(--mute);font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;margin-right:2px}
+.eq-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 12px/1.25 var(--font);cursor:pointer;transition:border-color .14s ease,background .14s ease}
+.eq-chip:hover{border-color:var(--brand);background:var(--brandsoft)}
+.eq-chip .eq-st{font-size:11px;font-weight:700;padding:1px 5px;border-radius:5px}
+.eq-chip.treated .eq-st{background:var(--oks);color:var(--ok)}
+.eq-chip.open .eq-st{background:var(--p1s);color:var(--p1)}
+.eq-chip.rev .eq-st{background:var(--p2s);color:var(--p2)}
+.t.man{background:color-mix(in srgb,var(--brand) 14%,transparent);color:var(--brand)}
+.eq-focus{background:var(--surface);border:1.5px solid color-mix(in srgb,var(--brand) 38%,var(--line));border-radius:16px;padding:15px 17px;margin:12px 0;box-shadow:var(--sh)}
+.eq-focus-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.eq-focus-hd h3{margin:0;font-size:18px;letter-spacing:-.01em}
+.eq-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:12px}
+.eq-stat{background:var(--surface2);border:1px solid var(--line);border-radius:11px;padding:8px 11px}
+.eq-stat b{display:block;font-size:20px;line-height:1.1;font-variant-numeric:tabular-nums}
+.eq-stat span{font-size:12px;color:var(--mute)}
+.eq-stat.danger b{color:var(--p1)}
+.eq-stat.ok b{color:var(--ok)}
+.eq-stat.warn b{color:var(--p2)}
+.eq-grp{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin:12px 0;box-shadow:var(--sh)}
+.eq-grp-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.eq-grp-hd h3{margin:0;font-size:16.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.eq-grp-meta{font-size:12.5px;color:var(--mute);margin-top:3px}
+.eq-vlist{display:grid;gap:7px;margin-top:10px}
+.eq-vrow{background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;transition:border-color .14s ease}
+.eq-vrow.treated{background:color-mix(in srgb,var(--ok) 5%,var(--surface));border-color:color-mix(in srgb,var(--ok) 28%,var(--line))}
+.eq-vrow.rev{background:color-mix(in srgb,var(--p2) 6%,var(--surface));border-color:color-mix(in srgb,var(--p2) 32%,var(--line))}
+.eq-vrow-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.eq-vrow-main{flex:1;min-width:220px}
+.eq-vrow-id{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:13.5px}
+.eq-vrow-id b{font-family:var(--mono);font-size:13px}
+.eq-vrow-txt{font-size:13px;color:var(--ink2);margin:4px 0 0;line-height:1.4}
+.eq-vrow-proof{font-size:12px;color:var(--ok);margin:5px 0 0;line-height:1.35}
+.eq-vrow.rev .eq-vrow-proof{color:var(--p2)}
+.eq-vrow-act{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px}
+.eq-vrow-det{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+.eq-badge{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:7px;white-space:nowrap}
+.eq-badge.treated{background:var(--oks);color:var(--ok)}
+.eq-badge.open{background:var(--p1s);color:var(--p1)}
+.eq-badge.rev{background:var(--p2s);color:var(--p2)}
+.link-list{display:grid;gap:8px;max-height:360px;overflow:auto;margin:10px 0}
+.link-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 12px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface2)}
+.link-row.linked{border-color:color-mix(in srgb,var(--brand) 48%,var(--line));background:var(--brandsoft)}
+.link-row-info{flex:1;min-width:190px}
+.link-row-info b{display:block;font-size:14px}
+.link-row-info small{display:block;font-size:12px;color:var(--mute);margin-top:2px}
+.link-row-act{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.addcve-sug{display:grid;gap:5px;max-height:220px;overflow:auto;margin-top:8px}
+.addcve-item{text-align:left;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;color:var(--ink);font:inherit;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.addcve-item:hover{border-color:var(--brand);background:var(--brandsoft)}
+.conf-b{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;padding:1px 6px;border-radius:6px;white-space:nowrap}
+.conf-b.confirm{background:var(--oks);color:var(--ok)}
+.conf-b.prob{background:var(--brandsoft);color:var(--brand)}
+.conf-b.check{background:var(--p3s);color:var(--p3)}
+.why-line{margin:5px 0 0;padding:5px 9px;border-radius:8px;background:var(--surface);border:1px solid var(--line);font-size:12px;color:var(--ink2);line-height:1.4}
+.why-line b{color:var(--ink)}
+.eq-vrow.excl{background:color-mix(in srgb,var(--ok) 4%,var(--surface));border-style:dashed;border-color:color-mix(in srgb,var(--ok) 35%,var(--line))}
+.eq-badge.excl{background:var(--oks);color:var(--ok)}
+.proof-presets{display:flex;gap:5px;flex-wrap:wrap;margin:5px 0 7px}
+.proof-presets button{border:1px solid var(--line);background:var(--surface2);color:var(--ink2);border-radius:7px;padding:3px 8px;font:600 11.5px/1.25 var(--font);cursor:pointer}
+.proof-presets button:hover{border-color:var(--brand);color:var(--brand);background:var(--brandsoft)}
+.ver-up-box{display:none;align-items:flex-start;gap:8px;padding:9px 11px;border-radius:10px;background:var(--oks);border:1px solid color-mix(in srgb,var(--ok) 30%,transparent);font-size:12.5px;color:var(--ink);margin-top:4px}
+.ver-up-box input{margin-top:2px;flex:none}
+.modal.wide{max-width:780px}
+.audit-body{max-height:62vh;overflow:auto;padding-right:4px;font-size:13px}
+.audit-sec{margin-top:14px}
+.audit-sec h4{margin:0 0 6px;font-size:13.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--mute)}
+.audit-tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.audit-tbl th,.audit-tbl td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.audit-tbl th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--mute);background:var(--surface2)}
+:root[data-theme="dark"] .eq-chip.treated .eq-st,:root[data-theme="dark"] .eq-badge.treated,:root[data-theme="dark"] .eq-badge.excl,:root[data-theme="dark"] .eq-vrow-proof,:root[data-theme="dark"] .eq-stat.ok b,:root[data-theme="dark"] .conf-b.confirm{color:#4ade80}
+:root[data-theme="dark"] .eq-chip.open .eq-st,:root[data-theme="dark"] .eq-badge.open,:root[data-theme="dark"] .eq-stat.danger b{color:#f87171}
+:root[data-theme="dark"] .eq-chip.rev .eq-st,:root[data-theme="dark"] .eq-badge.rev,:root[data-theme="dark"] .eq-vrow.rev .eq-vrow-proof,:root[data-theme="dark"] .eq-stat.warn b{color:#fb923c}
+:root[data-theme="dark"] .conf-b.check{color:#facc15}
+@media (prefers-reduced-motion:reduce){.chart-bar,.chart-tip,.parc-acard,.eq-prog-fill{transition:none}}
 </style>
 <script>
 (function(){
@@ -373,14 +474,81 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
           <input class="in" id="mitOwner" placeholder="ex. Équipe réseau / Responsable SSI">
         </label>
         <label class="full">Preuve / action réalisée
+          <div class="proof-presets" id="mitProofPresets" role="group" aria-label="Modèles rapides de preuve"></div>
           <textarea class="in" id="mitProof" style="min-height:92px;font-family:inherit" required placeholder="ex. Mis à jour vers la version corrigée, règle pare-feu appliquée, ticket #INC-4821, scan de validation OK."></textarea>
+        </label>
+        <label class="full ver-up-box" id="mitVerUpWrap">
+          <input type="checkbox" id="mitVerUpChk">
+          <span id="mitVerUpLbl">Mettre aussi à jour la version de l'équipement</span>
         </label>
       </div>
       <div class="modal-ft">
         <button type="button" class="btn" id="mitCancel">Annuler</button>
-        <button type="submit" class="btn pri" id="mitSubmit">Enregistrer la mitigation</button>
+        <button type="submit" class="btn pri" id="mitSubmit">Enregistrer le traitement</button>
       </div>
     </form>
+  </div>
+</div>
+<div class="modal-bg" id="linkModal" role="dialog" aria-modal="true" aria-labelledby="linkModalTitle">
+  <div class="modal">
+    <div class="modal-hd">
+      <div>
+        <h3 id="linkModalTitle">Lier cette vulnérabilité à tes équipements</h3>
+        <p id="linkModalSub">Associe cette CVE à un ou plusieurs équipements de ton parc et suis son traitement sur chacun.</p>
+      </div>
+      <button type="button" class="btn sm" id="linkClose" aria-label="Fermer">✕</button>
+    </div>
+    <div class="form">
+      <label>Note sur le lien (facultatif)
+        <input class="in" id="linkNote" placeholder="ex. Bibliothèque embarquée dans le portail client, module VPN actif…">
+      </label>
+      <div id="linkList" class="link-list"></div>
+      <div class="modal-ft">
+        <button type="button" class="btn" id="linkGoParc">Voir mon parc →</button>
+        <button type="button" class="btn pri" id="linkDone">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-bg" id="addCveModal" role="dialog" aria-modal="true" aria-labelledby="addCveTitle">
+  <div class="modal">
+    <div class="modal-hd">
+      <div>
+        <h3 id="addCveTitle">Lier une vulnérabilité à cet équipement</h3>
+        <p id="addCveSub">Saisis un identifiant CVE (ex. CVE-2024-3400) ou cherche dans la veille pour l'associer directement à cet équipement.</p>
+      </div>
+      <button type="button" class="btn sm" id="addCveClose" aria-label="Fermer">✕</button>
+    </div>
+    <form class="form" id="addCveForm">
+      <label>Identifiant CVE ou mot-clé
+        <input class="in" id="addCveInput" autocomplete="off" placeholder="ex. CVE-2024-3400, FortiOS, OpenSSL…" required>
+      </label>
+      <div id="addCveSug" class="addcve-sug"></div>
+      <label>Note (facultatif)
+        <input class="in" id="addCveNote" placeholder="ex. Composant présent sur cette machine, à suivre">
+      </label>
+      <div class="modal-ft">
+        <button type="button" class="btn" id="addCveCancel">Annuler</button>
+        <button type="submit" class="btn pri" id="addCveSubmit">Lier à cet équipement</button>
+      </div>
+    </form>
+  </div>
+</div>
+<div class="modal-bg" id="auditModal" role="dialog" aria-modal="true" aria-labelledby="auditModalTitle">
+  <div class="modal wide">
+    <div class="modal-hd">
+      <div>
+        <h3 id="auditModalTitle">Dossier d'audit et de justification</h3>
+        <p id="auditModalSub">Synthèse horodatée des vulnérabilités traitées, actives et écartées par version officielle.</p>
+      </div>
+      <button type="button" class="btn sm" id="auditClose" aria-label="Fermer">✕</button>
+    </div>
+    <div id="auditBody" class="audit-body"></div>
+    <div class="modal-ft">
+      <button type="button" class="btn" id="auditCopy">📋 Copier le résumé</button>
+      <button type="button" class="btn pri" id="auditDownload">⬇ Télécharger le dossier (.html)</button>
+      <button type="button" class="btn" id="auditDone">Fermer</button>
+    </div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -388,12 +556,16 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 <script>
 (function(){
 'use strict';
-var D=null, view='home', sub='', simple=true, PARC=[], MITS=[], q='', qShown=40, parcShown=40, curRows=[], EDIT={}, chartScope='all', chartRO=null;
+var D=null, view='home', sub='', simple=true, PARC=[], MITS=[], LINKS=[], q='', qShown=40, parcShown=40, curRows=[], EDIT={}, chartScope='all', chartRO=null;
 var theme='white', autoFr=true, TR={}, trBusy=false, trFailed=false, trSeq=0;
 var showMitPrio=false, showMitAlerts=false, mitQ='', mitFilter='all', expMitFilter='all', mitLastFocus=null;
 var expMode='online', CVE_RE=/^CVE-\d{4}-\d{4,7}$/i;
 var onlineState={query:null,page:0,total:0,hasMore:false,loading:false,loadingMore:false,error:'',sources:[],results:[],seq:0};
 var REFS_CACHE={}, REFS_INFLIGHT={};
+var parcAssetFilter='all', parcQuickFilter='all', parcViewMode='byAsset', parcStatusFilter='all', parcExpandedEq={}, parcInlineOpen={};
+var linkModalCve='', addCveAssetKey='', auditTargetKey='all', auditLastReport=null;
+var parcScan={sig:'',loading:false,error:'',sources:[],records:[],byId:{},seq:0,doneAt:0};
+var parcScanTimer=null;
 var $=function(id){return document.getElementById(id)};
 var app=$('app');
 function store(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
@@ -403,8 +575,9 @@ try{
   autoFr=store('vw-tr-auto')!=='off';
   PARC=JSON.parse(store('vw-parc')||'[]')||[];
   MITS=JSON.parse(store('vw-mitigations')||'[]')||[];
+  LINKS=JSON.parse(store('vw-links')||'[]')||[];
   TR=JSON.parse(store('vw-tr-fr-v1')||'{}')||{};
-}catch(e){PARC=[];MITS=[];TR={}}
+}catch(e){PARC=[];MITS=[];LINKS=[];TR={}}
 function applyTheme(t){
   theme=(t==='dark'||t==='light'||t==='white')?t:'white';
   document.documentElement.setAttribute('data-theme',theme);
@@ -466,28 +639,80 @@ var apiProbe=fetch('api/health',{cache:'no-store'}).then(function(r){var ct=r.he
   .then(function(){if(!API.translate){autoFr=false;var b=$('btnTr');if(b)b.style.display='none'}});
 function jsonOrThrow(r){return r.json().then(function(b){if(!r.ok&&!(b&&b.results))throw new Error((b&&b.error)||'HTTP '+r.status);return b})}
 var NVD_API='https://services.nvd.nist.gov/rest/json/cves/2.0';
+var OSV_API='https://api.osv.dev/v1/query';
+var EPSS_API='https://api.first.org/data/v1/epss';
+function extractNvdRanges(configs){
+  var vendor='',product='',aff=[],vers=[],ranges=[],seenA={},seenV={},seenR={};
+  (configs||[]).forEach(function(cf){
+    (cf.nodes||[]).forEach(function(n){
+      (n.cpeMatch||[]).forEach(function(cm){
+        if(cm.vulnerable===false||!cm.criteria)return;
+        var p=String(cm.criteria).split(':');
+        if(p.length<5)return;
+        var v=p[3]&&p[3]!=='*'&&p[3]!=='-'?p[3].replace(/_/g,' '):'';
+        var pr=p[4]&&p[4]!=='*'&&p[4]!=='-'?p[4].replace(/_/g,' '):'';
+        var ver=p[5]&&p[5]!=='*'&&p[5]!=='-'?p[5]:'';
+        if(!vendor&&v)vendor=v;
+        if(!product&&pr)product=pr;
+        var lbl=[v,pr].filter(Boolean).join(' ').trim();
+        if(lbl&&!seenA[lbl]&&aff.length<8){seenA[lbl]=1;aff.push(lbl)}
+        var rTxt='', sR=null;
+        if(cm.versionEndExcluding){
+          var lo=cm.versionStartIncluding||cm.versionStartExcluding||'0';
+          rTxt=lo!=='0'?('>= '+lo+', < '+cm.versionEndExcluding):('< '+cm.versionEndExcluding);
+          sR=[lbl,lo,'<',String(cm.versionEndExcluding)];
+        }else if(cm.versionEndIncluding){
+          var lo2=cm.versionStartIncluding||cm.versionStartExcluding||'0';
+          rTxt=lo2!=='0'?('>= '+lo2+', <= '+cm.versionEndIncluding):('<= '+cm.versionEndIncluding);
+          sR=[lbl,lo2,'<=',String(cm.versionEndIncluding)];
+        }else if(cm.versionStartIncluding){
+          rTxt='>= '+cm.versionStartIncluding;
+          sR=[lbl,String(cm.versionStartIncluding),'>=',''];
+        }else if(ver){
+          rTxt=ver;
+          sR=[lbl,String(ver),'=',''];
+        }
+        if(sR&&ranges.length<60){var rk=sR.join('|');if(!seenR[rk]){seenR[rk]=1;ranges.push(sR)}}
+        if(rTxt){var ve=pr&&aff.length>1?(pr+' '+rTxt):rTxt;if(!seenV[ve]&&vers.length<8){seenV[ve]=1;vers.push(ve)}}
+      });
+    });
+  });
+  return {vendor:vendor,product:product,affected:aff.join('; '),versions:vers.join(', '),ranges:ranges};
+}
 function nvdToRec(item){
   var c=item&&item.cve;if(!c||!c.id)return null;
   var m=c.metrics||{},me=(m.cvssMetricV40||m.cvssMetricV31||m.cvssMetricV30||m.cvssMetricV2||[])[0]||{},cd=me.cvssData||{};
   var score=typeof cd.baseScore==='number'?cd.baseScore:null;
   var sevEn=String(cd.baseSeverity||me.baseSeverity||'').toUpperCase();
   var sev={CRITICAL:'CRITIQUE',HIGH:'ÉLEVÉE',MEDIUM:'MOYENNE',LOW:'FAIBLE'}[sevEn]||(score==null?'NON ÉVALUÉE':score>=9?'CRITIQUE':score>=7?'ÉLEVÉE':score>=4?'MOYENNE':'FAIBLE');
-  var d=(c.descriptions||[]).filter(function(x){return x.lang==='en'})[0]||(c.descriptions||[])[0]||{};
-  var vendor='',product='';
-  (c.configurations||[]).some(function(cf){return (cf.nodes||[]).some(function(n){return (n.cpeMatch||[]).some(function(cm){if(cm.vulnerable&&cm.criteria){var p=cm.criteria.split(':');vendor=(p[3]||'').replace(/_/g,' ');product=(p[4]||'').replace(/_/g,' ');return true}return false})})});
+  var d=(c.descriptions||[]).filter(function(x){return x.lang==='fr'})[0]||(c.descriptions||[]).filter(function(x){return x.lang==='en'})[0]||(c.descriptions||[])[0]||{};
+  var cpe=extractNvdRanges(c.configurations);
   var refs=c.references||[], tagged=function(t){var x=refs.filter(function(r){return (r.tags||[]).indexOf(t)>=0})[0];return x?x.url:''};
   var patch=tagged('Patch')||tagged('Vendor Advisory'), expl=tagged('Exploit');
   var cwes=[];(c.weaknesses||[]).forEach(function(w){(w.description||[]).forEach(function(x){if(/^CWE-\d+$/.test(x.value)&&cwes.indexOf(x.value)<0)cwes.push(x.value)})});
+  var kevHit=(D&&D.kev||[]).find(function(k){return k.cveID===c.id});
   var local=(D&&D.vulns||[]).filter(function(x){return x.id===c.id})[0];
-  if(local)return local;
-  var r={id:c.id,severity:sev,score:score,vector:cd.vectorString||'',vendor:vendor,product:product,desc:(d.value||'').replace(/\s+/g,' ').trim(),
-    cwe:cwes.join(', '),status:c.vulnStatus||'',kev:!!c.cisaExploitAdd,kev_due:c.cisaActionDue||'',ref_patch:patch,patch_available:patch?'Oui':'',
+  if(local){
+    var copy=Object.assign({},local);
+    if((!copy.ranges||!copy.ranges.length)&&cpe.ranges.length)copy.ranges=cpe.ranges;
+    if(!copy.versions&&cpe.versions)copy.versions=cpe.versions;
+    if((!copy.references||!copy.references.length)&&refs.length)copy.references=refs.slice(0,30).map(function(x){return {url:x.url,tags:x.tags||[]}});
+    copy._sources=['Veille locale','NVD historique'];
+    if(copy.kev)copy._sources.push('CISA KEV');
+    return copy;
+  }
+  var r={id:c.id,severity:sev,score:score,vector:cd.vectorString||'',vendor:cpe.vendor,product:cpe.product,affected:cpe.affected||[cpe.vendor,cpe.product].filter(Boolean).join(' '),
+    versions:cpe.versions,ranges:cpe.ranges,desc:(d.value||'').replace(/\s+/g,' ').trim(),
+    cwe:cwes.join(', '),status:c.vulnStatus||'',kev:!!(c.cisaExploitAdd||kevHit),kev_due:c.cisaActionDue||(kevHit&&kevHit.dueDate)||'',
+    ransomware:(kevHit&&kevHit.knownRansomwareCampaignUse==='Known')?'Known':'',
+    ref_patch:patch,patch_available:patch?'Oui':'',
     exploit_maturity:expl?'Preuve de concept publique':'',published:c.published?c.published.slice(0,19)+'Z':'',modified:c.lastModified?c.lastModified.slice(0,19)+'Z':'',
-    score_source:'NVD',references:refs.slice(0,30).map(function(x){return {url:x.url,tags:x.tags||[]}})};
+    score_source:'NVD',references:refs.slice(0,30).map(function(x){return {url:x.url,tags:x.tags||[]}}),
+    _sources:['NVD historique'].concat((c.cisaExploitAdd||kevHit)?['CISA KEV']:[])};
   var av=(r.vector.match(/AV:(\w)/)||[])[1],pr=(r.vector.match(/PR:(\w)/)||[])[1];
   if(av==='N'&&pr==='N')r.pre_auth_rce=(/remote code|execute arbitrary|command injection|authentication bypass/i.test(r.desc))?'Oui':'';
   r.priority=prioFor(r,null);
-  r.risk=Math.min(100,Math.round((score==null?5:score)*6+(r.kev?15:0)+(expl?5:0)));
+  r.risk=Math.min(100,Math.round((score==null?5:score)*6+(r.kev?30:0)+(expl?10:0)));
   r._refsLoaded=true;
   return r;
 }
@@ -513,6 +738,227 @@ function browserSearch(q,page,limit){
       var rs=(d.vulnerabilities||[]).slice().reverse().map(nvdToRec).filter(Boolean);
       return {results:rs,totalResults:total,hasMore:st>0,page:page,sources:['NVD (direct)']}});
   }).catch(function(){return localFallback(q,'Recherche mondiale indisponible pour le moment.')});
+}
+function fetchOsvBrowser(asset){
+  var prod=String(asset.product||'').trim(), ver=String(asset.version||'').trim();
+  if(!prod||prod.length<2)return Promise.resolve([]);
+  var payload={package:{name:prod.toLowerCase()}};
+  if(ver)payload.version=ver;
+  return fetch(OSV_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    .then(function(r){if(!r.ok)return null;return r.json()})
+    .then(function(data){
+      var list=Array.isArray(data&&data.vulns)?data.vulns.slice(0,50):[];
+      var out=[];
+      list.forEach(function(v){
+        var aliases=Array.isArray(v.aliases)?v.aliases:[];
+        var cve=aliases.find(function(a){return CVE_RE.test(a)});
+        var ghsa=/^GHSA-/i.test(v.id||'')?v.id:(aliases.find(function(a){return /^GHSA-/i.test(a)})||'');
+        var id=String(cve||v.id||'').toUpperCase();
+        if(!id)return;
+        var ranges=[], fixed=[], vers=[];
+        (v.affected||[]).forEach(function(af){
+          var pn=(af.package&&af.package.name)||prod;
+          var lbl=[asset.vendor||'',pn].filter(Boolean).join(' ').trim();
+          (af.ranges||[]).forEach(function(rg){
+            if(rg.type==='GIT')return;
+            var cur='0';
+            (rg.events||[]).forEach(function(ev){
+              if(ev.introduced!=null)cur=String(ev.introduced);
+              if(ev.fixed){ranges.push([lbl,cur,'<',String(ev.fixed)]);if(fixed.indexOf(ev.fixed)<0&&fixed.length<4)fixed.push(String(ev.fixed));if(vers.length<6)vers.push((cur!=='0'?'>= '+cur+', ':'')+'< '+ev.fixed)}
+              else if(ev.last_affected){ranges.push([lbl,cur,'<=',String(ev.last_affected)]);if(vers.length<6)vers.push((cur!=='0'?'>= '+cur+', ':'')+'<= '+ev.last_affected)}
+            });
+          });
+        });
+        var rawSev=String((v.database_specific&&v.database_specific.severity)||'').toUpperCase();
+        if(rawSev==='MODERATE')rawSev='MEDIUM';
+        var score=rawSev==='CRITICAL'?9.5:rawSev==='HIGH'?7.8:rawSev==='MEDIUM'?5.5:rawSev==='LOW'?3.1:null;
+        var sev={CRITICAL:'CRITIQUE',HIGH:'ÉLEVÉE',MEDIUM:'MOYENNE',LOW:'FAIBLE'}[rawSev]||'NON ÉVALUÉE';
+        var refs=(v.references||[]).slice(0,25).map(function(x){return {url:x.url,tags:x.type==='FIX'?['Patch']:x.type==='ADVISORY'?['Vendor Advisory']:[]}});
+        var patch=(refs.find(function(x){return x.tags.indexOf('Patch')>=0})||refs.find(function(x){return x.tags.indexOf('Vendor Advisory')>=0})||{}).url||'';
+        var rec={
+          id:id,ghsa:ghsa,severity:sev,score:score,score_source:ghsa?'GHSA / OSV':'OSV',vector:'',vendor:asset.vendor||'',product:prod,
+          affected:[asset.vendor||'',prod].filter(Boolean).join(' ').trim(),versions:vers.join(', '),ranges:ranges,pkg_fixed:fixed.join(', '),
+          desc:String(v.summary||v.details||'').replace(/\s+/g,' ').trim().slice(0,800),status:'Publiée (OSV / GHSA)',source:ghsa?'GitHub Advisories':'OSV.dev',
+          kev:false,patch_available:(fixed.length||patch)?'Oui':'',ref_patch:patch,references:refs,
+          published:v.published?String(v.published).slice(0,19)+'Z':'',modified:v.modified?String(v.modified).slice(0,19)+'Z':'',
+          _sources:[ghsa?'GitHub Advisories (GHSA)':'OSV.dev'],_osvVersionHit:!!ver
+        };
+        rec.priority=prioFor(rec,null);
+        rec.risk=score==null?30:Math.min(92,Math.round(score*8));
+        out.push(rec);
+      });
+      return out;
+    }).catch(function(){return []});
+}
+function fetchEpssBrowser(ids){
+  var clean=ids.filter(function(x){return CVE_RE.test(x)}).slice(0,40);
+  if(!clean.length)return Promise.resolve({});
+  return fetch(EPSS_API+'?cve='+encodeURIComponent(clean.join(',')),{cache:'no-store'})
+    .then(function(r){if(!r.ok)return null;return r.json()})
+    .then(function(j){
+      var out={};
+      ((j&&j.data)||[]).forEach(function(row){
+        if(row&&row.cve){var e=Number(row.epss),p=row.percentile!=null?Number(row.percentile):null;if(!isNaN(e))out[String(row.cve).toUpperCase()]={epss:e,pct:p!=null&&!isNaN(p)?p:null}}
+      });
+      return out;
+    }).catch(function(){return {}});
+}
+function browserScanSingleAsset(asset){
+  var cleanV=cleanVendor(asset.vendor||''), prod=String(asset.product||'').trim();
+  var kw=prod?(cleanV&&norm(prod).indexOf(norm(cleanV))<0?(cleanV+' '+prod):prod):cleanV;
+  if(!kw)return Promise.resolve({records:[],sources:[]});
+  var fetchNvd=function(term){
+    return nvdFetch('keywordSearch='+encodeURIComponent(term)+'&resultsPerPage=100&startIndex=0').then(function(d){
+      var tot=Number(d.totalResults||0), list=d.vulnerabilities||[];
+      if(tot<=100)return {items:list.slice().reverse(),total:tot,ok:true};
+      var st=Math.max(0,tot-100);
+      return nvdFetch('keywordSearch='+encodeURIComponent(term)+'&resultsPerPage=100&startIndex='+st)
+        .then(function(d2){return {items:(d2.vulnerabilities||[]).slice().reverse(),total:tot,ok:true}})
+        .catch(function(){return {items:list.slice().reverse(),total:tot,ok:true}});
+    }).catch(function(){return {items:[],total:0,ok:false}});
+  };
+  return Promise.all([fetchNvd(kw),fetchOsvBrowser(asset)]).then(function(pair){
+    var nvdRes=pair[0], osvList=pair[1];
+    var pNvd=(nvdRes.ok&&nvdRes.total===0&&prod&&kw!==prod)?fetchNvd(prod):Promise.resolve(nvdRes);
+    return pNvd.then(function(finalNvd){
+      var byId={}, srcs={};
+      if(finalNvd.ok){
+        srcs['NVD historique']=1;
+        finalNvd.items.forEach(function(it){
+          var rec=nvdToRec(it);
+          if(!rec||!matchAsset(rec,asset))return;
+          byId[rec.id]=rec;
+          if(rec.kev)srcs['CISA KEV']=1;
+        });
+      }
+      if(osvList.length){
+        srcs['OSV / GHSA']=1;
+        osvList.forEach(function(rec){
+          if(byId[rec.id]){
+            var ex=byId[rec.id];
+            if(rec.ghsa&&!ex.ghsa)ex.ghsa=rec.ghsa;
+            if(rec.pkg_fixed&&!ex.pkg_fixed)ex.pkg_fixed=rec.pkg_fixed;
+            if(rec.ranges&&rec.ranges.length)ex.ranges=(ex.ranges||[]).concat(rec.ranges).slice(0,60);
+            ex._sources=(ex._sources||[]).concat(rec._sources||[]).filter(function(v,i,a){return a.indexOf(v)===i});
+          }else{byId[rec.id]=rec}
+        });
+      }
+      var list=Object.keys(byId).map(function(k){return byId[k]});
+      return fetchEpssBrowser(list.map(function(x){return x.id})).then(function(epssMap){
+        if(Object.keys(epssMap).length)srcs['FIRST EPSS']=1;
+        list.forEach(function(r){var ep=epssMap[r.id];if(ep){r.epss=ep.epss;r.epss_pct=ep.pct}});
+        return {records:list,sources:Object.keys(srcs)};
+      });
+    });
+  });
+}
+function browserParcScan(assets){
+  var valid=assets.slice(0,15), merged={}, srcs={};
+  var chain=Promise.resolve();
+  valid.forEach(function(a){
+    chain=chain.then(function(){
+      return browserScanSingleAsset(a).then(function(part){
+        part.sources.forEach(function(s){srcs[s]=1});
+        part.records.forEach(function(rec){
+          if(!merged[rec.id]){merged[rec.id]=rec}
+          else{
+            var ex=merged[rec.id];
+            ex._sources=(ex._sources||[]).concat(rec._sources||[]).filter(function(v,i,a){return a.indexOf(v)===i});
+            if(rec.ranges&&rec.ranges.length&&(!ex.ranges||!ex.ranges.length))ex.ranges=rec.ranges;
+          }
+        });
+      });
+    });
+  });
+  return chain.then(function(){
+    return {records:Object.keys(merged).map(function(k){return merged[k]}),sources:Object.keys(srcs),scannedAssets:valid.length};
+  });
+}
+function apiParcScan(assets){
+  return apiProbe.then(function(){
+    if(API.ok){
+      return fetch('api/parc-scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({assets:assets})}).then(jsonOrThrow);
+    }
+    return browserParcScan(assets);
+  });
+}
+function parcSignature(){
+  return validParcAssets().map(function(a){return [norm(a.vendor).trim(),norm(a.product).trim(),norm(a.version).trim()].join('|')}).sort().join(';;');
+}
+function loadParcScanCache(sig){
+  try{
+    var raw=sessionStorage.getItem('vw-parc-scan-v1');
+    if(!raw)return null;
+    var parsed=JSON.parse(raw);
+    var dUpd=(D&&D.kpi&&D.kpi.updated)||'';
+    if(parsed&&parsed.sig===sig&&(!dUpd||!parsed.dataUpdated||parsed.dataUpdated===dUpd)&&Date.now()-(parsed.at||0)<1800000&&Array.isArray(parsed.records))return parsed;
+  }catch(e){}
+  return null;
+}
+function saveParcScanCache(sig,records,sources){
+  var dUpd=(D&&D.kpi&&D.kpi.updated)||'';
+  try{sessionStorage.setItem('vw-parc-scan-v1',JSON.stringify({sig:sig,at:Date.now(),dataUpdated:dUpd,records:records.slice(0,400),sources:sources}))}catch(e){}
+}
+function renderKeepActiveInput(){
+  var ae=document.activeElement;
+  var keep=ae&&ae.closest&&ae.closest('#assets')&&ae.dataset&&ae.dataset.i!=null;
+  var di=keep?ae.dataset.i:null, dk=keep?ae.dataset.k:null, pos=keep&&ae.selectionStart!=null?ae.selectionStart:null;
+  render();
+  if(keep){
+    var el=document.querySelector('#assets [data-i="'+di+'"][data-k="'+dk+'"]');
+    if(el){el.focus();try{if(pos!=null&&el.setSelectionRange)el.setSelectionRange(pos,pos)}catch(e){}}
+  }
+}
+function triggerParcScan(force){
+  var assets=validParcAssets();
+  var sig=parcSignature();
+  if(!assets.length){
+    parcScan={sig:'',loading:false,error:'',sources:[],records:[],byId:{},seq:parcScan.seq+1,doneAt:0};
+    parcCache=null;
+    return;
+  }
+  if(!force&&parcScan.sig===sig&&(parcScan.loading||parcScan.doneAt))return;
+  if(!force){
+    var cached=loadParcScanCache(sig);
+    if(cached){
+      var byId={};cached.records.forEach(function(r){byId[r.id]=r});
+      parcScan={sig:sig,loading:false,error:'',sources:cached.sources||[],records:cached.records,byId:byId,seq:parcScan.seq+1,doneAt:cached.at};
+      parcCache=null;
+      if(view==='parc'||view==='home'||view==='mitigations')renderKeepActiveInput();
+      return;
+    }
+  }
+  var mySeq=++parcScan.seq;
+  parcScan.sig=sig;
+  parcScan.loading=true;
+  parcScan.error='';
+  if(view==='parc'||view==='home')renderKeepActiveInput();
+  apiParcScan(assets)
+    .then(function(res){
+      if(mySeq!==parcScan.seq)return;
+      var recs=Array.isArray(res&&res.records)?res.records:[];
+      var byId={};recs.forEach(function(r){byId[r.id]=r});
+      parcScan.loading=false;
+      parcScan.error='';
+      parcScan.records=recs;
+      parcScan.byId=byId;
+      parcScan.sources=Array.isArray(res&&res.sources)?res.sources:[];
+      parcScan.doneAt=Date.now();
+      parcCache=null;
+      saveParcScanCache(sig,recs,parcScan.sources);
+      if(view==='parc'||view==='home'||view==='mitigations')renderKeepActiveInput();
+    })
+    .catch(function(err){
+      if(mySeq!==parcScan.seq)return;
+      parcScan.loading=false;
+      parcScan.error=(err&&err.message)||'Certaines sources externes étaient momentanément injoignables.';
+      parcCache=null;
+      if(view==='parc'||view==='home')renderKeepActiveInput();
+    });
+}
+function scheduleParcScan(delay){
+  clearTimeout(parcScanTimer);
+  parcScanTimer=setTimeout(function(){triggerParcScan(false)},delay==null?850:delay);
 }
 function apiSearch(q,page,limit){return apiProbe.then(function(){
   if(API.ok)return fetch('api/cve-search?q='+encodeURIComponent(q)+'&page='+page+'&limit='+limit).then(jsonOrThrow);
@@ -545,19 +991,182 @@ function prioFor(r,a){
   if(s>=7||e>=0.1||asset||poc||weapon)return 'P3';
   return 'P4';
 }
-function matchAsset(r,a){
-  var hs=nrm([r.vendor,r.product,r.affected,r.packages].join(' ')), hd=nrm(r.desc), p=nrm(a.product).trim(), v=nrm(a.vendor).trim();
-  if(p){if(hs.indexOf(' '+p+' ')>=0)return true;
-    return hd.indexOf(' '+p+' ')>=0&&(!v||(hs+hd).indexOf(' '+v.split(' ')[0]+' ')>=0)}
-  return !!v&&hs.indexOf(' '+v+' ')>=0;
+var VENDOR_ALIASES={
+  microsoft:['microsoft','ms'],apache:['apache','asf'],'palo alto':['palo alto','paloaltonetworks'],paloaltonetworks:['palo alto','paloaltonetworks'],
+  fortinet:['fortinet','fortigate'],vmware:['vmware','broadcom'],broadcom:['broadcom','vmware'],'red hat':['red hat','redhat'],redhat:['red hat','redhat'],
+  f5:['f5','nginx'],nginx:['nginx','f5'],google:['google','chromium'],oracle:['oracle','sun','mysql'],openbsd:['openbsd','openssh'],
+  cisco:['cisco','linksys'],ivanti:['ivanti','pulse secure','mobileiron'],citrix:['citrix','netscaler'],
+  'check point':['check point','checkpoint'],checkpoint:['check point','checkpoint'],hpe:['hpe','hp','hewlett packard','aruba'],dell:['dell','emc']
+};
+var GENERIC_PRODUCTS={edge:1,core:1,server:1,client:1,agent:1,cloud:1,os:1,pro:1,studio:1,portal:1,manager:1,gateway:1,router:1,switch:1,firewall:1,viewer:1,player:1,mail:1,vpn:1,http:1,ssh:1,connect:1,access:1,admin:1,enterprise:1,desktop:1,mobile:1,app:1,api:1,sdk:1,cli:1,ios:1,web:1,go:1,base:1,hub:1,one:1,plus:1,net:1,sync:1,box:1,drive:1,link:1,guard:1,shield:1,protect:1,secure:1,backup:1,monitor:1,control:1,center:1,console:1,workspace:1,office:1,teams:1,defender:1,windows:1,linux:1,kernel:1,database:1,'http server':1,'web server':1};
+function vendorTokensFor(v){
+  var clean=nrm(cleanVendor(v||'')).trim();
+  if(!clean)return [];
+  var out=[clean];
+  if(VENDOR_ALIASES[clean])VENDOR_ALIASES[clean].forEach(function(x){if(out.indexOf(x)<0)out.push(x)});
+  var first=clean.split(' ')[0];
+  if(first.length>=3&&out.indexOf(first)<0)out.push(first);
+  if(VENDOR_ALIASES[first])VENDOR_ALIASES[first].forEach(function(x){if(out.indexOf(x)<0)out.push(x)});
+  return out;
 }
+function textMatchesVendor(hay,vendor){
+  var toks=vendorTokensFor(vendor);
+  if(!toks.length)return true;
+  return toks.some(function(t){return hay.indexOf(' '+t+' ')>=0});
+}
+function evaluateAssetMatch(r,a){
+  var none={matched:false,method:'none',confidence:'',reason:''};
+  if(!r||!a)return none;
+  var rangeProds=Array.isArray(r.ranges)?r.ranges.map(function(x){return x&&x[0]}).filter(Boolean).join(' '):'';
+  var hs=nrm([r.vendor,r.product,r.affected,r.packages,rangeProds].join(' '));
+  var hv=nrm(r.vendor||'');
+  var hd=nrm(r.desc||'');
+  var p=nrm(a.product).trim();
+  var v=nrm(cleanVendor(a.vendor||'')).trim();
+  if(p){
+    var inRange=rangeProds&&nrm(rangeProds).indexOf(' '+p+' ')>=0;
+    var inStruct=hs.indexOf(' '+p+' ')>=0;
+    var inDesc=hd.indexOf(' '+p+' ')>=0;
+    if(!inStruct&&!inDesc)return none;
+    var isAmbig=!!GENERIC_PRODUCTS[p]||p.length<=4;
+    var vInStruct=v?textMatchesVendor(hs,v):false;
+    var vInAll=v?(vInStruct||textMatchesVendor(hd,v)):false;
+    var recHasOtherVendor=!!(v&&hv.trim().length>1&&!textMatchesVendor(hv,v));
+    if(v){
+      if(isAmbig&&!vInAll)return none;
+      if(recHasOtherVendor&&!vInStruct)return none;
+      if(!inStruct&&!vInAll)return none;
+    }else if(!inStruct&&isAmbig){
+      return none;
+    }
+    if(inRange&&(vInStruct||!v)){
+      return {matched:true,method:'cpe',confidence:'probable',reason:'Correspondance officielle CPE ('+[a.vendor,a.product].filter(Boolean).join(' / ')+')'};
+    }
+    if(inStruct&&(vInStruct||!v)){
+      return {matched:true,method:'structured',confidence:'probable',reason:'Correspondance éditeur + produit ('+[a.vendor,a.product].filter(Boolean).join(' / ')+')'};
+    }
+    if(inStruct){
+      return {matched:true,method:'structured',confidence:'à confirmer',reason:'Produit « '+a.product+' » trouvé dans la fiche (éditeur non confirmé)'};
+    }
+    return {matched:true,method:'description',confidence:'à confirmer',reason:'Produit « '+a.product+' » cité dans la description officielle'};
+  }
+  if(v&&textMatchesVendor(hs,v)){
+    return {matched:true,method:'vendor',confidence:'à confirmer',reason:'Éditeur « '+a.vendor+' » détecté (renseigne le produit précis pour affiner)'};
+  }
+  return none;
+}
+function matchAsset(r,a){return evaluateAssetMatch(r,a).matched}
 var parcCache=null;
 function todayISO(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function addDaysISO(days){var d=new Date();d.setDate(d.getDate()+days);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function isMitigationExpired(m){return !!(m&&m.expires&&/^\d{4}-\d{2}-\d{2}$/.test(m.expires)&&m.expires<=todayISO())}
 function daysUntilISO(iso){if(!iso||!/^\d{4}-\d{2}-\d{2}$/.test(iso))return null;var t0=new Date(todayISO()+'T12:00:00').getTime(),t1=new Date(iso+'T12:00:00').getTime();return Math.round((t1-t0)/86400000)}
 function saveMits(){parcCache=null;store('vw-mitigations',JSON.stringify(MITS))}
+function saveLinks(){parcCache=null;store('vw-links',JSON.stringify(LINKS))}
+function newAssetUid(){return 'eq_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7)}
 function assetLabel(a){return (a.name||'').trim()||((a.vendor||'')+' '+(a.product||'')).trim()}
+function legacyAssetKey(a){return [norm(a.name||'').trim(),norm(a.vendor||'').trim(),norm(a.product||'').trim(),norm(a.version||'').trim()].join('|')}
+function assetKey(a){if(!a)return '';if(!a.uid)a.uid=newAssetUid();return a.uid}
+function ensureAssetIds(){
+  var pChg=false, lChg=false, mChg=false;
+  PARC.forEach(function(a){
+    var leg=legacyAssetKey(a), lbl=assetLabel(a);
+    if(!a.uid){a.uid=newAssetUid();pChg=true}
+    LINKS.forEach(function(lk){
+      if(!lk.assetUid&&(lk.assetKey===a.uid||lk.assetKey===leg||(!lk.assetKey&&lbl&&norm(lk.assetLabel)===norm(lbl)))){
+        lk.assetUid=a.uid;lk.assetKey=a.uid;lk.assetLabel=lbl||lk.assetLabel;lChg=true;
+      }
+    });
+    MITS.forEach(function(m){
+      if(!m.assetUid&&!isGlobalAsset(m.asset)&&(m.assetKey===a.uid||m.assetKey===leg||(!m.assetKey&&lbl&&norm(m.asset)===norm(lbl)))){
+        m.assetUid=a.uid;m.assetKey=a.uid;mChg=true;
+      }
+    });
+  });
+  if(pChg)store('vw-parc',JSON.stringify(PARC));
+  if(lChg)store('vw-links',JSON.stringify(LINKS));
+  if(mChg)store('vw-mitigations',JSON.stringify(MITS));
+}
+ensureAssetIds();
+function findAssetByKey(k){
+  var assets=validParcAssets();
+  for(var i=0;i<assets.length;i++){if(assetKey(assets[i])===k||legacyAssetKey(assets[i])===k)return assets[i]}
+  return null;
+}
+function snapshotCve(r){
+  if(!r||!r.id)return null;
+  var out={id:String(r.id).toUpperCase()};
+  ['priority','severity','score','score_source','risk','vendor','product','affected','packages','desc','plain','todo','justification','published','modified','kev','kev_due','ransomware','epss','epss_pct','ssvc_exploitation','ssvc_automatable','ssvc_impact','patch_available','ref_patch','pkg_fixed','versions','pkg_ranges','cwe','cwe_name','vector','tags','family','source','status','msf','edb','avis'].forEach(function(k){
+    if(r[k]!=null&&r[k]!=='')out[k]=r[k];
+  });
+  if(Array.isArray(r.ranges)&&r.ranges.length)out.ranges=r.ranges.slice(0,40);
+  if(Array.isArray(r.references)&&r.references.length)out.references=r.references.slice(0,15);
+  if(Array.isArray(r._sources)&&r._sources.length)out._sources=r._sources.slice(0,6);
+  return out;
+}
+function linkMatchesAsset(lk,a){
+  if(!lk||!a)return false;
+  var k=assetKey(a);
+  if(lk.assetUid)return lk.assetUid===k;
+  if(lk.assetKey&&(lk.assetKey===k||lk.assetKey===legacyAssetKey(a)))return true;
+  if(!lk.assetKey&&lk.assetLabel&&norm(lk.assetLabel).trim()===norm(assetLabel(a)).trim())return true;
+  return false;
+}
+function linksForCve(cve){
+  var id=String(cve||'').trim().toUpperCase();
+  if(!id)return [];
+  return LINKS.filter(function(lk){return String(lk.cve||'').trim().toUpperCase()===id});
+}
+function findManualLink(cve,a){
+  var id=String(cve||'').trim().toUpperCase();
+  if(!id||!a)return null;
+  for(var i=0;i<LINKS.length;i++){
+    if(String(LINKS[i].cve||'').trim().toUpperCase()===id&&linkMatchesAsset(LINKS[i],a))return LINKS[i];
+  }
+  return null;
+}
+function addManualLink(cve,a,rec,note){
+  var id=String(cve||'').trim().toUpperCase();
+  if(!id||!a)return null;
+  var k=assetKey(a), lbl=assetLabel(a);
+  var srcRec=rec||findVulnById(id)||{id:id,priority:'P3',severity:'NON ÉVALUÉE',desc:'',vendor:a.vendor||'',product:a.product||'',_sources:['Lien manuel']};
+  var snap=snapshotCve(srcRec);
+  var ex=findManualLink(id,a);
+  if(ex){
+    if(note!=null)ex.note=String(note||'').trim();
+    if(snap)ex.snapshot=snap;
+    ex.assetUid=k;ex.assetKey=k;ex.assetLabel=lbl;
+    saveLinks();
+    return ex;
+  }
+  var item={id:'lk'+Date.now()+Math.random().toString(36).slice(2,6),cve:id,assetUid:k,assetKey:k,assetLabel:lbl,note:String(note||'').trim(),createdAt:new Date().toISOString(),snapshot:snap};
+  LINKS.unshift(item);
+  saveLinks();
+  return item;
+}
+function removeManualLink(cve,a){
+  var id=String(cve||'').trim().toUpperCase();
+  var before=LINKS.length;
+  LINKS=LINKS.filter(function(lk){return !(String(lk.cve||'').trim().toUpperCase()===id&&linkMatchesAsset(lk,a))});
+  if(LINKS.length!==before){saveLinks();return true}
+  return false;
+}
+function migrateAssetRefs(oldKey,oldLabel,newAsset){
+  var k=assetKey(newAsset), newLabel=assetLabel(newAsset);
+  var lkChg=false, mChg=false;
+  LINKS.forEach(function(lk){
+    if(lk.assetUid===k||lk.assetKey===oldKey||(!lk.assetUid&&oldLabel&&norm(lk.assetLabel)===norm(oldLabel))){
+      lk.assetUid=k;lk.assetKey=k;if(newLabel)lk.assetLabel=newLabel;lkChg=true;
+    }
+  });
+  MITS.forEach(function(m){
+    if(m.assetUid===k||m.assetKey===oldKey||(!m.assetUid&&oldLabel&&!isGlobalAsset(m.asset)&&norm(m.asset)===norm(oldLabel))){
+      m.assetUid=k;m.assetKey=k;if(newLabel)m.asset=newLabel;mChg=true;
+    }
+  });
+  if(lkChg)saveLinks();
+  if(mChg)saveMits();
+}
 function isGlobalAsset(s){var x=norm(s).trim();return !x||x==='*'||x==='tout le parc'||x==='tous'||x==='all'||x==='global'}
 function mitigationsForCve(cve){
   var id=String(cve||'').trim().toUpperCase();
@@ -572,32 +1181,62 @@ function expiredMitigationsForCve(cve){
 }
 function mitigationMatchesAsset(m,a){
   if(isGlobalAsset(m.asset))return true;
+  var k=assetKey(a);
+  if(m.assetUid)return m.assetUid===k;
+  if(m.assetKey)return m.assetKey===k||m.assetKey===legacyAssetKey(a);
   var ma=norm(m.asset).trim();
   if(!ma)return true;
   var lbl=norm(assetLabel(a)).trim(), nm=norm(a.name||'').trim(), vp=norm(((a.vendor||'')+' '+(a.product||'')).trim()).trim(), pr=norm(a.product||'').trim();
-  return ma===lbl||(nm&&ma===nm)||(vp&&ma===vp)||(pr&&ma===pr);
+  if(ma===lbl||(nm&&ma===nm))return true;
+  if(!nm&&((vp&&ma===vp)||(pr&&ma===pr)))return true;
+  return false;
 }
 function findAssetMitigation(cve,a){
   var ms=activeMitigationsForCve(cve);
   for(var i=0;i<ms.length;i++){if(mitigationMatchesAsset(ms[i],a))return ms[i]}
   return null;
 }
+function findExpiredAssetMitigation(cve,a){
+  var ms=expiredMitigationsForCve(cve);
+  for(var i=0;i<ms.length;i++){if(mitigationMatchesAsset(ms[i],a))return ms[i]}
+  return null;
+}
+function assetMitigationState(cve,a){
+  var act=findAssetMitigation(cve,a);
+  if(act)return {state:'mitigated',mit:act};
+  var exp=findExpiredAssetMitigation(cve,a);
+  if(exp)return {state:'expired',mit:exp};
+  return {state:'active',mit:null};
+}
 function validParcAssets(){
-  return PARC.filter(function(a){return (a.vendor||'').trim()||(a.product||'').trim()});
+  return PARC.filter(function(a){return (a.vendor||'').trim()||(a.product||'').trim()||(a.name||'').trim()});
 }
 function findVulnById(cve){
   var id=String(cve||'').trim().toUpperCase();
   if(!id)return null;
   if(REFS_CACHE[id])return REFS_CACHE[id];
+  if(parcScan&&parcScan.byId&&parcScan.byId[id])return parcScan.byId[id];
   var fromOnline=onlineState.results.find(function(x){return x.id===id});
   if(fromOnline)return fromOnline;
-  if(!D)return null;
-  return D.vulns.find(function(x){return x.id===id})||null;
+  if(D){
+    var loc=D.vulns.find(function(x){return x.id===id});
+    if(loc)return loc;
+  }
+  for(var i=0;i<LINKS.length;i++){
+    if(String(LINKS[i].cve||'').toUpperCase()===id&&LINKS[i].snapshot)return LINKS[i].snapshot;
+  }
+  return null;
 }
 function matchedParcAssets(r){
   var assets=validParcAssets();
   if(!assets.length||!r)return [];
-  return assets.filter(function(a){return matchAsset(r,a)});
+  var out=[], seen={};
+  assets.forEach(function(a){
+    var k=assetKey(a);
+    if(seen[k])return;
+    if(matchAsset(r,a)||findManualLink(r.id,a)){seen[k]=1;out.push(a)}
+  });
+  return out;
 }
 function matchedParcForKev(k){
   if(!k)return [];
@@ -605,8 +1244,8 @@ function matchedParcForKev(k){
   if(r)return matchedParcAssets(r);
   var assets=validParcAssets();
   if(!assets.length)return [];
-  var pseudo={vendor:k.vendorProject||'',product:k.product||'',affected:(k.vendorProject||'')+' '+(k.product||''),packages:'',desc:k.shortDescription||''};
-  return assets.filter(function(a){return matchAsset(pseudo,a)});
+  var pseudo={id:k.cveID,vendor:k.vendorProject||'',product:k.product||'',affected:(k.vendorProject||'')+' '+(k.product||''),packages:'',desc:k.shortDescription||''};
+  return matchedParcAssets(pseudo);
 }
 function watchAssetsFromRow(r){
   if(!r||!r.watch)return [];
@@ -615,8 +1254,9 @@ function watchAssetsFromRow(r){
 function parcHitsForRow(r){
   if(!r)return [];
   if(r._mine){
-    var comb=(r._hits||[]).concat(r._mitHits||[]);
-    return comb.filter(function(v,i,arr){return arr.indexOf(v)===i});
+    var comb=(r._hits||[]).concat(r._mitHits||[]), seen={}, out=[];
+    comb.forEach(function(a){var k=assetKey(a);if(!seen[k]){seen[k]=1;out.push(a)}});
+    return out;
   }
   var local=matchedParcAssets(r);
   if(local.length)return local;
@@ -630,7 +1270,8 @@ function parcHitsForCve(cve){
     var k=D.kev.find(function(x){return x.cveID===id});
     if(k)return matchedParcForKev(k);
   }
-  return [];
+  var assets=validParcAssets();
+  return assets.filter(function(a){return !!findManualLink(cve,a)});
 }
 function isMitigationForParc(m){
   var hits=parcHitsForCve(m.cve);
@@ -660,19 +1301,106 @@ function vtok(v){return (String(v||'').toLowerCase().match(/\d+|[a-z]+/g)||[]).m
 function vcmp(a,b){var x=vtok(a),y=vtok(b);for(var i=0;i<Math.max(x.length,y.length);i++){var p=i<x.length?x[i]:0,q=i<y.length?y[i]:0;
   if(typeof p==='number'&&typeof q==='number'){if(p!==q)return p<q?-1:1}else{p=String(p);q=String(q);if(p!==q){var pd=/^\d+$/.test(p),qd=/^\d+$/.test(q);if(pd!==qd)return pd?1:-1;return p<q?-1:1}}}return 0}
 var VOPEN={'':1,'0':1,'*':1,'n/a':1,'-':1,'unspecified':1,'all':1};
-function versionStatus(inst,ranges,hint){
-  inst=String(inst||'').trim();if(!inst||!vtok(inst).length||!ranges||!ranges.length)return 'à vérifier';
-  var h=nrm(hint).trim(),rel=ranges.filter(function(r){var p=nrm(r[0]).trim();return h&&(p.indexOf(h)>=0||h.indexOf(p)>=0)});
-  if(!rel.length)return 'à vérifier';
+function isSemverLike(x){
+  var s=String(x||'').trim();
+  var m=s.match(/^(\d+)\.(\d+)/);
+  return !!(m&&parseInt(m[1],10)<1900&&!/^\d+\.\d+\.\d{4,}/.test(s));
+}
+function formatRangeBounds(low,op,high){
+  var hasLow=low&&!VOPEN[String(low).toLowerCase()];
+  var hasHigh=high&&!VOPEN[String(high).toLowerCase()];
+  if(op==='=')return hasLow?('= '+low):'';
+  if(op==='>=')return hasLow?('≥ '+low):'';
+  if(hasLow&&hasHigh)return low+' ≤ v '+(op==='<'?'<':'≤')+' '+high;
+  if(hasHigh)return (op==='<'?'< ':'≤ ')+high;
+  return '';
+}
+function evaluateVersion(inst,ranges,hint,vendorHint){
+  inst=String(inst||'').trim();
+  if(!inst||!vtok(inst).length){
+    return {status:'à vérifier',reason:'Version non renseignée sur cet équipement — renseigne-la pour un filtrage automatique exact.',rangeText:'',fixedIn:''};
+  }
+  if(!ranges||!ranges.length){
+    return {status:'à vérifier',reason:'Aucune plage de versions structurée publiée par NVD/OSV pour cette CVE — vérification manuelle recommandée.',rangeText:'',fixedIn:''};
+  }
+  var h=nrm(hint).trim(), vh=nrm(vendorHint||'').trim();
+  var rel=ranges.filter(function(r){
+    var p=nrm(r[0]).trim();
+    if(!p)return true;
+    if(h&&(p.indexOf(h)>=0||h.indexOf(p)>=0))return true;
+    return !h&&vh&&(p.indexOf(vh)>=0||vh.indexOf(p)>=0);
+  });
+  if(!rel.length){
+    return {status:'à vérifier',reason:'Plages publiées pour d\'autres composants — vérification manuelle recommandée pour '+inst+'.',rangeText:'',fixedIn:''};
+  }
   var first=function(x){var t=vtok(x);return t.length&&typeof t[0]==='number'?t[0]:null};
-  var firsts={};rel.forEach(function(r){[r[1],r[3]].forEach(function(b){if(b&&!VOPEN[String(b).toLowerCase()]){var f=first(b);if(f!=null)firsts[f]=1}})});
-  var same=first(inst)!=null&&firsts[first(inst)], usable=0;
+  var firsts={}, hasSemverRange=false, rangeTexts=[], fixedCandidates=[];
+  rel.forEach(function(r){
+    var rt=formatRangeBounds(r[1],r[2],r[3]);
+    if(rt&&rangeTexts.indexOf(rt)<0&&rangeTexts.length<4)rangeTexts.push(rt);
+    if(r[2]==='<'&&r[3]&&!VOPEN[String(r[3]).toLowerCase()])fixedCandidates.push(String(r[3]));
+    [r[1],r[3]].forEach(function(b){if(b&&!VOPEN[String(b).toLowerCase()]){var f=first(b);if(f!=null)firsts[f]=1;if(isSemverLike(b))hasSemverRange=true}});
+  });
+  var same=(first(inst)!=null&&firsts[first(inst)])||(isSemverLike(inst)&&hasSemverRange), usable=0;
   for(var i=0;i<rel.length;i++){var r=rel[i],low=r[1]||'',op=r[2],high=r[3]||'';
-    if(op==='='){if(!low||VOPEN[low.toLowerCase()])continue;usable++;if(vcmp(inst,low)===0||inst.indexOf(low+'.')===0)return 'touchée';continue}
+    var rtOne=formatRangeBounds(low,op,high);
+    if(op==='='){
+      if(!low||VOPEN[low.toLowerCase()])continue;usable++;
+      if(vcmp(inst,low)===0||inst.indexOf(low+'.')===0){
+        return {status:'touchée',reason:'Version installée '+inst+' directement concernée (plage officielle : '+rtOne+')',rangeText:rtOne,fixedIn:''};
+      }
+      continue;
+    }
+    if(op==='>='){
+      if(!low||VOPEN[low.toLowerCase()])continue;usable++;
+      if(vcmp(inst,low)>=0){
+        return {status:'touchée',reason:'Version installée '+inst+' incluse dans la plage vulnérable ('+rtOne+')',rangeText:rtOne,fixedIn:''};
+      }
+      continue;
+    }
     if(!high||VOPEN[high.toLowerCase()])continue;usable++;
     var aboveLow=(!low||VOPEN[low.toLowerCase()])||vcmp(inst,low)>=0, belowHigh=op==='<'?vcmp(inst,high)<0:vcmp(inst,high)<=0;
-    if(aboveLow&&belowHigh)return 'touchée'}
-  return usable&&same?'non touchée':'à vérifier';
+    if(aboveLow&&belowHigh){
+      var fx=op==='<'?String(high):'';
+      return {status:'touchée',reason:'Version installée '+inst+' incluse dans la plage vulnérable ('+rtOne+')'+(fx?' · corrigée dès '+fx:''),rangeText:rtOne,fixedIn:fx};
+    }
+  }
+  var allRangeStr=rangeTexts.join(' ; ');
+  var bestFix=fixedCandidates.length?fixedCandidates[0]:'';
+  if(usable&&same){
+    return {status:'non touchée',reason:'Version installée '+inst+' hors plage vulnérable officielle ('+(allRangeStr||'autre branche')+')',rangeText:allRangeStr,fixedIn:bestFix};
+  }
+  return {status:'à vérifier',reason:'Format de version ('+inst+') différent des plages publiées ('+(allRangeStr||'non comparables')+') — vérification manuelle conseillée.',rangeText:allRangeStr,fixedIn:bestFix};
+}
+function versionStatus(inst,ranges,hint,vendorHint){return evaluateVersion(inst,ranges,hint,vendorHint).status}
+function autoResolveUpgradedAsset(asset,oldVersion){
+  if(!asset||!D)return 0;
+  var newVer=String(asset.version||'').trim(), prevVer=String(oldVersion||'').trim();
+  if(!newVer||newVer===prevVer)return 0;
+  var k=assetKey(asset), lbl=assetLabel(asset), count=0;
+  var pool={}, addP=function(arr){(arr||[]).forEach(function(r){if(r&&r.id&&!pool[r.id])pool[r.id]=r})};
+  addP(parcScan.records);addP(D.vulns);
+  Object.keys(pool).forEach(function(id){
+    var r=pool[id];
+    if(!matchAsset(r,asset)&&!findManualLink(id,asset))return;
+    if(findAssetMitigation(id,asset))return;
+    var oldEval=prevVer?evaluateVersion(prevVer,r.ranges,asset.product,asset.vendor):{status:'à vérifier'};
+    var newEval=evaluateVersion(newVer,r.ranges,asset.product,asset.vendor);
+    if(newEval.status==='non touchée'&&(oldEval.status==='touchée'||!prevVer)){
+      var nowIso=new Date().toISOString();
+      var proof='Résolution automatique suite à la mise à jour de l\'équipement ('+(prevVer?'v'+prevVer+' → ':'')+'v'+newVer+') : '+newEval.reason;
+      var rec={
+        id:'m'+Date.now()+Math.random().toString(36).slice(2,6),cve:id,asset:lbl,assetUid:k,assetKey:k,
+        product:prodName(r),status:'Corrigée',date:todayISO(),expires:'',owner:asset.owner||'Automatique (VulnWatch)',
+        proof:proof,autoResolved:true,updatedAt:nowIso,
+        history:[{at:nowIso,action:'auto-upgrade',status:'Corrigée',by:asset.owner||'Automatique',proof:proof}]
+      };
+      MITS.unshift(rec);
+      count++;
+    }
+  });
+  if(count)saveMits();
+  return count;
 }
 
 /* ---------- Import automatique du parc : Nmap XML, CycloneDX / SPDX JSON, CSV d'inventaire, liste VulnWatch ---------- */
@@ -778,35 +1506,177 @@ function previewImport(){
 }
 function splitParcResults(){
   if(parcCache)return parcCache;
-  if(!PARC.length||!D)return (parcCache={active:[],mitigated:[]});
+  if(!PARC.length||!D)return (parcCache={active:[],mitigated:[],all:[],patched:0,perAsset:[],sources:[]});
   var assets=validParcAssets(), active=[], mitigated=[], patched=0;
-  D.vulns.forEach(function(r){
-    var hits=assets.filter(function(a){return matchAsset(r,a)});
-    if(!hits.length)return;
-    var vnotes=[];
-    hits=hits.filter(function(a){var st=versionStatus(a.version,r.ranges,a.product);if(a.version)vnotes.push((a.name||a.product)+' : '+st+' (version '+a.version+')');return st!=='non touchée'});
-    if(!hits.length){patched++;return}
-    var activeHits=[], mitHits=[];
-    hits.forEach(function(a){if(findAssetMitigation(r.id,a))mitHits.push(a);else activeHits.push(a)});
-    var ms=activeMitigationsForCve(r.id).filter(function(m){return isGlobalAsset(m.asset)||hits.some(function(a){return mitigationMatchesAsset(m,a)})});
-    if(activeHits.length){
-      var best={crit:Math.max.apply(null,activeHits.map(function(h){return h.crit==='Haute'?3:h.crit==='Basse'?1:2})),exposed:activeHits.some(function(h){return h.exposed==='Oui'})};
-      active.push(Object.assign({},r,{priority:prioFor(r,best),_vnotes:vnotes,_hits:activeHits,_mitHits:mitHits,_mits:ms,_mine:true,risk:Math.min(100,(r.risk||0)+best.crit*3+(best.exposed?5:0))}));
+  var nowMs=Date.now();
+  var statsMap={};
+  assets.forEach(function(a){
+    var k=assetKey(a);
+    statsMap[k]={asset:a,key:k,label:assetLabel(a),active:0,p1:0,p2:0,kev:0,patched:0,mitigated:0,expired:0,manual:0,hist:0,items:[],excludedItems:[]};
+  });
+
+  // Fusionne toutes les sources : Veille locale + Scan multi-sources historique + CISA KEV + Liens manuels
+  var poolMap={};
+  var allSrcSet={'Veille locale':1};
+  (D.vulns||[]).forEach(function(r){
+    var c=Object.assign({},r);
+    c._sources=['Veille locale'];
+    if(c.kev)c._sources.push('CISA KEV');
+    if(c.ghsa)c._sources.push('GitHub Advisories');
+    poolMap[c.id]=c;
+  });
+  (parcScan.records||[]).forEach(function(r){
+    var ex=poolMap[r.id];
+    if(ex){
+      if((!ex.ranges||!ex.ranges.length)&&r.ranges&&r.ranges.length)ex.ranges=r.ranges;
+      if(!ex.versions&&r.versions)ex.versions=r.versions;
+      if(!ex.pkg_fixed&&r.pkg_fixed)ex.pkg_fixed=r.pkg_fixed;
+      if(!ex.ghsa&&r.ghsa)ex.ghsa=r.ghsa;
+      if(ex.epss==null&&r.epss!=null){ex.epss=r.epss;ex.epss_pct=r.epss_pct}
+      if(!ex.kev&&r.kev){ex.kev=true;ex.kev_due=r.kev_due||ex.kev_due;ex.ransomware=r.ransomware||ex.ransomware}
+      if((!ex.references||!ex.references.length)&&r.references&&r.references.length)ex.references=r.references;
+      ex._sources=(ex._sources||[]).concat(r._sources||[]).filter(function(v,i,arr){return arr.indexOf(v)===i});
     }else{
-      var bestM={crit:Math.max.apply(null,hits.map(function(h){return h.crit==='Haute'?3:h.crit==='Basse'?1:2})),exposed:hits.some(function(h){return h.exposed==='Oui'})};
-      mitigated.push(Object.assign({},r,{priority:prioFor(r,bestM),_hits:hits,_mitHits:hits,_mits:ms,_mine:true,_mitigated:true}));
+      poolMap[r.id]=Object.assign({},r);
+    }
+    (r._sources||[]).forEach(function(s){allSrcSet[s]=1});
+  });
+  (D.kev||[]).forEach(function(k){
+    if(!k||!k.cveID||poolMap[k.cveID])return;
+    var pseudo={
+      id:k.cveID,priority:'P1',severity:'CRITIQUE',score:k.knownRansomwareCampaignUse==='Known'?9.8:9.0,score_source:'CISA KEV',
+      risk:k.knownRansomwareCampaignUse==='Known'?96:90,vendor:k.vendorProject||'',product:k.product||'',
+      affected:[k.vendorProject||'',k.product||''].filter(Boolean).join(' '),desc:k.shortDescription||k.vulnerabilityName||'',
+      kev:true,kev_due:k.dueDate||'',ransomware:k.knownRansomwareCampaignUse==='Known'?'Known':'',ssvc_exploitation:'Active',
+      patch_available:'Oui',published:k.dateAdded?(k.dateAdded+'T00:00:00Z'):'',modified:k.dateAdded?(k.dateAdded+'T00:00:00Z'):'',
+      ranges:[],justification:'Exploitée activement (catalogue officiel CISA KEV).',_sources:['CISA KEV']
+    };
+    if(assets.some(function(a){return matchAsset(pseudo,a)||findManualLink(k.cveID,a)})){
+      poolMap[k.cveID]=pseudo;
+      allSrcSet['CISA KEV']=1;
     }
   });
-  return (parcCache={active:active.sort(byPrio),mitigated:mitigated.sort(byPrio),patched:patched});
+  (LINKS||[]).forEach(function(lk){
+    var id=String(lk.cve||'').toUpperCase();
+    if(!id)return;
+    if(!assets.some(function(a){return linkMatchesAsset(lk,a)}))return;
+    if(!poolMap[id]){
+      var base=REFS_CACHE[id]||lk.snapshot||{id:id,priority:'P3',severity:'NON ÉVALUÉE',desc:'',vendor:'',product:'',_sources:['Lien manuel']};
+      var c=Object.assign({},base,{id:id});
+      c._sources=(c._sources||[]).concat(['Lien manuel']).filter(function(v,i,arr){return arr.indexOf(v)===i});
+      poolMap[id]=c;
+    }
+    allSrcSet['Liens manuels']=1;
+  });
+  (parcScan.sources||[]).forEach(function(s){allSrcSet[s]=1});
+
+  Object.keys(poolMap).forEach(function(id){
+    var r=poolMap[id];
+    var autoMap={}, manMap={}, allHits=[];
+    assets.forEach(function(a){
+      var k=assetKey(a);
+      var mInfo=evaluateAssetMatch(r,a);
+      var ml=findManualLink(r.id,a);
+      if(mInfo.matched)autoMap[k]=mInfo;
+      if(ml)manMap[k]=ml;
+      if(mInfo.matched||ml)allHits.push(a);
+    });
+    if(!allHits.length)return;
+    var vnotes=[], vStates=[], keptHits=[], keptMeta={};
+    allHits.forEach(function(a){
+      var k=assetKey(a), isMan=!!manMap[k], mInfo=autoMap[k]||null, isAuto=!!mInfo;
+      var vInfo=evaluateVersion(a.version,r.ranges,a.product,a.vendor);
+      if(vInfo.status==='à vérifier'&&r._osvVersionHit&&a.version&&isAuto){
+        vInfo={status:'touchée',reason:'Version '+a.version+' confirmée vulnérable par OSV / GitHub Advisories'+(r.pkg_fixed?' (corrigée dès '+r.pkg_fixed+')':''),rangeText:r.versions||'',fixedIn:r.pkg_fixed||''};
+      }
+      if(!vInfo.fixedIn&&r.pkg_fixed)vInfo.fixedIn=String(r.pkg_fixed).split(',')[0].trim();
+      var existingMit=findAssetMitigation(r.id,a);
+      // Si version non touchée et non liée manuellement et pas déjà tracée en mitigation auto-résolue -> écartée auditable
+      if(vInfo.status==='non touchée'&&!isMan&&!existingMit){
+        var sk=statsMap[k];
+        if(sk){
+          sk.patched++;
+          sk.excludedItems.push({row:r,verInfo:vInfo,matchInfo:mInfo});
+        }
+        return;
+      }
+      if(a.version)vnotes.push((a.name||a.product)+' : '+vInfo.status+' (version '+a.version+')');
+      vStates.push(vInfo.status);
+      keptHits.push(a);
+      var conf=vInfo.status==='touchée'||isMan?'confirmée':(mInfo&&mInfo.confidence==='probable'?'probable':'à confirmer');
+      var linkReason=isMan
+        ?('Liée manuellement'+(manMap[k].createdAt?' le '+fdate(manMap[k].createdAt):'')+(manMap[k].note?' ('+manMap[k].note+')':''))
+        :(mInfo?mInfo.reason:'Correspondance automatique');
+      keptMeta[k]={isManual:isMan,isAuto:isAuto,verStatus:vInfo.status,verInfo:vInfo,matchInfo:mInfo,confidence:conf,linkReason:linkReason,link:manMap[k]||null};
+    });
+    if(!keptHits.length){patched++;return}
+    var pubMs=Date.parse(r.published||'')||nowMs;
+    var isHist=(nowMs-pubMs)>30*86400000;
+    var verConfirmed=vStates.indexOf('touchée')>=0;
+    var hasManual=keptHits.some(function(a){return keptMeta[assetKey(a)].isManual});
+    var activeHits=[], mitHits=[];
+    keptHits.forEach(function(a){if(findAssetMitigation(r.id,a))mitHits.push(a);else activeHits.push(a)});
+    var ms=activeMitigationsForCve(r.id).filter(function(m){return isGlobalAsset(m.asset)||keptHits.some(function(a){return mitigationMatchesAsset(m,a)})});
+    var bestRef=activeHits.length?activeHits:keptHits;
+    var best={crit:Math.max.apply(null,bestRef.map(function(h){return h.crit==='Haute'?3:h.crit==='Basse'?1:2})),exposed:bestRef.some(function(h){return h.exposed==='Oui'})};
+    var rowPrio=prioFor(r,best);
+    var fullRow=Object.assign({},r,{
+      priority:rowPrio,_vnotes:vnotes,_vconfirmed:verConfirmed,_isHist:isHist,_hasManual:hasManual,
+      _hits:activeHits.length?activeHits:keptHits,_allHits:keptHits,_mitHits:mitHits,_mits:ms,_mine:true,
+      _mitigated:activeHits.length===0,
+      risk:Math.min(100,(r.risk||0)+best.crit*3+(best.exposed?5:0))
+    });
+    if(activeHits.length)active.push(fullRow);else mitigated.push(fullRow);
+
+    keptHits.forEach(function(a){
+      var k=assetKey(a), sk=statsMap[k];if(!sk)return;
+      var meta=keptMeta[k];
+      var ast=assetMitigationState(r.id,a);
+      var aPrio=prioFor(r,{crit:a.crit==='Haute'?3:a.crit==='Basse'?1:2,exposed:a.exposed==='Oui'});
+      var aRow=Object.assign({},fullRow,{priority:aPrio});
+      if(ast.state==='mitigated'){
+        sk.mitigated++;
+      }else{
+        sk.active++;
+        if(ast.state==='expired')sk.expired++;
+        if(aPrio==='P1')sk.p1++;
+        else if(aPrio==='P2')sk.p2++;
+        if(r.kev)sk.kev++;
+        if(isHist)sk.hist++;
+      }
+      if(meta.isManual)sk.manual++;
+      sk.items.push({
+        row:aRow,status:ast.state,mit:ast.mit,isManual:meta.isManual,isAuto:meta.isAuto,
+        verStatus:meta.verStatus,verInfo:meta.verInfo,confidence:meta.confidence,linkReason:meta.linkReason,
+        prio:aPrio,link:meta.link
+      });
+    });
+  });
+
+  var stRank={expired:0,active:1,mitigated:2};
+  var perAsset=assets.map(function(a){
+    var sk=statsMap[assetKey(a)];
+    sk.items.sort(function(x,y){
+      if(stRank[x.status]!==stRank[y.status])return stRank[x.status]-stRank[y.status];
+      return byPrio(x.row,y.row);
+    });
+    sk.excludedItems.sort(function(x,y){return byPrio(x.row,y.row)});
+    return sk;
+  });
+  active.sort(byPrio);
+  mitigated.sort(byPrio);
+  return (parcCache={active:active,mitigated:mitigated,all:active.concat(mitigated),patched:patched,perAsset:perAsset,sources:Object.keys(allSrcSet)});
 }
 function parcResults(){return splitParcResults().active}
 function mitBoxHTML(ms){
   var m=ms[0];
   var extra=ms.length>1?' (+'+(ms.length-1)+' autre'+(ms.length>2?'s':'')+')':'';
   var expTxt=m.expires?' · Révision le '+fdate(m.expires):'';
-  return '<div class="mit-box"><div class="mit-box-hd"><b>✓ Mitigée · '+esc(m.status||'Corrigée')+'</b><span class="mit-meta">'+esc(m.asset||'Tout le parc')+(m.date?' · '+esc(fdate(m.date)):'')+esc(expTxt)+extra+'</span></div>'+
+  var histCnt=Array.isArray(m.history)?m.history.length:0;
+  var autoTag=m.autoResolved?' · Auto-vérifiée':'';
+  return '<div class="mit-box"><div class="mit-box-hd"><b>✓ Traitée · '+esc(m.status||'Corrigée')+esc(autoTag)+'</b><span class="mit-meta">'+esc(m.asset||'Tout le parc')+(m.date?' · '+esc(fdate(m.date)):'')+esc(expTxt)+extra+'</span></div>'+
     (m.proof?'<p class="mit-proof">'+esc(m.proof)+'</p>':'')+
-    (m.owner?'<div class="mit-meta">Validé par : '+esc(m.owner)+'</div>':'')+
+    '<div class="mit-meta">'+[m.owner?'Validé par : '+m.owner:'',m.updatedAt?'Horodatage : '+fmt(m.updatedAt):'',histCnt>1?(histCnt+' révisions journalisées'):''].filter(Boolean).map(esc).join(' · ')+'</div>'+
     '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'+
       '<button type="button" class="btn sm" data-mit-edit="'+esc(m.id)+'">Modifier la preuve</button>'+
       '<button type="button" class="btn sm danger" data-mit-del="'+esc(m.id)+'">Réactiver le rappel</button>'+
@@ -968,10 +1838,24 @@ function loadCveRefs(cveId,cardEl){
       });
     });
 }
+function eqChipsHTML(r,assets){
+  if(!assets||!assets.length)return '';
+  var chips=assets.map(function(a){
+    var k=assetKey(a), lbl=assetLabel(a);
+    var ast=assetMitigationState(r.id,a);
+    var man=!!findManualLink(r.id,a);
+    var cls=ast.state==='mitigated'?'treated':ast.state==='expired'?'rev':'open';
+    var stTxt=ast.state==='mitigated'?('✓ '+(ast.mit&&ast.mit.status||'Traitée')):ast.state==='expired'?'⏰ À réviser':'À traiter';
+    var tip=lbl+(a.version?' (v'+a.version+')':'')+' — '+(ast.state==='mitigated'?'Déjà traitée sur cet équipement':ast.state==='expired'?'Révision requise sur cet équipement':'À traiter sur cet équipement')+(man?' · liée manuellement':'');
+    return '<button type="button" class="eq-chip '+cls+'" data-jump-eq="'+esc(k)+'" title="'+esc(tip)+'"><span>🖥️ '+esc(lbl)+(man?' 🔗':'')+'</span><span class="eq-st">'+esc(stTxt)+'</span></button>';
+  }).join('');
+  return '<div class="eq-links-bar"><span class="eq-links-lbl">Équipements liés</span>'+chips+'</div>';
+}
 /* ---------- fiche ---------- */
-function card(r){
-  var merged=REFS_CACHE[r.id]?Object.assign({},r,REFS_CACHE[r.id],{_mine:r._mine,_hits:r._hits,_mitHits:r._mitHits,_mits:r._mits,_mitigated:r._mitigated}):r;
+function card(r,ctx){
+  var merged=REFS_CACHE[r.id]?Object.assign({},r,REFS_CACHE[r.id],{_mine:r._mine,_hits:r._hits,_allHits:r._allHits,_mitHits:r._mitHits,_mits:r._mits,_mitigated:r._mitigated,_vnotes:r._vnotes,_vconfirmed:r._vconfirmed,_isHist:r._isHist,_hasManual:r._hasManual,_sources:r._sources}):r;
   r=merged;
+  var focusAsset=ctx&&ctx.focusAsset?ctx.focusAsset:null;
   var p=r.priority||'P4', sev=r.severity||'NON ÉVALUÉE';
   var tr=autoFr?TR[r.id]:null;
   var plainBase=(tr&&tr.plain)?tr.plain:(r.plain||fallbackPlain(r));
@@ -979,46 +1863,68 @@ function card(r){
   var todo=(r._mine||!r.todo)?fallbackTodo(p,r):((tr&&tr.todo)?tr.todo:r.todo);
   var descTxt=(tr&&tr.desc)?tr.desc:(r.desc||'');
   var st=evalRowMitigation(r);
-  var ms=st.ms, expMs=st.expMs, isMit=st.isMit, needsRev=st.needsRev, partial=st.partial, parcHits=st.parcHits;
-  var displayHits=r._mine?(r._hits||[]):parcHits;
-  if(r._mine)plain+=' Elle concerne : '+r._hits.map(function(h){return assetLabel(h)}).join(', ')+'.';
+  var parcHits=st.parcHits;
+  var ms=st.ms, expMs=st.expMs, isMit=st.isMit, needsRev=st.needsRev, partial=st.partial;
+  var focusLink=focusAsset?findManualLink(r.id,focusAsset):null;
+  if(focusAsset){
+    var fst=assetMitigationState(r.id,focusAsset);
+    isMit=fst.state==='mitigated';
+    needsRev=fst.state==='expired';
+    partial=false;
+    ms=fst.state==='mitigated'&&fst.mit?[fst.mit]:[];
+    expMs=fst.state==='expired'&&fst.mit?[fst.mit]:[];
+  }
+  var displayHits=focusAsset?[focusAsset]:(r._allHits&&r._allHits.length?r._allHits:(r._mine?(r._hits||[]):parcHits));
+  if(r._mine&&!focusAsset&&displayHits.length)plain+=' Elle concerne : '+displayHits.map(function(h){return assetLabel(h)}).join(', ')+'.';
   var refCount=Array.isArray(r.references)?r.references.length:0;
   var tags='';
   tags+=r.score!=null?'<span class="t '+(r.score>=9?'crit':r.score>=7?'high':'')+'">Gravité '+r.score.toFixed(1)+'/10</span>':'<span class="t">Gravité non évaluée</span>';
   if(r.kev||r.ssvc_exploitation==='Active')tags+='<span class="t kev">Exploitée</span>';
   if(r.msf)tags+='<span class="t msf">Outil d\'attaque public</span>';else if(/^Preuve/.test(r.exploit_maturity||''))tags+='<span class="t msf">Code d\'attaque publié</span>';
   if(r.ransomware==='Known')tags+='<span class="t kev">Rançongiciels</span>';
-  if(parcHits.length){
-    var pLbl=parcHits.length===1?'Mon parc : '+assetLabel(parcHits[0]):'Mon parc ('+parcHits.length+' actifs)';
+  if(focusAsset){
+    if(focusLink)tags+='<span class="t man">🔗 Liée manuellement</span>';
+    else tags+='<span class="t parc">Détectée automatiquement</span>';
+  }else if(parcHits.length){
+    var pLbl=parcHits.length===1?'Mon parc : '+assetLabel(parcHits[0]):'Mon parc ('+parcHits.length+' équipements)';
     tags+='<span class="t parc">'+esc(pLbl)+'</span>';
+    if(r._hasManual||linksForCve(r.id).length)tags+='<span class="t man">🔗 Liée manuellement</span>';
   }else if(r.watch){tags+='<span class="t parc">Mon parc</span>'}
   if(r['new'])tags+='<span class="t new">Nouveau</span>';
+  if(r._mine&&r._isHist){var yr=(r.published||'').slice(0,4);tags+='<span class="t hist">Historique'+(yr?' · '+esc(yr):'')+'</span>'}
+  if(r._mine&&r._vconfirmed)tags+='<span class="t ver-hit">Version touchée</span>';
+  else if(r._mine&&r._vnotes&&r._vnotes.length)tags+='<span class="t ver-chk">Version à vérifier</span>';
+  if(r._mine&&Array.isArray(r._sources)&&r._sources.length){
+    var extSrc=r._sources.filter(function(s){return s!=='Veille locale'&&s!=='Lien manuel'}).slice(0,2);
+    if(extSrc.length)tags+='<span class="t src">'+esc(extSrc.join(' · '))+'</span>';
+  }
   if(r.patch_available==='Oui')tags+='<span class="t ok">Correctif disponible</span>';
-  if(isMit)tags+='<span class="t ok">✓ Mitigée'+(ms[0]&&ms[0].status&&ms[0].status!=='Corrigée'?' ('+esc(ms[0].status)+')':'')+'</span>';
+  if(isMit)tags+='<span class="t ok">✓ Traitée'+(focusAsset?' sur '+esc(assetLabel(focusAsset)):'')+(ms[0]&&ms[0].status&&ms[0].status!=='Corrigée'?' ('+esc(ms[0].status)+')':'')+'</span>';
   else if(needsRev)tags+='<span class="t high">⏰ Révision requise</span>';
-  else if(partial)tags+='<span class="t ok">Mitigée sur '+st.mitParcHits.length+'/'+parcHits.length+' actif'+(parcHits.length>1?'s':'')+'</span>';
+  else if(partial)tags+='<span class="t ok">Traitée sur '+st.mitParcHits.length+'/'+parcHits.length+' équipement'+(parcHits.length>1?'s':'')+'</span>';
   if(r.epss!=null&&(!simple||r.epss>=0.1))tags+='<span class="t">EPSS '+pct(r.epss)+'</span>';
   if(refCount)tags+='<span class="t">'+refCount+' référence'+(refCount>1?'s':'')+'</span>';
   if(!simple&&r.risk!=null)tags+='<span class="t">Risque '+r.risk+'/100</span>';
   var hdrStatus='';
   if(isMit){
-    var m0=ms[0]||{}, mAsset=(parcHits.length===1)?assetLabel(parcHits[0]):(m0.asset&&!isGlobalAsset(m0.asset)?m0.asset:'');
-    var mTip='Mitigée ('+(m0.status||'Corrigée')+')'+(mAsset?' sur '+mAsset:'')+(m0.expires?' · révision prévue le '+fdate(m0.expires):'');
-    hdrStatus+='<span class="st-badge mit" title="'+esc(mTip)+'">✓ Mitigée</span>';
-    if(st.soonDays!=null)hdrStatus+='<span class="st-badge soon" title="Révision périodique prévue dans '+st.soonDays+' jour'+(st.soonDays>1?'s':'')+'">⏰ Révision J-'+st.soonDays+'</span>';
+    var m0=ms[0]||{}, mAsset=focusAsset?assetLabel(focusAsset):((parcHits.length===1)?assetLabel(parcHits[0]):(m0.asset&&!isGlobalAsset(m0.asset)?m0.asset:''));
+    var mTip='Traitée ('+(m0.status||'Corrigée')+')'+(mAsset?' sur '+mAsset:'')+(m0.expires?' · révision prévue le '+fdate(m0.expires):'');
+    hdrStatus+='<span class="st-badge mit" title="'+esc(mTip)+'">✓ Traitée</span>';
+    if(!focusAsset&&st.soonDays!=null)hdrStatus+='<span class="st-badge soon" title="Révision périodique prévue dans '+st.soonDays+' jour'+(st.soonDays>1?'s':'')+'">⏰ Révision J-'+st.soonDays+'</span>';
   }else if(needsRev){
-    var e0=expMs[0]||{}, eAsset=st.expParcHits.length===1?assetLabel(st.expParcHits[0]):(e0.asset||'Tout le parc');
+    var e0=expMs[0]||{}, eAsset=focusAsset?assetLabel(focusAsset):(st.expParcHits.length===1?assetLabel(st.expParcHits[0]):(e0.asset||'Tout le parc'));
     hdrStatus+='<span class="st-badge rev" title="Révision périodique échue le '+esc(fdate(e0.expires))+' ('+esc(eAsset)+')">⏰ Révision</span>';
   }else if(partial){
-    hdrStatus+='<span class="st-badge part" title="Mitigée sur '+esc(st.mitParcHits.map(assetLabel).join(', '))+' ; active sur '+esc(st.activeParcHits.map(assetLabel).join(', '))+'">✓ '+st.mitParcHits.length+'/'+parcHits.length+' mitigé</span>';
+    hdrStatus+='<span class="st-badge part" title="Traitée sur '+esc(st.mitParcHits.map(assetLabel).join(', '))+' ; à traiter sur '+esc(st.activeParcHits.map(assetLabel).join(', '))+'">✓ '+st.mitParcHits.length+'/'+parcHits.length+' traité</span>';
   }
   var body=simple
     ?'<p class="plain" data-tr-id="'+esc(r.id)+'" data-tr-field="plain">'+esc(plain)+'</p>'
     :'<p class="plain"><b>'+esc(PLABEL[p])+'.</b> '+esc(r.justification||'')+'</p><p class="plain" style="font-size:13.5px" data-tr-id="'+esc(r.id)+'" data-tr-field="desc">'+esc(descTxt)+'</p>';
+  var eqBar=displayHits.length?eqChipsHTML(r,displayHits):'';
   var mine=displayHits.length?displayHits.map(function(h){return (h.name||h.product)+(h.version?' (ta version : '+h.version+')':'')}).join(', '):'';
   var vec=(r.vector||'').split('/').reduce(function(o,x){var k=x.split(':');if(k[1])o[k[0]]=k[1];return o},{});
   var rows=[[simple?'Pourquoi cette priorité':'En clair',simple?r.justification:plain,false],[simple?'Description':'',simple?descTxt:'',false],
-    ['Tes équipements',mine,false],['Ta version est-elle touchée ?',(r._vnotes&&r._vnotes.length)?r._vnotes.join(' · '):'',false],['Produits concernés',r.affected&&r.affected!==prodName(r)?r.affected:'',false],['Versions touchées',r.versions||r.pkg_ranges,false],['Version corrigée',r.pkg_fixed,false],['Avis officiel (Canada)',r.avis,false],['Type d\'attaque',r.tags,false],['Catégorie',r.family,false],
+    ['Tes équipements',mine,false],['Note de lien',focusLink&&focusLink.note?focusLink.note:'',false],['Ta version est-elle touchée ?',(r._vnotes&&r._vnotes.length)?r._vnotes.join(' · '):'',false],['Produits concernés',r.affected&&r.affected!==prodName(r)?r.affected:'',false],['Versions touchées',r.versions||r.pkg_ranges,false],['Version corrigée',r.pkg_fixed,false],['Avis officiel (Canada)',r.avis,false],['Type d\'attaque',r.tags,false],['Catégorie',r.family,false],
     ['Depuis où ?',{N:'Réseau / Internet',A:'Réseau local',L:'Accès à la machine',P:'Accès physique'}[vec.AV],false],['Accès nécessaire',{N:'Aucun compte',L:'Compte simple',H:'Compte administrateur'}[vec.PR],false],
     ['Action de la victime',{N:'Aucune',R:'Requise (clic, ouverture…)',P:'Passive',A:'Active'}[vec.UI],false],
     ['Probabilité d\'attaque (30 j)',r.epss!=null?pct(r.epss)+(r.epss_pct!=null?' (top '+Math.max(1,Math.round((1-r.epss_pct)*100))+' %)':r.epss_delta!=null?' ('+(r.epss_delta>=0?'+':'')+(r.epss_delta*100).toFixed(1)+' pts en 7 j)':''):'',false],
@@ -1026,24 +1932,34 @@ function card(r){
     ['Outil Metasploit',r.msf,false],['Exploit-DB',r.edb,false],['Échéance CISA',r.kev_due,false],['Faiblesse (CWE)',cweLinksHTML(r.cwe,r.cwe_name),true],
     ['Source / CNA',r.source||r.score_source,false],['Statut NVD',r.status,false],['Vecteur CVSS',r.vector,false],['Publiée',fmt(r.published),false],['Modifiée',fmt(r.modified),false],['Suivi',r.ticket_status,false]];
   var title=prodName(r);
-  if(r._mine){var h0=r._hits[0],hp=[h0.vendor,h0.product].filter(Boolean).join(' ');if(hp&&norm(title).indexOf(norm(h0.product||h0.vendor))<0)title=hp+' (et autres produits)'}
-  var defaultAsset=(st.activeParcHits.length===1)?assetLabel(st.activeParcHits[0]):(parcHits.length===1?assetLabel(parcHits[0]):'');
+  if(r._mine&&displayHits.length){var h0=displayHits[0],hp=[h0.vendor,h0.product].filter(Boolean).join(' ');if(hp&&norm(title).indexOf(norm(h0.product||h0.vendor))<0)title=hp+' (et autres produits)'}
+  var defaultAsset=focusAsset?assetLabel(focusAsset):((st.activeParcHits.length===1)?assetLabel(st.activeParcHits[0]):(parcHits.length===1?assetLabel(parcHits[0]):''));
+  var defaultAssetKey=focusAsset?assetKey(focusAsset):((st.activeParcHits.length===1)?assetKey(st.activeParcHits[0]):(parcHits.length===1?assetKey(parcHits[0]):''));
   var actionArea=isMit
     ?mitBoxHTML(ms)
     :'<div class="todo"><b>Que faire</b><span data-tr-id="'+esc(r.id)+'" data-tr-field="todo">'+esc(todo)+'</span></div>'+
-     (st.inParc?expiredMitNoticeHTML(expMs):'')+
-     (st.mitParcHits.length?'<div class="mit-meta">Déjà mitigée sur : '+esc(st.mitParcHits.map(assetLabel).join(', '))+'</div>':'');
-  var footerAct=(!st.inParc||isMit)
-    ?'<div class="card-act"><span class="more">Touche pour voir le détail et les références</span></div>'
-    :'<div class="card-act"><button type="button" class="btn sm ok" data-mit-open="'+esc(r.id)+'" data-mit-prod="'+esc(title)+'" data-mit-prio="'+esc(p)+'" data-mit-asset="'+esc(defaultAsset)+'">✓ Marquer comme mitigée</button><span class="more">Touche pour voir le détail et les références</span></div>';
+     ((focusAsset||st.inParc)?expiredMitNoticeHTML(expMs):'')+
+     (!focusAsset&&st.mitParcHits.length?'<div class="mit-meta">Déjà traitée sur : '+esc(st.mitParcHits.map(assetLabel).join(', '))+'</div>':'');
+  var hasParcAssets=validParcAssets().length>0;
+  var actBtns=[];
+  if((focusAsset||st.inParc)&&!isMit){
+    actBtns.push('<button type="button" class="btn sm ok" data-mit-open="'+esc(r.id)+'" data-mit-prod="'+esc(title)+'" data-mit-prio="'+esc(p)+'" data-mit-asset="'+esc(defaultAsset)+'" data-mit-akey="'+esc(defaultAssetKey)+'">✓ '+(focusAsset?'Marquer traitée sur '+esc(assetLabel(focusAsset)):'Marquer comme traitée')+'</button>');
+  }
+  if(hasParcAssets){
+    actBtns.push('<button type="button" class="btn sm" data-link-open="'+esc(r.id)+'">🔗 '+(parcHits.length?'Équipements ('+parcHits.length+')':'Lier à un équipement')+'</button>');
+  }
+  if(focusAsset&&focusLink){
+    actBtns.push('<button type="button" class="btn sm danger" data-unlink-eq="'+esc(r.id)+'" data-unlink-key="'+esc(assetKey(focusAsset))+'">Délier</button>');
+  }
+  var footerAct='<div class="card-act"><span style="display:flex;gap:6px;flex-wrap:wrap">'+actBtns.join('')+'</span><span class="more">Touche pour voir le détail et les références</span></div>';
   return '<article class="v '+p+(isMit?' mitigated':needsRev?' needs-rev':'')+'" data-cve="'+esc(r.id)+'"><div class="vh"><div class="vt"><h3>'+esc(title)+'</h3><div class="vid">'+esc(r.id)+' · '+esc(sev.toLowerCase())+(r.published?' · '+fdate(r.published):'')+'</div></div><div class="vh-badges">'+hdrStatus+'<span class="prio '+p+'" title="'+esc(PLABEL[p])+'">'+p+'</span></div></div>'+
-    '<div class="tags">'+tags+'</div>'+body+actionArea+
+    '<div class="tags">'+tags+'</div>'+eqBar+body+actionArea+
     '<div class="det"><dl class="kv">'+rows.filter(function(x){return x[0]&&x[1]}).map(function(x){return '<dt>'+esc(x[0])+'</dt><dd'+(x[0]==='Description'?' data-tr-id="'+esc(r.id)+'" data-tr-field="desc"':'')+'>'+(x[2]?x[1]:esc(x[1]))+'</dd>'}).join('')+'</dl>'+refsSectionHTML(r)+'</div>'+
     footerAct+'</article>';
 }
-function listHTML(rows,n,moreId){
+function listHTML(rows,n,moreId,ctx){
   if(!rows.length)return '<div class="empty"><div class="ico">✅</div>Rien à afficher ici pour le moment.</div>';
-  return '<div class="list">'+rows.slice(0,n).map(card).join('')+'</div>'+(rows.length>n?'<p style="text-align:center"><button class="btn" id="'+moreId+'">Afficher plus ('+(rows.length-n)+')</button></p>':'');
+  return '<div class="list">'+rows.slice(0,n).map(function(r){return card(r,ctx)}).join('')+'</div>'+(rows.length>n?'<p style="text-align:center"><button class="btn" id="'+moreId+'">Afficher plus ('+(rows.length-n)+')</button></p>':'');
 }
 /* ---------- langage de requête ---------- */
 var NUM={cvss:'score',score:'score',gravite:'score',epss:'epss',risque:'risk',age:'age_days'};
@@ -1142,8 +2058,17 @@ S.home=function(){
     (hasParc?'<div class="seg" role="group" aria-label="Périmètre du graphique"><button type="button" data-cscope="all" class="'+(scope==='all'?'on':'')+'">Toutes</button><button type="button" data-cscope="parc" class="'+(scope==='parc'?'on':'')+'">Mon parc</button></div>':'')+
     '</div><div class="chart-wrap" id="prioChart" role="img" aria-label="Graphique en barres de la répartition des vulnérabilités par priorité P1 à P4"></div><div class="chart-tip" id="prioTip" aria-hidden="true"></div></div>';
   h+='<h2>La situation en clair</h2><div class="card syn">'+D.synthese.map(function(p){return '<p>'+esc(p)+'</p>'}).join('')+'</div>';
-  var urg=(mineUrg.length?mineUrg:actAll.filter(function(r){return r.priority==='P1'}).sort(byPrio)).slice(0,6);
-  h+='<h2>'+(mineUrg.length?'Tes urgences actives':'Les urgences du moment')+'</h2>'+listHTML(urg,6,'x');
+  if(hasParc&&(mine.length||mineMit.length)){
+    h+='<div class="bar" style="margin-top:20px"><h2 style="margin:0">Voilà les vulnérabilités liées à tes équipements ('+mine.length+' à traiter'+(mineMit.length?' · '+mineMit.length+' traitée'+(mineMit.length>1?'s':''):'')+')</h2><button type="button" class="btn sm pri" data-go="parc">Voir par équipement →</button></div>'+
+      (ps.perAsset&&ps.perAsset.length?'<div class="chips" style="margin-bottom:10px">'+ps.perAsset.map(function(st){
+        return '<button type="button" class="chip" data-jump-eq="'+esc(st.key)+'">🖥️ '+esc(st.label)+' · '+(st.active?st.active+' à traiter':'✓ 0')+(st.mitigated?' · ✓ '+st.mitigated+' traitée'+(st.mitigated>1?'s':''):'')+'</button>';
+      }).join('')+'</div>':'')+
+      (parcScan.loading?'<div class="count" style="margin-bottom:8px">🔍 Analyse multi-sources en cours (NVD historique · CISA KEV · EPSS · OSV / GHSA)…</div>':'')+
+      (mine.length?listHTML(mine.slice(0,6),6,'x'):'<div class="empty"><div class="ico">✅</div>Toutes les vulnérabilités liées à tes équipements ont déjà été traitées.</div>');
+  }else{
+    var urg=actAll.filter(function(r){return r.priority==='P1'}).sort(byPrio).slice(0,6);
+    h+='<h2>Les urgences du moment</h2>'+listHTML(urg,6,'x');
+  }
   h+='<h2>Comment lire les priorités</h2><div class="card legend">'+['P1','P2','P3','P4'].map(function(p){return '<span class="prio '+p+'">'+p+'</span><span>'+esc(PLABEL[p])+'</span>'}).join('')+'</div>';
   return h;
 };
@@ -1266,24 +2191,318 @@ function assetEdit(a,i){
     f('name','Nom (pour toi)','ex. VPN du siège',true)+f('vendor','Fournisseur / éditeur','ex. Fortinet')+f('product','Produit','ex. FortiOS')+f('version','Version installée','ex. 7.2.5')+
     s('crit','Importance pour ton activité',['Moyenne','Haute','Basse'])+s('exposed','Accessible depuis Internet ?',['Non','Oui'])+f('owner','Responsable (facultatif)','ex. Équipe réseau')+'</div></div>';
 }
+function matchParcItemFilters(it){
+  if(parcStatusFilter==='excluded')return false;
+  if(parcStatusFilter==='active'&&it.status==='mitigated')return false;
+  if(parcStatusFilter==='treated'&&it.status!=='mitigated')return false;
+  if(parcStatusFilter==='expired'&&it.status!=='expired')return false;
+  var r=it.row;
+  if(parcQuickFilter==='urgent')return it.prio==='P1'||it.prio==='P2';
+  if(parcQuickFilter==='kev')return !!r.kev;
+  if(parcQuickFilter==='ver')return it.verStatus==='touchée';
+  if(parcQuickFilter==='hist')return !!r._isHist;
+  if(parcQuickFilter==='manual')return !!it.isManual;
+  return true;
+}
+function confBadgeHTML(conf){
+  if(conf==='confirmée')return '<span class="conf-b confirm" title="Liaison confirmée par plage de versions officielle NVD/OSV ou lien manuel vérifié">✓ Confirmée</span>';
+  if(conf==='probable')return '<span class="conf-b prob" title="Correspondance exacte éditeur + produit dans les sources officielles">● Probable</span>';
+  return '<span class="conf-b check" title="Correspondance large ou format de version à confirmer manuellement">◐ À confirmer</span>';
+}
+function eqExcludedRowHTML(st,ex){
+  var r=ex.row, vi=ex.verInfo||{}, p=r.priority||'P4';
+  var rowKey=st.key+'::EX::'+r.id;
+  var isOpen=!!parcInlineOpen[rowKey];
+  return '<div class="eq-vrow excl">'+
+    '<div class="eq-vrow-top"><div class="eq-vrow-main">'+
+      '<div class="eq-vrow-id"><span class="prio '+p+'" style="padding:1px 6px;font-size:11px">'+p+'</span><b>'+esc(r.id)+'</b><span>'+esc(prodName(r))+'</span>'+(r.score!=null?'<span class="t">'+r.score.toFixed(1)+'/10</span>':'')+(r.kev?'<span class="t kev">KEV</span>':'')+'</div>'+
+      '<div class="why-line"><b>Preuve d\'exclusion automatique :</b> '+esc(vi.reason||('Version '+st.asset.version+' non concernée'))+'</div>'+
+    '</div><div><span class="eq-badge excl">🛡️ Non concernée (version)</span></div></div>'+
+    '<div class="eq-vrow-act">'+
+      '<button type="button" class="btn sm" data-eq-open="'+esc(rowKey)+'" data-eq-cve="'+esc(r.id)+'">'+(isOpen?'Masquer la fiche':'Détails & références')+'</button>'+
+    '</div>'+
+    (isOpen?'<div class="eq-vrow-det">'+card(r)+'</div>':'')+
+  '</div>';
+}
+function eqVulnRowHTML(st,it){
+  var a=st.asset, r=it.row, p=it.prio||r.priority||'P4', m=it.mit, vi=it.verInfo||{};
+  var rowKey=st.key+'::'+r.id;
+  var isOpen=!!parcInlineOpen[rowKey];
+  var statusBadge=it.status==='mitigated'
+    ?'<span class="eq-badge treated">✓ Déjà traitée · '+esc((m&&m.status)||'Corrigée')+'</span>'
+    :it.status==='expired'
+    ?'<span class="eq-badge rev">⏰ Révision requise</span>'
+    :'<span class="eq-badge open">À traiter</span>';
+  var miniTags=[confBadgeHTML(it.confidence)];
+  if(r.score!=null)miniTags.push('<span class="t '+(r.score>=9?'crit':r.score>=7?'high':'')+'">'+r.score.toFixed(1)+'/10</span>');
+  if(r.kev)miniTags.push('<span class="t kev">Exploitée</span>');
+  if(it.isManual)miniTags.push('<span class="t man">🔗 Liée manuellement</span>');
+  if(it.verStatus==='touchée')miniTags.push('<span class="t ver-hit">Version touchée</span>');
+  else if(a.version&&it.verStatus==='à vérifier')miniTags.push('<span class="t ver-chk">Version à vérifier</span>');
+  if(r._isHist){var yr=(r.published||'').slice(0,4);miniTags.push('<span class="t hist">'+(yr?yr:'Historique')+'</span>')}
+  var tr=autoFr?TR[r.id]:null;
+  var summary=(tr&&tr.plain)?tr.plain:(r.plain||fallbackPlain(r));
+  var srcTxt=(Array.isArray(r._sources)&&r._sources.length)?r._sources.slice(0,3).join(' · '):'Veille locale';
+  var whyParts=[];
+  if(it.linkReason)whyParts.push(it.linkReason);
+  if(vi.reason)whyParts.push(vi.reason);
+  var whyLine='<div class="why-line"><b>Justification ('+esc(srcTxt)+') :</b> '+esc(whyParts.join(' · '))+'</div>';
+  var proofLine='';
+  if(it.status==='mitigated'&&m){
+    proofLine='<div class="eq-vrow-proof">✓ Traitée sur <b>'+esc(st.label)+'</b>'+(m.autoResolved?' (auto-vérifiée)':'')+(m.date?' le '+esc(fdate(m.date)):'')+(m.owner?' par '+esc(m.owner):'')+(m.expires?' · révision le '+esc(fdate(m.expires)):'')+(m.proof?' — '+esc(m.proof):'')+'</div>';
+  }else if(it.status==='expired'&&m){
+    proofLine='<div class="eq-vrow-proof">⏰ Révision échue le '+esc(fdate(m.expires))+' ('+esc(m.status||'Mitigée')+')'+(m.proof?' — '+esc(m.proof):'')+'</div>';
+  }
+  var actHtml='';
+  if(it.status==='mitigated'&&m){
+    actHtml='<button type="button" class="btn sm" data-mit-edit="'+esc(m.id)+'">Modifier la preuve</button>'+
+            '<button type="button" class="btn sm danger" data-mit-del="'+esc(m.id)+'">Réactiver</button>';
+  }else if(it.status==='expired'&&m){
+    actHtml='<button type="button" class="btn sm pri" data-mit-edit="'+esc(m.id)+'">Réviser / prolonger</button>'+
+            '<button type="button" class="btn sm ok" data-mit-open="'+esc(r.id)+'" data-mit-prod="'+esc(prodName(r))+'" data-mit-prio="'+esc(p)+'" data-mit-asset="'+esc(st.label)+'" data-mit-akey="'+esc(st.key)+'" data-mit-fix="'+esc(vi.fixedIn||r.pkg_fixed||'')+'">✓ Retraiter</button>';
+  }else{
+    actHtml='<button type="button" class="btn sm ok" data-mit-open="'+esc(r.id)+'" data-mit-prod="'+esc(prodName(r))+'" data-mit-prio="'+esc(p)+'" data-mit-asset="'+esc(st.label)+'" data-mit-akey="'+esc(st.key)+'" data-mit-fix="'+esc(vi.fixedIn||r.pkg_fixed||'')+'">✓ Marquer traitée</button>';
+  }
+  if(it.isManual){
+    actHtml+='<button type="button" class="btn sm" data-unlink-eq="'+esc(r.id)+'" data-unlink-key="'+esc(st.key)+'">Délier</button>';
+  }
+  actHtml+='<button type="button" class="btn sm" data-eq-open="'+esc(rowKey)+'" data-eq-cve="'+esc(r.id)+'">'+(isOpen?'Masquer la fiche':'Détails & références')+'</button>';
+  return '<div class="eq-vrow '+(it.status==='mitigated'?'treated':it.status==='expired'?'rev':'')+'">'+
+    '<div class="eq-vrow-top"><div class="eq-vrow-main">'+
+      '<div class="eq-vrow-id"><span class="prio '+p+'" style="padding:1px 6px;font-size:11px">'+p+'</span><b>'+esc(r.id)+'</b><span>'+esc(prodName(r))+'</span>'+miniTags.join('')+'</div>'+
+      '<p class="eq-vrow-txt">'+esc(summary)+'</p>'+whyLine+proofLine+
+    '</div><div>'+statusBadge+'</div></div>'+
+    '<div class="eq-vrow-act">'+actHtml+'</div>'+
+    (isOpen?'<div class="eq-vrow-det">'+card(r,{focusAsset:a})+'</div>':'')+
+  '</div>';
+}
 S.parc=function(){
-  var ps=splitParcResults(), res=ps.active, mitRes=ps.mitigated; curRows=res;
-  var h='<h1>Mon parc</h1><p class="lead">Ajoute tes équipements et logiciels : VulnWatch te montre <b>uniquement les failles actives qui te concernent</b>, en écartant celles que tu as déjà mitigées.</p>'+
-    '<div class="note">🔒 Ta liste et ton historique de mitigation restent <b>uniquement sur cet appareil</b>, dans ce navigateur. Rien n\'est envoyé sans ton action.</div>';
-  if(PARC.length){
-    var u=res.filter(function(r){return r.priority==='P1'||r.priority==='P2'}).length;
-    h+='<h2>'+res.length+' faille'+(res.length>1?'s':'')+' active'+(res.length>1?'s':'')+' sur ton parc'+(u?' — dont '+u+' à traiter rapidement':'')+'</h2>'+
-      (res.length?'<div class="bar"><span class="count">Marque une faille comme mitigée avec ta preuve pour stopper ses rappels.</span><button class="btn sm" id="exp">Exporter pour Excel</button></div>':'')+listHTML(res,parcShown,'pmore');
-    if(ps.patched){
-      h+='<div class="note">✅ <b>'+ps.patched+' faille'+(ps.patched>1?'s':'')+' écartée'+(ps.patched>1?'s':'')+'</b> : ta version installée est déjà corrigée. Renseigne la version de chaque équipement pour un tri encore plus précis.</div>';
+  var ps=splitParcResults(), allActive=ps.active, mitRes=ps.mitigated, allRows=ps.all||allActive.concat(mitRes), perAsset=ps.perAsset||[];
+  var validAssets=validParcAssets();
+  if(validAssets.length&&parcScan.sig!==parcSignature()&&!parcScan.loading){
+    setTimeout(function(){triggerParcScan(false)},0);
+  }
+  if(parcAssetFilter!=='all'&&!perAsset.some(function(x){return x.key===parcAssetFilter}))parcAssetFilter='all';
+  var selectedEq=parcAssetFilter==='all'?null:(perAsset.find(function(x){return x.key===parcAssetFilter})||null);
+  var avisMatching=(D.avis||[]).filter(function(a){return avisHits(a).length>0});
+
+  var h='<h1>Mon parc</h1><p class="lead">Détection automatique multi-sources (NVD, CISA KEV, EPSS, OSV/GHSA) avec vérification des plages de versions, niveau de fiabilité, preuves d\'exclusion et journal d\'audit exportable pour chaque équipement.</p>'+
+    '<div class="note">🔒 Tes équipements, tes liens manuels et ton journal d\'audit restent <b>uniquement sur cet appareil</b>, dans ce navigateur.</div>';
+
+  if(validAssets.length){
+    var uAll=allActive.filter(function(r){return r.priority==='P1'||r.priority==='P2'}).length;
+    var kevAll=allActive.filter(function(r){return r.kev}).length;
+    var totalLinksAct=perAsset.reduce(function(s,x){return s+x.active},0);
+    var totalLinksMit=perAsset.reduce(function(s,x){return s+x.mitigated},0);
+    var totalLinksExp=perAsset.reduce(function(s,x){return s+x.expired},0);
+    var totalLinksExcl=perAsset.reduce(function(s,x){return s+(x.excludedItems?x.excludedItems.length:0)},0);
+    var srcList=(ps.sources||[]).slice();
+    if(avisMatching.length&&srcList.indexOf('Avis Canada')<0)srcList.push('Avis Canada');
+
+    h+='<section class="parc-hero"><div class="parc-hero-hd"><div><h2>Voilà les vulnérabilités liées à tes équipements</h2>'+
+      '<div class="count" style="margin-top:3px"><b>'+allActive.length+' vulnérabilité'+(allActive.length>1?'s':'')+' à traiter</b>'+
+      (uAll?' · dont <b>'+uAll+' urgente'+(uAll>1?'s':'')+' (P1–P2)</b>':'')+
+      (totalLinksMit?' · <b style="color:var(--ok)">✓ '+totalLinksMit+' traitée'+(totalLinksMit>1?'s':'')+'</b>':'')+
+      (totalLinksExcl?' · 🛡️ '+totalLinksExcl+' écartée'+(totalLinksExcl>1?'s':'')+' (version non touchée)':'')+
+      '</div></div>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'+
+        (parcAssetFilter==='all'
+          ?'<div class="seg" role="group" aria-label="Mode d\'affichage"><button type="button" data-parc-view="byAsset" class="'+(parcViewMode==='byAsset'?'on':'')+'">Par équipement</button><button type="button" data-parc-view="list" class="'+(parcViewMode==='list'?'on':'')+'">Liste globale</button></div>'
+          :'<button type="button" class="btn sm" data-parc-asset="all">← Tous les équipements</button>')+
+        '<button type="button" class="btn sm" data-audit-open="'+esc(parcAssetFilter)+'">📄 Dossier d\'audit</button>'+
+        '<button type="button" class="btn sm" id="rescanParc"'+(parcScan.loading?' disabled':'')+'>'+(parcScan.loading?'Analyse en cours…':'↻ Actualiser')+'</button>'+
+        (allRows.length?'<button type="button" class="btn sm" id="exp">Exporter Excel</button>':'')+
+      '</div></div>';
+
+    h+='<div class="parc-src-bar'+(parcScan.loading?' busy':'')+'"><span>'+
+      (parcScan.loading
+        ?'🔍 <b>Analyse multi-sources automatique en cours</b> (NVD historique · CISA KEV · FIRST EPSS · OSV / GHSA · Veille locale)…'
+        :'🌐 <b>Sources croisées automatiquement</b> : '+esc(srcList.length?srcList.join(' · '):'Veille locale · NVD historique · CISA KEV · EPSS · OSV / GHSA')+(parcScan.doneAt?' · vérifié '+ago(new Date(parcScan.doneAt).toISOString()):''))+
+      '</span>'+
+      (parcScan.error?'<span style="color:var(--p2)">⚠ '+esc(parcScan.error)+'</span>':'')+
+      '</div>';
+
+    h+='<div class="parc-acards">'+
+      '<button type="button" class="parc-acard'+(parcAssetFilter==='all'?' on':'')+(uAll?' urgent':allActive.length===0?' clean':'')+'" data-parc-asset="all">'+
+        '<div class="parc-acard-top"><b>Tous mes équipements ('+validAssets.length+')</b><span class="parc-acard-cnt">'+(allActive.length?allActive.length+' à traiter':'✓ Conforme')+'</span></div>'+
+        '<div class="parc-acard-sub">'+(uAll?uAll+' urgente'+(uAll>1?'s':'')+' · ':'')+(totalLinksMit?'✓ '+totalLinksMit+' traitée'+(totalLinksMit>1?'s':''):(kevAll?kevAll+' exploitée'+(kevAll>1?'s':''):'Vue globale du parc'))+'</div>'+
+        ((totalLinksAct+totalLinksMit)>0?'<div class="eq-prog"><div class="eq-prog-fill" style="width:'+Math.round((totalLinksMit/(totalLinksAct+totalLinksMit))*100)+'%"></div></div>':'')+
+        '<div class="parc-acard-meta">'+(totalLinksExcl?'🛡️ '+totalLinksExcl+' écartée'+(totalLinksExcl>1?'s':'')+' (version vérifiée)':'Clique sur un équipement pour ouvrir sa fiche')+'</div>'+
+      '</button>'+
+      perAsset.map(function(st){
+        var a=st.asset, isOn=parcAssetFilter===st.key;
+        var totalEq=st.active+st.mitigated;
+        var pctDone=totalEq?Math.round((st.mitigated/totalEq)*100):100;
+        var cls='parc-acard'+(isOn?' on':'')+((st.p1||st.kev||st.expired)?' urgent':st.active===0?' clean':'');
+        var subLine=[[a.vendor,a.product].filter(Boolean).join(' '),a.version?('v'+a.version):'⚠ version non renseignée'].filter(Boolean).join(' · ');
+        var metaBits=[];
+        if(st.mitigated)metaBits.push('✓ '+st.mitigated+' traitée'+(st.mitigated>1?'s':''));
+        if(st.expired)metaBits.push('⏰ '+st.expired+' à réviser');
+        if(st.p1)metaBits.push(st.p1+' P1');
+        if(st.manual)metaBits.push('🔗 '+st.manual+' manuelle'+(st.manual>1?'s':''));
+        if(st.patched)metaBits.push('🛡️ '+st.patched+' non concernée'+(st.patched>1?'s':''));
+        if(!metaBits.length)metaBits.push(st.active?'À examiner':'Aucune faille active détectée');
+        return '<button type="button" class="'+cls+'" data-parc-asset="'+esc(st.key)+'">'+
+          '<div class="parc-acard-top"><b>'+esc(st.label)+'</b><span class="parc-acard-cnt">'+(st.active?st.active+' à traiter':(st.mitigated?'✓ '+st.mitigated+' traitée'+(st.mitigated>1?'s':''):'✓ 0'))+'</span></div>'+
+          '<div class="parc-acard-sub">'+esc(subLine)+'</div>'+
+          (totalEq?'<div class="eq-prog" title="'+pctDone+' % traité sur cet équipement"><div class="eq-prog-fill" style="width:'+pctDone+'%"></div></div>':'')+
+          '<div class="parc-acard-meta">'+esc(metaBits.join(' · '))+'</div>'+
+        '</button>';
+      }).join('')+
+    '</div>';
+
+    // Filtres statut (incluant les failles écartées par version pour audit!) + filtres rapides
+    var statusPool=selectedEq?selectedEq.items:perAsset.reduce(function(acc,x){return acc.concat(x.items)},[]);
+    var cntAll=selectedEq?selectedEq.items.length:(parcViewMode==='byAsset'?statusPool.length:allRows.length);
+    var cntAct=selectedEq?selectedEq.active:(parcViewMode==='byAsset'?totalLinksAct:allActive.length);
+    var cntMit=selectedEq?selectedEq.mitigated:(parcViewMode==='byAsset'?totalLinksMit:mitRes.length);
+    var cntExp=selectedEq?selectedEq.expired:totalLinksExp;
+    var cntExcl=selectedEq?(selectedEq.excludedItems?selectedEq.excludedItems.length:0):totalLinksExcl;
+    var cntUrg=statusPool.filter(function(it){return it.prio==='P1'||it.prio==='P2'}).length;
+    var cntKev=statusPool.filter(function(it){return !!it.row.kev}).length;
+    var cntMan=statusPool.filter(function(it){return !!it.isManual}).length;
+    if(cntAll||cntMit||cntExcl){
+      h+='<div class="chips" style="margin-top:12px">'+
+        '<button type="button" class="chip'+(parcStatusFilter==='all'?' on':'')+'" data-parc-st="all">Toutes ('+cntAll+')</button>'+
+        '<button type="button" class="chip'+(parcStatusFilter==='active'?' on':'')+'" data-parc-st="active">À traiter ('+cntAct+')</button>'+
+        '<button type="button" class="chip'+(parcStatusFilter==='treated'?' on':'')+'" data-parc-st="treated">✓ Déjà traitées ('+cntMit+')</button>'+
+        (cntExp?'<button type="button" class="chip'+(parcStatusFilter==='expired'?' on':'')+'" data-parc-st="expired">⏰ À réviser ('+cntExp+')</button>':'')+
+        (cntExcl?'<button type="button" class="chip'+(parcStatusFilter==='excluded'?' on':'')+'" data-parc-st="excluded">🛡️ Écartées par version ('+cntExcl+')</button>':'')+
+      '</div>';
+      if(parcStatusFilter!=='excluded'){
+        h+='<div class="chips" style="margin-top:6px">'+
+          '<button type="button" class="chip'+(parcQuickFilter==='all'?' on':'')+'" data-parc-qf="all">Tous critères</button>'+
+          (cntUrg?'<button type="button" class="chip'+(parcQuickFilter==='urgent'?' on':'')+'" data-parc-qf="urgent">Urgentes P1–P2 ('+cntUrg+')</button>':'')+
+          (cntKev?'<button type="button" class="chip'+(parcQuickFilter==='kev'?' on':'')+'" data-parc-qf="kev">Exploitées KEV ('+cntKev+')</button>':'')+
+          (cntMan?'<button type="button" class="chip'+(parcQuickFilter==='manual'?' on':'')+'" data-parc-qf="manual">🔗 Liées manuellement ('+cntMan+')</button>':'')+
+          '<button type="button" class="chip'+(parcQuickFilter==='ver'?' on':'')+'" data-parc-qf="ver">Version confirmée touchée</button>'+
+          '<button type="button" class="chip'+(parcQuickFilter==='hist'?' on':'')+'" data-parc-qf="hist">Historiques &gt; 30 j</button>'+
+        '</div>';
+      }
     }
-    if(mitRes.length){
-      h+='<div class="mit-summary"><span><b>✓ '+mitRes.length+' vulnérabilité'+(mitRes.length>1?'s':'')+' mitigée'+(mitRes.length>1?'s':'')+' sur ton parc</b> — retirée'+(mitRes.length>1?'s':'')+' des rappels continus.</span><button type="button" class="btn sm" data-go="mitigations">Voir l\'historique →</button></div>';
+    h+='</section>';
+
+    if(avisMatching.length){
+      h+='<div class="online-bar"><span>🇨🇦 <b>'+avisMatching.length+' avis officiel'+(avisMatching.length>1?'s':'')+' du Centre canadien</b> concerne'+(avisMatching.length>1?'nt':'')+' directement ton parc.</span><button type="button" class="btn sm pri" id="goAvisParc">Voir ces avis →</button></div>';
+    }
+
+    // AFFICHAGE 1 : Fiche dédiée d'un équipement précis
+    if(selectedEq){
+      var a=selectedEq.asset, tot=selectedEq.active+selectedEq.mitigated, pctDone=tot?Math.round((selectedEq.mitigated/tot)*100):100;
+      var exclList=selectedEq.excludedItems||[];
+      var eqFiltered=selectedEq.items.filter(matchParcItemFilters);
+      curRows=parcStatusFilter==='excluded'
+        ?exclList.map(function(ex){return Object.assign({},ex.row,{_eqStatus:'excluded',_eqName:selectedEq.label,_vnotes:[ex.verInfo.reason]})})
+        :eqFiltered.map(function(it){return Object.assign({},it.row,{_eqStatus:it.status,_eqName:selectedEq.label})});
+      h+='<section class="eq-focus"><div class="eq-focus-hd"><div>'+
+        '<h3>🖥️ '+esc(selectedEq.label)+'</h3>'+
+        '<div class="eq-grp-meta">'+esc([[a.vendor,a.product,a.version?('version '+a.version):'version non renseignée'].filter(Boolean).join(' · '),'importance '+(a.crit||'Moyenne').toLowerCase(),a.exposed==='Oui'?'exposé Internet':'interne',a.owner?('responsable : '+a.owner):''].filter(Boolean).join(' · '))+'</div>'+
+        '</div><div style="display:flex;gap:6px;flex-wrap:wrap">'+
+          '<button type="button" class="btn sm" data-audit-open="'+esc(selectedEq.key)+'">📄 Dossier d\'audit</button>'+
+          '<button type="button" class="btn sm pri" data-add-cve-eq="'+esc(selectedEq.key)+'">+ Lier une CVE</button>'+
+          '<button type="button" class="btn sm" data-parc-asset="all">← Tous les équipements</button>'+
+        '</div></div>'+
+        (!a.version?'<div class="note" style="margin-top:10px;margin-bottom:0">💡 Renseigne la <b>version installée</b> de cet équipement ci-dessous : VulnWatch écartera automatiquement les failles qui ne concernent pas ta version et confirmera celles qui la touchent avec preuve NVD/OSV.</div>':'')+
+        (tot?'<div style="margin-top:10px"><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--mute);margin-bottom:4px"><span>Progression du traitement sur cet équipement</span><b>'+selectedEq.mitigated+' / '+tot+' traitée'+(selectedEq.mitigated>1?'s':'')+' ('+pctDone+' %)</b></div><div class="eq-prog"><div class="eq-prog-fill" style="width:'+pctDone+'%"></div></div></div>':'')+
+        '<div class="eq-stats">'+
+          '<div class="eq-stat'+(selectedEq.active?' danger':'')+'"><b>'+selectedEq.active+'</b><span>À traiter</span></div>'+
+          '<div class="eq-stat ok"><b>'+selectedEq.mitigated+'</b><span>Déjà traitée'+(selectedEq.mitigated>1?'s':'')+'</span></div>'+
+          (selectedEq.expired?'<div class="eq-stat warn"><b>'+selectedEq.expired+'</b><span>À réviser</span></div>':'')+
+          '<div class="eq-stat"><b>'+exclList.length+'</b><span>Écartée'+(exclList.length>1?'s':'')+' (version)</span></div>'+
+        '</div></section>';
+      if(parcStatusFilter==='excluded'){
+        if(exclList.length){
+          h+='<div class="bar"><span class="count">🛡️ <b>'+exclList.length+' vulnérabilité'+(exclList.length>1?'s':'')+' écartée'+(exclList.length>1?'s':'')+' automatiquement</b> pour <b>'+esc(selectedEq.label)+'</b> (v'+esc(a.version)+') — justificatifs vérifiables pour audit.</span></div>'+
+            '<div class="eq-vlist">'+exclList.slice(0,parcShown).map(function(ex){return eqExcludedRowHTML(selectedEq,ex)}).join('')+'</div>';
+        }else{
+          h+='<div class="empty"><div class="ico">🛡️</div>Aucune vulnérabilité écartée par version pour cet équipement.</div>';
+        }
+      }else if(eqFiltered.length){
+        h+='<div class="bar"><span class="count">'+eqFiltered.length+' vulnérabilité'+(eqFiltered.length>1?'s':'')+' liée'+(eqFiltered.length>1?'s':'')+' à <b>'+esc(selectedEq.label)+'</b> · avec justification officielle, fiabilité et statut exact sur cet équipement.</span></div>'+
+          '<div class="eq-vlist">'+eqFiltered.slice(0,parcShown).map(function(it){return eqVulnRowHTML(selectedEq,it)}).join('')+'</div>'+
+          (eqFiltered.length>parcShown?'<p style="text-align:center"><button class="btn" id="pmore">Afficher plus ('+(eqFiltered.length-parcShown)+')</button></p>':'');
+      }else if(parcScan.loading){
+        h+='<div class="list"><div class="skel"></div><div class="skel"></div></div>';
+      }else{
+        h+='<div class="empty"><div class="ico">✅</div>'+(tot?'Aucune vulnérabilité dans ce filtre pour cet équipement.':'Aucune vulnérabilité active détectée ou liée manuellement pour cet équipement.')+'<p style="margin-top:10px"><button type="button" class="btn sm pri" data-add-cve-eq="'+esc(selectedEq.key)+'">+ Lier manuellement une CVE à '+esc(selectedEq.label)+'</button></p></div>';
+      }
+    }
+    // AFFICHAGE 2 : Tous les équipements — Vue « Par équipement »
+    else if(parcViewMode==='byAsset'){
+      var allFilteredRows=[];
+      perAsset.forEach(function(st){
+        var a=st.asset, tot=st.active+st.mitigated, pctDone=tot?Math.round((st.mitigated/tot)*100):100;
+        var exclList=st.excludedItems||[];
+        var items=st.items.filter(matchParcItemFilters);
+        if(parcStatusFilter==='excluded'){
+          exclList.forEach(function(ex){allFilteredRows.push(Object.assign({},ex.row,{_eqStatus:'excluded',_eqName:st.label,_vnotes:[ex.verInfo.reason]}))});
+        }else{
+          items.forEach(function(it){allFilteredRows.push(Object.assign({},it.row,{_eqStatus:it.status,_eqName:st.label}))});
+        }
+        var limit=parcExpandedEq[st.key]||8;
+        h+='<section class="eq-grp"><div class="eq-grp-hd"><div>'+
+          '<h3>🖥️ '+esc(st.label)+' <span class="eq-badge '+(st.active?'open':'treated')+'">'+(st.active?st.active+' à traiter':'✓ Conforme')+'</span>'+(st.mitigated?' <span class="eq-badge treated">✓ '+st.mitigated+' traitée'+(st.mitigated>1?'s':'')+'</span>':'')+(st.expired?' <span class="eq-badge rev">⏰ '+st.expired+' à réviser</span>':'')+'</h3>'+
+          '<div class="eq-grp-meta">'+esc([[a.vendor,a.product,a.version?('v'+a.version):'version non renseignée'].filter(Boolean).join(' · '),a.exposed==='Oui'?'exposé Internet':'interne',exclList.length?('🛡️ '+exclList.length+' écartée'+(exclList.length>1?'s':'')+' par version'):''].filter(Boolean).join(' · '))+'</div>'+
+          (tot?'<div class="eq-prog" style="max-width:280px;margin-top:6px" title="'+pctDone+' % traité"><div class="eq-prog-fill" style="width:'+pctDone+'%"></div></div>':'')+
+        '</div><div style="display:flex;gap:6px;flex-wrap:wrap">'+
+          '<button type="button" class="btn sm" data-audit-open="'+esc(st.key)+'">📄 Audit</button>'+
+          '<button type="button" class="btn sm" data-add-cve-eq="'+esc(st.key)+'">+ Lier une CVE</button>'+
+          '<button type="button" class="btn sm pri" data-parc-asset="'+esc(st.key)+'">Ouvrir la fiche →</button>'+
+        '</div></div>';
+        if(parcStatusFilter==='excluded'){
+          if(exclList.length){
+            h+='<div class="eq-vlist">'+exclList.slice(0,limit).map(function(ex){return eqExcludedRowHTML(st,ex)}).join('')+'</div>';
+            if(exclList.length>limit)h+='<p style="text-align:center;margin:10px 0 2px"><button type="button" class="btn sm" data-eq-more="'+esc(st.key)+'">Afficher les '+(exclList.length-limit)+' autres exclusions de '+esc(st.label)+'</button></p>';
+          }else{
+            h+='<div class="count" style="padding:10px 0">Aucune vulnérabilité écartée par version sur cet équipement.</div>';
+          }
+        }else if(items.length){
+          h+='<div class="eq-vlist">'+items.slice(0,limit).map(function(it){return eqVulnRowHTML(st,it)}).join('')+'</div>';
+          if(items.length>limit){
+            h+='<p style="text-align:center;margin:10px 0 2px"><button type="button" class="btn sm" data-eq-more="'+esc(st.key)+'">Afficher les '+(items.length-limit)+' autres vulnérabilités de '+esc(st.label)+'</button></p>';
+          }
+        }else if(parcScan.loading){
+          h+='<div class="count" style="padding:12px 0">🔍 Recherche multi-sources en cours pour cet équipement…</div>';
+        }else{
+          h+='<div class="count" style="padding:12px 0">'+(tot?'Aucune vulnérabilité dans ce filtre pour cet équipement.':'✅ Aucune vulnérabilité active détectée pour cet équipement.')+'</div>';
+        }
+        h+='</section>';
+      });
+      curRows=allFilteredRows;
+    }
+    // AFFICHAGE 3 : Tous les équipements — Vue « Liste globale »
+    else{
+      if(parcStatusFilter==='excluded'){
+        var flatExcl=[];
+        perAsset.forEach(function(st){(st.excludedItems||[]).forEach(function(ex){flatExcl.push({st:st,ex:ex})})});
+        curRows=flatExcl.map(function(x){return Object.assign({},x.ex.row,{_eqStatus:'excluded',_eqName:x.st.label,_vnotes:[x.ex.verInfo.reason]})});
+        h+=flatExcl.length
+          ?'<div class="eq-vlist">'+flatExcl.slice(0,parcShown).map(function(x){return eqExcludedRowHTML(x.st,x.ex)}).join('')+'</div>'
+          :'<div class="empty"><div class="ico">🛡️</div>Aucune vulnérabilité écartée par version.</div>';
+      }else{
+        var listPool=parcStatusFilter==='active'?allActive:parcStatusFilter==='treated'?mitRes:parcStatusFilter==='expired'?allActive.filter(function(r){return evalRowMitigation(r).needsRev}):allRows;
+        var res=listPool.filter(function(r){
+          if(parcQuickFilter==='urgent')return r.priority==='P1'||r.priority==='P2';
+          if(parcQuickFilter==='kev')return !!r.kev;
+          if(parcQuickFilter==='ver')return !!r._vconfirmed;
+          if(parcQuickFilter==='hist')return !!r._isHist;
+          if(parcQuickFilter==='manual')return !!r._hasManual;
+          return true;
+        });
+        curRows=res;
+        if(res.length){
+          h+='<div class="bar"><span class="count">Affichage de '+Math.min(res.length,parcShown)+' sur '+res.length+' faille'+(res.length>1?'s':'')+' · chaque fiche affiche les équipements liés et leur état de traitement.</span></div>'+listHTML(res,parcShown,'pmore');
+        }else if(parcScan.loading){
+          h+='<div class="list"><div class="skel"></div><div class="skel"></div></div>';
+        }else{
+          h+='<div class="empty"><div class="ico">✅</div>'+(allRows.length?'Aucune vulnérabilité dans ce filtre.':'Aucune vulnérabilité active détectée pour ces équipements et versions.')+'</div>';
+        }
+      }
     }
   }
-  h+='<h2>Mes équipements ('+PARC.length+')</h2>'+(PARC.length?'':'<p class="lead">Exemple : « VPN du siège » · Fortinet · FortiOS · 7.2.5 · Haute · Oui. Seuls le fournisseur et le produit sont indispensables.</p>')+
+  h+='<h2>Mes équipements ('+PARC.length+')</h2>'+(PARC.length?'':'<p class="lead">Exemple : « VPN du siège » · Fortinet · FortiOS · 7.2.5 · Haute · Oui. Dès que tu enregistres un équipement (ou que tu mets à jour sa version), VulnWatch analyse automatiquement toutes les sources, confirme les versions touchées et résout automatiquement les failles corrigées.</p>')+
     '<div class="form" id="assets">'+PARC.map(assetForm).join('')+'</div>'+(function(){var dl=autoLists();return '<datalist id="dlV">'+dl.v+'</datalist><datalist id="dlP">'+dl.p+'</datalist>'})()+
-    '<div class="bar"><button class="btn pri" id="addA">+ Ajouter un équipement</button><span style="display:flex;gap:6px;flex-wrap:wrap">'+(PARC.length?'<button class="btn sm pri" id="saveA">Enregistrer</button>':'')+'<button class="btn sm" id="impA">Importer une liste</button>'+(PARC.length?'<button class="btn sm" id="expA">Copier ma liste</button>':'')+'</span></div>'+
+    '<div class="bar"><button class="btn pri" id="addA">+ Ajouter un équipement</button><span style="display:flex;gap:6px;flex-wrap:wrap">'+(PARC.length?'<button class="btn sm pri" id="saveA">Enregistrer et analyser</button>':'')+'<button class="btn sm" id="impA">Importer une liste</button>'+(PARC.length?'<button class="btn sm" id="expA">Copier ma liste</button>':'')+'</span></div>'+
     '<div id="impBox" style="display:none" class="card"><b>Importer automatiquement ton parc</b><p class="lead" style="margin-top:6px">Choisis un fichier ou colle son contenu. Formats reconnus :</p>'+
       '<ul class="lead" style="margin-top:0;padding-left:18px"><li><b>Scan réseau Nmap</b> (fichier .xml, option <span class="mono">-sV -O -oX</span>) : services, versions et systèmes détectés</li>'+
       '<li><b>SBOM</b> CycloneDX ou SPDX (.json) : composants logiciels d\'une application</li>'+
@@ -1879,28 +3098,115 @@ function mitCsvText(){
     }).join(';');
   }).join('\n');
 }
-function populateMitAssets(cve,preferredAsset){
+function populateMitAssets(cve,preferredAsset,preferredKey){
   var sel=$('mitAssetSel');
   var hits=parcHitsForCve(cve);
   var opts=[];
   if(hits.length>1){
-    opts.push({val:'Tout le parc',label:'Tous les actifs concernés ('+hits.length+')'});
+    opts.push({val:'Tout le parc',akey:'',label:'Tous les équipements concernés ('+hits.length+')'});
   }
   hits.forEach(function(a){
-    var lbl=assetLabel(a);
-    if(lbl&&!opts.some(function(o){return o.val===lbl}))opts.push({val:lbl,label:lbl});
+    var lbl=assetLabel(a), ak=assetKey(a);
+    if(lbl&&!opts.some(function(o){return o.akey===ak}))opts.push({val:lbl,akey:ak,label:lbl+(a.version?' (v'+a.version+')':'')});
   });
   if(!opts.length&&preferredAsset){
-    opts.push({val:preferredAsset,label:preferredAsset});
+    opts.push({val:preferredAsset,akey:preferredKey||'',label:preferredAsset});
   }
-  sel.innerHTML=opts.map(function(o){return '<option value="'+esc(o.val)+'">'+esc(o.label)+'</option>'}).join('');
-  if(preferredAsset&&opts.some(function(o){return o.val===preferredAsset})){
-    sel.value=preferredAsset;
+  sel.innerHTML=opts.map(function(o){return '<option value="'+esc(o.val)+'" data-akey="'+esc(o.akey)+'">'+esc(o.label)+'</option>'}).join('');
+  var matchedOpt=null;
+  if(preferredKey)matchedOpt=opts.find(function(o){return o.akey===preferredKey});
+  if(!matchedOpt&&preferredAsset)matchedOpt=opts.find(function(o){return o.val===preferredAsset});
+  if(matchedOpt){
+    var idx=opts.indexOf(matchedOpt);
+    if(idx>=0)sel.selectedIndex=idx;
   }else if(opts.length){
-    sel.value=opts[0].val;
+    sel.selectedIndex=0;
   }
   return hits;
 }
+function renderLinkModalBody(){
+  var box=$('linkList');if(!box)return;
+  var assets=validParcAssets();
+  var r=findVulnById(linkModalCve)||{id:linkModalCve};
+  if(!assets.length){
+    box.innerHTML='<div class="empty" style="padding:18px">Ajoute d\'abord au moins un équipement dans « Mon parc ».</div>';
+    return;
+  }
+  box.innerHTML=assets.map(function(a){
+    var k=assetKey(a), lbl=assetLabel(a);
+    var isAuto=matchAsset(r,a);
+    var ml=findManualLink(linkModalCve,a);
+    var isLinked=isAuto||!!ml;
+    var ast=assetMitigationState(linkModalCve,a);
+    var stBadge=ast.state==='mitigated'
+      ?'<span class="eq-badge treated">✓ Déjà traitée ('+esc((ast.mit&&ast.mit.status)||'Corrigée')+')</span>'
+      :ast.state==='expired'
+      ?'<span class="eq-badge rev">⏰ À réviser</span>'
+      :isLinked?'<span class="eq-badge open">À traiter</span>':'';
+    var subBits=[[a.vendor,a.product,a.version?('v'+a.version):''].filter(Boolean).join(' · ')];
+    if(isAuto&&ml)subBits.push('détectée auto + liée manuellement');
+    else if(isAuto)subBits.push('détectée automatiquement');
+    else if(ml)subBits.push('liée manuellement'+(ml.note?' ('+ml.note+')':''));
+    else subBits.push('non liée');
+    return '<div class="link-row'+(isLinked?' linked':'')+'">'+
+      '<div class="link-row-info"><b>🖥️ '+esc(lbl)+'</b><small>'+esc(subBits.filter(Boolean).join(' · '))+'</small></div>'+
+      '<div class="link-row-act">'+stBadge+
+        (isLinked&&ast.state!=='mitigated'?'<button type="button" class="btn sm ok" data-mit-open="'+esc(linkModalCve)+'" data-mit-prod="'+esc(prodName(r))+'" data-mit-asset="'+esc(lbl)+'" data-mit-akey="'+esc(k)+'">✓ Traiter</button>':'')+
+        (ml
+          ?'<button type="button" class="btn sm danger" data-link-toggle="'+esc(k)+'" data-link-act="del">Délier</button>'
+          :(isAuto
+            ?'<button type="button" class="btn sm" data-link-toggle="'+esc(k)+'" data-link-act="add" title="Épingler manuellement sur cet équipement">Épingler</button>'
+            :'<button type="button" class="btn sm pri" data-link-toggle="'+esc(k)+'" data-link-act="add">+ Lier</button>'))+
+      '</div></div>';
+  }).join('');
+}
+function openLinkModal(cve){
+  var id=String(cve||'').trim().toUpperCase();
+  if(!id)return;
+  if(!validParcAssets().length){toast('Ajoute d\'abord tes équipements dans « Mon parc »');go('parc');return}
+  linkModalCve=id;
+  var r=findVulnById(id);
+  $('linkModalTitle').textContent='Équipements liés à '+id;
+  $('linkModalSub').textContent=(r&&prodName(r)?prodName(r)+' — ':'')+'Associe cette vulnérabilité à un ou plusieurs équipements et suis son traitement sur chacun.';
+  $('linkNote').value='';
+  renderLinkModalBody();
+  $('linkModal').classList.add('open');
+}
+function closeLinkModal(){$('linkModal').classList.remove('open')}
+function renderAddCveSuggestions(term){
+  var box=$('addCveSug');if(!box)return;
+  var t=norm(term||'').trim();
+  var pool=[], seen={};
+  var pushPool=function(arr){(arr||[]).forEach(function(r){if(r&&r.id&&!seen[r.id]){seen[r.id]=1;pool.push(r)}})};
+  pushPool(onlineState.results);
+  pushPool(parcScan.records);
+  if(D)pushPool(D.vulns);
+  var matches=pool.filter(function(r){
+    if(!t)return true;
+    return norm([r.id,r.vendor,r.product,r.affected,r.plain,r.desc].join(' ')).indexOf(t)>=0;
+  }).slice(0,8);
+  var up=String(term||'').trim().toUpperCase();
+  var html=matches.map(function(r){
+    return '<button type="button" class="addcve-item" data-pick-cve="'+esc(r.id)+'"><span><b>'+esc(r.id)+'</b> · '+esc(prodName(r))+'</span><span class="prio '+(r.priority||'P4')+'" style="padding:1px 6px;font-size:11px">'+esc(r.priority||'P4')+'</span></button>';
+  }).join('');
+  if(CVE_RE.test(up)&&!seen[up]){
+    html='<button type="button" class="addcve-item" data-pick-cve="'+esc(up)+'"><span><b>'+esc(up)+'</b> · Rechercher en ligne (NVD / CVE.org) et lier</span><span class="t src">En ligne</span></button>'+html;
+  }
+  box.innerHTML=html||'<div class="count">Saisis n\'importe quel identifiant CVE (ex. CVE-2024-3400) pour la lier, même si elle n\'est pas dans la veille locale.</div>';
+}
+function openAddCveModal(ak){
+  var a=findAssetByKey(ak);
+  if(!a){toast('Équipement introuvable');return}
+  addCveAssetKey=ak;
+  $('addCveTitle').textContent='Lier une vulnérabilité à '+assetLabel(a);
+  $('addCveSub').textContent=[[a.vendor,a.product,a.version?('v'+a.version):''].filter(Boolean).join(' · '),'la vulnérabilité apparaîtra directement dans la liste de cet équipement.'].filter(Boolean).join(' — ');
+  $('addCveInput').value='';
+  $('addCveNote').value='';
+  renderAddCveSuggestions('');
+  $('addCveModal').classList.add('open');
+  setTimeout(function(){$('addCveInput').focus()},30);
+}
+function closeAddCveModal(){$('addCveModal').classList.remove('open')}
 function bindMitigations(){
   var add=$('addMit');if(add)add.onclick=function(){openMitModal({})};
   var csv=$('expMitCsv');if(csv)csv.onclick=function(){download('vulnwatch-mitigations.csv',mitCsvText());toast('Registre exporté pour Excel')};
@@ -1935,12 +3241,42 @@ function bindMitigations(){
   if(ms){var mt;ms.oninput=function(){clearTimeout(mt);mt=setTimeout(function(){mitQ=ms.value.trim();var pos=ms.selectionStart;render();var el=$('mitSearch');if(el){el.focus();try{el.setSelectionRange(pos,pos)}catch(e){}}},180)}}
   document.querySelectorAll('[data-mit-f]').forEach(function(b){b.onclick=function(){mitFilter=b.dataset.mitF;render()}});
 }
+function updateMitProofHelpers(cve,fixedHint){
+  var box=$('mitProofPresets'), wrap=$('mitVerUpWrap'), chk=$('mitVerUpChk'), lbl=$('mitVerUpLbl');
+  var sel=$('mitAssetSel'), opt=sel&&sel.options[sel.selectedIndex], akey=(opt&&opt.dataset&&opt.dataset.akey)||'';
+  var a=akey?findAssetByKey(akey):null;
+  var r=findVulnById(cve);
+  var fix=fixedHint||'';
+  if(!fix&&r){
+    if(a){var vi=evaluateVersion(a.version,r.ranges,a.product,a.vendor);if(vi.fixedIn)fix=vi.fixedIn}
+    if(!fix&&r.pkg_fixed)fix=String(r.pkg_fixed).split(',')[0].trim();
+  }
+  var presets=[];
+  if(fix)presets.push({lbl:'Correctif v'+fix,txt:'Mis à jour vers la version '+fix+' (correctif officiel éditeur appliqué) — scan de validation OK.'});
+  presets.push({lbl:'Mise à jour appliquée',txt:'Correctif de sécurité éditeur installé et vérifié — redémarrage et contrôle OK.'});
+  presets.push({lbl:'Contournement pare-feu',txt:'Contournement appliqué : accès filtré au pare-feu / service isolé en attendant la fenêtre de mise à jour.'});
+  presets.push({lbl:'Composant désactivé',txt:'Fonctionnalité / port vulnérable désactivé sur cet équipement — exposition supprimée.'});
+  presets.push({lbl:'Non applicable',txt:'Configuration vérifiée : module vulnérable absent ou non activé sur cet équipement.'});
+  if(box){
+    box.innerHTML=presets.map(function(p){return '<button type="button" data-proof-tpl="'+esc(p.txt)+'">+ '+esc(p.lbl)+'</button>'}).join('');
+  }
+  if(wrap&&chk&&lbl){
+    var canUpgrade=!!(a&&fix&&$('mitStatus').value==='Corrigée'&&a.version!==fix);
+    wrap.style.display=canUpgrade?'flex':'none';
+    chk.checked=false;
+    chk.dataset.fix=fix;
+    chk.dataset.akey=akey;
+    if(canUpgrade){
+      lbl.innerHTML='<b>Mettre aussi à jour la version de '+esc(assetLabel(a))+'</b>'+(a.version?' (v'+esc(a.version)+' → v'+esc(fix)+')':' (→ v'+esc(fix)+')')+' — VulnWatch marquera automatiquement comme corrigées les autres failles réglées par cette version.';
+    }
+  }
+}
 function openMitModal(opts){
   mitLastFocus=document.activeElement;
   var existing=opts.editId?MITS.find(function(m){return m.id===opts.editId}):null;
   var cveSel=$('mitCveSel'), cveSelWrap=$('mitCveSelWrap'), cveReadWrap=$('mitCveReadWrap'), cveIn=$('mitCve');
   var cve=(existing?existing.cve:opts.cve||'').toUpperCase();
-  var ps=splitParcResults(), allParcVulns=ps.active.concat(ps.mitigated);
+  var ps=splitParcResults(), allParcVulns=ps.all||ps.active.concat(ps.mitigated);
   if(!existing&&!cve){
     if(!validParcAssets().length){toast('Ajoute d\'abord tes équipements dans « Mon parc »');go('parc');return}
     if(!allParcVulns.length){toast('Aucune vulnérabilité ne touche actuellement ton parc');return}
@@ -1954,7 +3290,8 @@ function openMitModal(opts){
     cveReadWrap.style.display='none';
   }else{
     if(!existing&&!parcHitsForCve(cve).length){
-      toast('La mitigation concerne uniquement les vulnérabilités liées à ton parc');
+      toast('Lie d\'abord cette vulnérabilité à un équipement de ton parc');
+      openLinkModal(cve);
       return;
     }
     cveSelWrap.style.display='none';
@@ -1963,10 +3300,11 @@ function openMitModal(opts){
   }
   var r=findVulnById(cve);
   $('mitEditId').value=existing?existing.id:'';
-  $('mitModalTitle').textContent=existing?(isMitigationExpired(existing)?'Réviser / prolonger la mitigation':'Modifier la preuve de mitigation'):'Enregistrer une mitigation';
-  $('mitModalSub').textContent=cve?(cve+(opts.product||(existing&&existing.product)||(r?prodName(r):'')?' · '+(opts.product||(existing&&existing.product)||(r?prodName(r):'')):'')+' — cette vulnérabilité sera retirée des rappels pour ton parc.'):'Documente l\'action réalisée sur un actif de ton parc pour démontrer la correction et arrêter les rappels continus.';
+  $('mitModalTitle').textContent=existing?(isMitigationExpired(existing)?'Réviser / prolonger le traitement':'Modifier la preuve de traitement'):'Marquer comme traitée / mitigée';
+  $('mitModalSub').textContent=cve?(cve+(opts.product||(existing&&existing.product)||(r?prodName(r):'')?' · '+(opts.product||(existing&&existing.product)||(r?prodName(r):'')):'')+' — cette vulnérabilité sera marquée comme traitée sur l\'équipement choisi.'):'Documente l\'action réalisée sur un équipement de ton parc pour démontrer la correction et arrêter les rappels continus.';
   var targetAsset=existing?(existing.asset||''):(opts.asset||'');
-  var hits=populateMitAssets(cve,targetAsset);
+  var targetKey=existing?(existing.assetUid||existing.assetKey||''):(opts.assetKey||'');
+  var hits=populateMitAssets(cve,targetAsset,targetKey);
   $('mitStatus').value=existing?(existing.status||'Corrigée'):'Corrigée';
   $('mitDate').value=existing?(existing.date||todayISO()):todayISO();
   $('mitExpires').value=existing?(existing.expires||''):'';
@@ -1974,6 +3312,8 @@ function openMitModal(opts){
   $('mitOwner').value=defaultOwner;
   $('mitProof').value=existing?(existing.proof||''):'';
   $('mitForm').dataset.product=existing?(existing.product||''):(opts.product||(r?prodName(r):''));
+  $('mitForm').dataset.fixed=opts.fixed||'';
+  updateMitProofHelpers(cve,opts.fixed||'');
   $('mitModal').classList.add('open');
   setTimeout(function(){(existing&&isMitigationExpired(existing)?$('mitExpires'):cveSelWrap.style.display!=='none'?cveSel:$('mitProof')).focus()},30);
 }
@@ -1981,24 +3321,145 @@ function closeMitModal(){
   $('mitModal').classList.remove('open');
   if(mitLastFocus&&mitLastFocus.focus)try{mitLastFocus.focus()}catch(e){}
 }
+function buildAuditReportData(eqKey){
+  var ps=splitParcResults();
+  var eqs=eqKey&&eqKey!=='all'?ps.perAsset.filter(function(x){return x.key===eqKey}):ps.perAsset;
+  var title=eqs.length===1?('Dossier d\'audit — '+eqs[0].label):('Dossier d\'audit complet du parc ('+eqs.length+' équipements)');
+  var generatedAt=new Date().toISOString();
+  var totAct=0, totMit=0, totExp=0, totExcl=0;
+  eqs.forEach(function(x){totAct+=x.active;totMit+=x.mitigated;totExp+=x.expired;totExcl+=(x.excludedItems?x.excludedItems.length:0)});
+  return {title:title,generatedAt:generatedAt,sources:ps.sources||[],eqs:eqs,totAct:totAct,totMit:totMit,totExp:totExp,totExcl:totExcl};
+}
+function buildAuditReportHTML(rep,standalone){
+  var pctDone=(rep.totAct+rep.totMit)?Math.round((rep.totMit/(rep.totAct+rep.totMit))*100):100;
+  var body='<div class="eq-stats" style="margin-top:0">'+
+    '<div class="eq-stat'+(rep.totAct?' danger':'')+'"><b>'+rep.totAct+'</b><span>À traiter</span></div>'+
+    '<div class="eq-stat ok"><b>'+rep.totMit+'</b><span>Déjà traitée'+(rep.totMit>1?'s':'')+'</span></div>'+
+    '<div class="eq-stat warn"><b>'+rep.totExp+'</b><span>À réviser</span></div>'+
+    '<div class="eq-stat"><b>'+rep.totExcl+'</b><span>Écartée'+(rep.totExcl>1?'s':'')+' (version)</span></div>'+
+    '<div class="eq-stat ok"><b>'+pctDone+' %</b><span>Taux de traitement</span></div>'+
+  '</div>';
+  body+='<p class="count" style="margin-top:8px">Généré le <b>'+esc(fmt(rep.generatedAt))+'</b> · Sources croisées : '+esc((rep.sources||[]).join(' · ')||'Veille locale · NVD · CISA KEV · EPSS · OSV')+'</p>';
+  rep.eqs.forEach(function(st){
+    var a=st.asset, treated=st.items.filter(function(x){return x.status==='mitigated'}), open=st.items.filter(function(x){return x.status!=='mitigated'}), excl=st.excludedItems||[];
+    body+='<div class="audit-sec" style="padding:12px;border:1px solid var(--line,#dbe3f0);border-radius:12px;margin-top:14px">'+
+      '<h3 style="margin:0 0 4px">🖥️ '+esc(st.label)+'</h3>'+
+      '<div class="count" style="margin-bottom:8px">'+esc([[a.vendor,a.product,a.version?('v'+a.version):'version non renseignée'].filter(Boolean).join(' · '),'importance '+(a.crit||'Moyenne'),a.exposed==='Oui'?'exposé Internet':'interne',a.owner?('responsable : '+a.owner):''].filter(Boolean).join(' · '))+'</div>';
+    body+='<h4>1. Vulnérabilités traitées / mitigées ('+treated.length+')</h4>';
+    if(treated.length){
+      body+='<table class="audit-tbl"><thead><tr><th>CVE</th><th>Gravité</th><th>Statut</th><th>Date / Révision</th><th>Responsable</th><th>Preuve & horodatage</th></tr></thead><tbody>'+
+        treated.map(function(it){
+          var m=it.mit||{};
+          return '<tr><td><b>'+esc(it.row.id)+'</b></td><td>'+esc(it.row.score!=null?it.row.score.toFixed(1)+'/10':'—')+'</td><td>'+esc((m.status||'Corrigée')+(m.autoResolved?' (auto)':'') )+'</td><td>'+esc((m.date?fdate(m.date):'—')+(m.expires?' · rév. '+fdate(m.expires):''))+'</td><td>'+esc(m.owner||'—')+'</td><td>'+esc(m.proof||'—')+(m.updatedAt?'<br><small style="color:#64748b">Horodatage : '+esc(fmt(m.updatedAt))+'</small>':'')+'</td></tr>';
+        }).join('')+'</tbody></table>';
+    }else body+='<p class="count">Aucune vulnérabilité traitée enregistrée sur cet équipement.</p>';
+    body+='<h4 style="margin-top:12px">2. Vulnérabilités actives à traiter ('+open.length+')</h4>';
+    if(open.length){
+      body+='<table class="audit-tbl"><thead><tr><th>CVE</th><th>Priorité</th><th>Fiabilité</th><th>Justification & version</th><th>Action</th></tr></thead><tbody>'+
+        open.map(function(it){
+          return '<tr><td><b>'+esc(it.row.id)+'</b></td><td>'+esc(it.prio+(it.row.kev?' · KEV':''))+'</td><td>'+esc(it.confidence)+'</td><td>'+esc([it.linkReason,it.verInfo&&it.verInfo.reason].filter(Boolean).join(' · '))+'</td><td>'+esc(fallbackTodo(it.prio,it.row))+'</td></tr>';
+        }).join('')+'</tbody></table>';
+    }else body+='<p class="count">✓ Aucune vulnérabilité active restante sur cet équipement.</p>';
+    body+='<h4 style="margin-top:12px">3. Vulnérabilités écartées automatiquement — version non concernée ('+excl.length+')</h4>';
+    if(excl.length){
+      body+='<table class="audit-tbl"><thead><tr><th>CVE</th><th>Produit</th><th>Preuve de non-applicabilité (NVD / OSV)</th></tr></thead><tbody>'+
+        excl.map(function(ex){
+          return '<tr><td><b>'+esc(ex.row.id)+'</b></td><td>'+esc(prodName(ex.row))+'</td><td>'+esc((ex.verInfo&&ex.verInfo.reason)||'Hors plage vulnérable')+'</td></tr>';
+        }).join('')+'</tbody></table>';
+    }else body+='<p class="count">Aucune exclusion par version enregistrée (renseigne la version installée si besoin).</p>';
+    body+='</div>';
+  });
+  if(!standalone)return body;
+  return '<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>'+esc(rep.title)+' — VulnWatch</title><style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#0f172a;background:#fff;max-width:1040px;margin:24px auto;padding:0 18px;line-height:1.45}h1{margin:0 0 6px;font-size:22px}h3{font-size:16px}h4{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#475569;margin:10px 0 6px}.count{font-size:12.5px;color:#475569}.eq-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}.eq-stat{border:1px solid #cbd5e1;border-radius:10px;padding:8px 12px;background:#f8fafc}.eq-stat b{display:block;font-size:20px}.eq-stat.danger b{color:#dc2626}.eq-stat.ok b{color:#15803d}.eq-stat.warn b{color:#c2410c}.audit-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px}.audit-tbl th,.audit-tbl td{text-align:left;padding:6px 8px;border:1px solid #e2e8f0;vertical-align:top}.audit-tbl th{background:#f1f5f9;font-size:11px;text-transform:uppercase}@media print{body{margin:0;max-width:none}}</style></head><body><h1>'+esc(rep.title)+'</h1>'+body+'<p class="count" style="margin-top:18px;border-top:1px solid #e2e8f0;padding-top:10px">Document généré par VulnWatch — Données officielles NVD (NIST), CISA KEV, FIRST EPSS, OSV / GitHub Advisories.</p></body></html>';
+}
+function openAuditModal(eqKey){
+  auditTargetKey=eqKey||'all';
+  auditLastReport=buildAuditReportData(auditTargetKey);
+  $('auditModalTitle').textContent=auditLastReport.title;
+  $('auditModalSub').textContent='Rapport horodaté prêt pour audit interne, RSSI ou conformité (traitées, actives et écartées par version).';
+  $('auditBody').innerHTML=buildAuditReportHTML(auditLastReport,false);
+  $('auditModal').classList.add('open');
+}
+function closeAuditModal(){$('auditModal').classList.remove('open')}
 function exportRows(){
   var cols=[['CVE','id'],['Priorité','priority'],['Produit',prodName],['En clair',function(r){return r.plain||fallbackPlain(r)}],['Que faire',function(r){return (r._mine||!r.todo)?fallbackTodo(r.priority,r):r.todo}],
     ['Gravité (sur 10)','score'],['Probabilité d\'attaque (EPSS)','epss'],['Exploitée (CISA)',function(r){return r.kev?'Oui':'Non'}],['Outil d\'attaque public',function(r){return r.msf?'Oui':''}],
-    ['Mes équipements',function(r){return r._hits?r._hits.map(function(h){return h.name||h.product}).join(', '):''}],['Ta version est-elle touchée ?',function(r){return (r._vnotes||[]).join(' · ')}],['Versions touchées','versions'],['Version corrigée','pkg_fixed'],
+    ['Mes équipements',function(r){return r._eqName||(r._allHits?r._allHits.map(assetLabel).join(', '):(r._hits?r._hits.map(assetLabel).join(', '):''))}],
+    ['Statut traitement',function(r){if(r._eqStatus)return r._eqStatus==='mitigated'?'Traitée':r._eqStatus==='expired'?'À réviser':r._eqStatus==='excluded'?'Écartée (version non concernée)':'À traiter';var st=evalRowMitigation(r);return st.isMit?'Traitée':st.needsRev?'À réviser':st.partial?'Partiellement traitée':'À traiter'}],
+    ['Ta version est-elle touchée ?',function(r){return (r._vnotes||[]).join(' · ')}],['Versions touchées','versions'],['Version corrigée','pkg_fixed'],
     ['Correctif',function(r){return r.ref_patch||''}],['Publiée','published'],['Fiche officielle',function(r){return 'https://nvd.nist.gov/vuln/detail/'+r.id}]];
   var lines=[cols.map(function(c){return c[0]}).join(';')].concat(curRows.map(function(r){return cols.map(function(c){var v=typeof c[1]==='function'?c[1](r):r[c[1]];v=v==null?'':String(v);return '"'+v.replace(/"/g,'""')+'"'}).join(';')}));
   download('vulnwatch-'+view+'.csv',lines.join('\n'));toast('Fichier prêt : ouvre-le avec Excel');
 }
-function saveParc(){parcCache=null;store('vw-parc',JSON.stringify(PARC))}
+function saveParc(){ensureAssetIds();parcCache=null;store('vw-parc',JSON.stringify(PARC))}
 function bindParc(){
   var box=$('assets');
-  var upd=function(e){var t=e.target;if(t.dataset.i!=null){PARC[+t.dataset.i][t.dataset.k]=t.value;saveParc()}};
+  var prevVers={};
+  PARC.forEach(function(a,idx){prevVers[idx]=a.version||''});
+  var upd=function(e){
+    var t=e.target;
+    if(t.dataset.i!=null){
+      var idx=+t.dataset.i, item=PARC[idx];
+      var oldK=assetKey(item), oldLbl=assetLabel(item);
+      item[t.dataset.k]=t.value;
+      migrateAssetRefs(oldK,oldLbl,item);
+      saveParc();
+      if(e.type==='change'&&t.dataset.k==='version'){
+        var resolved=autoResolveUpgradedAsset(item,prevVers[idx]);
+        prevVers[idx]=item.version||'';
+        if(resolved){toast('✓ '+resolved+' vulnérabilité'+(resolved>1?'s':'')+' automatiquement marquée'+(resolved>1?'s':'')+' corrigée'+(resolved>1?'s':'')+' suite au passage en v'+item.version);renderKeepActiveInput()}
+      }
+      if(t.dataset.k==='vendor'||t.dataset.k==='product'||t.dataset.k==='version')scheduleParcScan(950);
+    }
+  };
   box.addEventListener('input',upd);box.addEventListener('change',upd);
-  box.addEventListener('click',function(e){var b=e.target.closest('[data-del]');if(b){PARC.splice(+b.dataset.del,1);EDIT={};saveParc();render();return}
-    var ed=e.target.closest('[data-edit]');if(ed){EDIT[+ed.dataset.edit]=true;render()}});
-  $('addA').onclick=function(){PARC.push({name:'',vendor:'',product:'',version:'',crit:'Moyenne',exposed:'Non',owner:''});EDIT[PARC.length-1]=true;saveParc();render();
+  box.addEventListener('click',function(e){
+    var b=e.target.closest('[data-del]');
+    if(b){
+      var rem=PARC[+b.dataset.del];
+      if(rem){var rk=assetKey(rem);LINKS=LINKS.filter(function(lk){return lk.assetUid!==rk&&lk.assetKey!==rk});saveLinks()}
+      PARC.splice(+b.dataset.del,1);EDIT={};saveParc();triggerParcScan(false);render();return;
+    }
+    var ed=e.target.closest('[data-edit]');
+    if(ed){EDIT[+ed.dataset.edit]=true;render()}
+  });
+  document.querySelectorAll('[data-parc-asset]').forEach(function(b){
+    b.onclick=function(){parcAssetFilter=b.dataset.parcAsset||'all';parcShown=40;render();window.scrollTo(0,0)};
+  });
+  document.querySelectorAll('[data-parc-view]').forEach(function(b){
+    b.onclick=function(){parcViewMode=b.dataset.parcView||'byAsset';render()};
+  });
+  document.querySelectorAll('[data-parc-st]').forEach(function(b){
+    b.onclick=function(){parcStatusFilter=b.dataset.parcSt||'all';parcShown=40;render()};
+  });
+  document.querySelectorAll('[data-parc-qf]').forEach(function(b){
+    b.onclick=function(){parcQuickFilter=b.dataset.parcQf||'all';parcShown=40;render()};
+  });
+  document.querySelectorAll('[data-eq-more]').forEach(function(b){
+    b.onclick=function(){var k=b.dataset.eqMore;parcExpandedEq[k]=(parcExpandedEq[k]||8)+25;render()};
+  });
+  document.querySelectorAll('[data-eq-open]').forEach(function(b){
+    b.onclick=function(){
+      var rk=b.dataset.eqOpen, cve=b.dataset.eqCve;
+      parcInlineOpen[rk]=!parcInlineOpen[rk];
+      render();
+      if(parcInlineOpen[rk]&&cve){
+        var el=document.querySelector('[data-cve="'+CSS.escape(cve)+'"]');
+        if(el){el.classList.add('open');loadCveRefs(cve,el)}
+      }
+    };
+  });
+  var rs=$('rescanParc');if(rs)rs.onclick=function(){triggerParcScan(true)};
+  var ga=$('goAvisParc');if(ga)ga.onclick=function(){avisFilter='mine';go('avis')};
+  $('addA').onclick=function(){PARC.push({uid:newAssetUid(),name:'',vendor:'',product:'',version:'',crit:'Moyenne',exposed:'Non',owner:''});EDIT[PARC.length-1]=true;saveParc();render();
     setTimeout(function(){var l=document.querySelectorAll('.asset');if(l.length){l[l.length-1].scrollIntoView({behavior:'smooth',block:'center'});var i=l[l.length-1].querySelector('input');if(i)i.focus()}},60)};
-  var sv=$('saveA');if(sv)sv.onclick=function(){EDIT={};saveParc();toast('Enregistré — résultats mis à jour');render();window.scrollTo(0,0)};
+  var sv=$('saveA');if(sv)sv.onclick=function(){
+    var totalAuto=0;
+    PARC.forEach(function(a,idx){if(prevVers[idx]!==(a.version||'')){totalAuto+=autoResolveUpgradedAsset(a,prevVers[idx]);prevVers[idx]=a.version||''}});
+    EDIT={};saveParc();
+    toast(totalAuto?('Équipements enregistrés · ✓ '+totalAuto+' faille(s) automatiquement marquée(s) corrigée(s)'):'Équipements enregistrés — analyse multi-sources lancée');
+    render();triggerParcScan(false);window.scrollTo(0,0);
+  };
   $('impA').onclick=function(){$('impBox').style.display='block';$('impT').focus()};
   var impF=$('impF');if(impF)impF.onchange=function(){var f=impF.files&&impF.files[0];if(!f)return;
     if(f.size>15*1024*1024){toast('Fichier trop volumineux (15 Mo max)');return}
@@ -2008,10 +3469,10 @@ function bindParc(){
     var res=parseInventoryAny($('impT').value);
     var key=function(a){return norm(a.vendor)+'|'+norm(a.product)+'|'+norm(a.version)};
     var seen={};PARC.forEach(function(a){seen[key(a)]=1});
-    var n=0,dup=0;res.items.forEach(function(a){if(seen[key(a)]){dup++;return}seen[key(a)]=1;PARC.push(a);n++});
-    saveParc();toast(n+' équipement(s) importé(s)'+(dup?' · '+dup+' déjà présent(s)':'')+' — format : '+res.format);render()};
+    var n=0,dup=0;res.items.forEach(function(a){if(seen[key(a)]){dup++;return}seen[key(a)]=1;a.uid=newAssetUid();PARC.push(a);n++});
+    saveParc();toast(n+' équipement(s) importé(s)'+(dup?' · '+dup+' déjà présent(s)':'')+' — analyse multi-sources lancée');render();triggerParcScan(false);window.scrollTo(0,0)};
   var ea=$('expA');if(ea)ea.onclick=function(){
-    copyText('Actif;Fournisseur;Produit;Version;Criticite;Expose;Proprietaire\n'+PARC.filter(function(a){return a.vendor||a.product}).map(function(a){return [a.name,a.vendor,a.product,a.version,a.crit,a.exposed,a.owner].map(function(x){return String(x||'').replace(/;/g,',')}).join(';')}).join('\n'))};
+    copyText('Actif;Fournisseur;Produit;Version;Criticite;Expose;Proprietaire\n'+PARC.filter(function(a){return a.vendor||a.product||a.name}).map(function(a){return [a.name,a.vendor,a.product,a.version,a.crit,a.exposed,a.owner].map(function(x){return String(x||'').replace(/;/g,',')}).join(';')}).join('\n'))};
 }
 function bindSettings(){
   $('gen').onclick=function(){
@@ -2034,7 +3495,36 @@ function toggleAutoTranslate(){
 }
 document.addEventListener('click',function(e){
   var th=e.target.closest('[data-theme-set]');if(th){applyTheme(th.dataset.themeSet);if(view==='home'&&D)renderPrioChart();return}
-  var mo=e.target.closest('[data-mit-open]');if(mo){openMitModal({cve:mo.dataset.mitOpen,product:mo.dataset.mitProd||'',asset:mo.dataset.mitAsset||''});return}
+  var ao=e.target.closest('[data-audit-open]');if(ao){openAuditModal(ao.dataset.auditOpen||'all');return}
+  var pt=e.target.closest('[data-proof-tpl]');if(pt){var pEl=$('mitProof');if(pEl){pEl.value=pt.dataset.proofTpl;pEl.focus()}return}
+  var je=e.target.closest('[data-jump-eq]');if(je){parcAssetFilter=je.dataset.jumpEq||'all';parcStatusFilter='all';parcQuickFilter='all';go('parc');return}
+  var lo=e.target.closest('[data-link-open]');if(lo){openLinkModal(lo.dataset.linkOpen);return}
+  var lt=e.target.closest('[data-link-toggle]');if(lt){
+    var a=findAssetByKey(lt.dataset.linkToggle);
+    if(a&&linkModalCve){
+      if(lt.dataset.linkAct==='del'){
+        removeManualLink(linkModalCve,a);
+        toast('Lien manuel retiré pour '+assetLabel(a));
+      }else{
+        addManualLink(linkModalCve,a,findVulnById(linkModalCve),$('linkNote').value);
+        toast(linkModalCve+' liée à '+assetLabel(a)+' ✓');
+      }
+      renderLinkModalBody();
+      render();
+    }
+    return;
+  }
+  var ul=e.target.closest('[data-unlink-eq]');if(ul){
+    var ua=findAssetByKey(ul.dataset.unlinkKey);
+    if(ua&&removeManualLink(ul.dataset.unlinkEq,ua)){
+      toast(ul.dataset.unlinkEq+' déliée de '+assetLabel(ua));
+      render();
+    }
+    return;
+  }
+  var ace=e.target.closest('[data-add-cve-eq]');if(ace){openAddCveModal(ace.dataset.addCveEq);return}
+  var pk=e.target.closest('[data-pick-cve]');if(pk){$('addCveInput').value=pk.dataset.pickCve;renderAddCveSuggestions(pk.dataset.pickCve);return}
+  var mo=e.target.closest('[data-mit-open]');if(mo){closeLinkModal();openMitModal({cve:mo.dataset.mitOpen,product:mo.dataset.mitProd||'',asset:mo.dataset.mitAsset||'',assetKey:mo.dataset.mitAkey||'',fixed:mo.dataset.mitFix||''});return}
   var me=e.target.closest('[data-mit-edit]');if(me){openMitModal({editId:me.dataset.mitEdit});return}
   var md=e.target.closest('[data-mit-del]');if(md){
     var idx=MITS.findIndex(function(m){return m.id===md.dataset.mitDel});
@@ -2057,14 +3547,99 @@ document.addEventListener('click',function(e){
 $('mitClose').onclick=closeMitModal;
 $('mitCancel').onclick=closeMitModal;
 $('mitModal').addEventListener('click',function(e){if(e.target===$('mitModal'))closeMitModal()});
-document.addEventListener('keydown',function(e){if(e.key==='Escape'&&$('mitModal').classList.contains('open'))closeMitModal()});
+$('mitAssetSel').onchange=function(){
+  var fromSel=$('mitCveSelWrap').style.display!=='none';
+  var cve=(fromSel?$('mitCveSel').value:$('mitCve').value).trim().toUpperCase();
+  updateMitProofHelpers(cve,$('mitForm').dataset.fixed||'');
+};
+$('mitStatus').onchange=function(){
+  var fromSel=$('mitCveSelWrap').style.display!=='none';
+  var cve=(fromSel?$('mitCveSel').value:$('mitCve').value).trim().toUpperCase();
+  updateMitProofHelpers(cve,$('mitForm').dataset.fixed||'');
+};
+$('linkClose').onclick=closeLinkModal;
+$('linkDone').onclick=closeLinkModal;
+$('linkGoParc').onclick=function(){closeLinkModal();go('parc')};
+$('linkModal').addEventListener('click',function(e){if(e.target===$('linkModal'))closeLinkModal()});
+$('addCveClose').onclick=closeAddCveModal;
+$('addCveCancel').onclick=closeAddCveModal;
+$('addCveModal').addEventListener('click',function(e){if(e.target===$('addCveModal'))closeAddCveModal()});
+$('auditClose').onclick=closeAuditModal;
+$('auditDone').onclick=closeAuditModal;
+$('auditModal').addEventListener('click',function(e){if(e.target===$('auditModal'))closeAuditModal()});
+$('auditDownload').onclick=function(){
+  if(!auditLastReport)return;
+  var fname='vulnwatch-audit-'+(auditTargetKey==='all'?'parc-complet':norm(auditLastReport.title).replace(/[^a-z0-9]+/g,'-').slice(0,40))+'-'+todayISO()+'.html';
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([buildAuditReportHTML(auditLastReport,true)],{type:'text/html;charset=utf-8'}));
+  a.download=fname;a.click();
+  toast('Dossier d\'audit téléchargé (.html) — ouvrable ou imprimable en PDF ✓');
+};
+$('auditCopy').onclick=function(){
+  if(!auditLastReport)return;
+  var r=auditLastReport;
+  var txt=r.title+'\nGénéré le '+fmt(r.generatedAt)+'\nSynthèse : '+r.totAct+' à traiter · '+r.totMit+' traitée(s) · '+r.totExp+' à réviser · '+r.totExcl+' écartée(s) (version non touchée)\n\n'+
+    r.eqs.map(function(st){
+      var tr=st.items.filter(function(x){return x.status==='mitigated'});
+      var op=st.items.filter(function(x){return x.status!=='mitigated'});
+      return '=== '+st.label+' ('+[st.asset.vendor,st.asset.product,st.asset.version?('v'+st.asset.version):''].filter(Boolean).join(' ')+') ===\n'+
+        'Traitées ('+tr.length+') : '+(tr.length?tr.map(function(x){return x.row.id+' ['+(x.mit&&x.mit.status||'Corrigée')+' '+(x.mit&&x.mit.date||'')+']'}).join(', '):'aucune')+'\n'+
+        'À traiter ('+op.length+') : '+(op.length?op.map(function(x){return x.row.id+' ('+x.prio+')'}).join(', '):'aucune')+'\n'+
+        'Écartées par version ('+(st.excludedItems?st.excludedItems.length:0)+')';
+    }).join('\n\n');
+  copyText(txt);
+};
+$('addCveInput').oninput=function(){renderAddCveSuggestions(this.value)};
+$('addCveForm').onsubmit=function(e){
+  e.preventDefault();
+  var a=findAssetByKey(addCveAssetKey);
+  if(!a){closeAddCveModal();return}
+  var raw=$('addCveInput').value.trim().toUpperCase();
+  var m=raw.match(/CVE-\d{4}-\d{4,7}/i);
+  if(!m){toast('Saisis ou choisis un identifiant CVE valide (ex. CVE-2024-3400)');$('addCveInput').focus();return}
+  var id=m[0].toUpperCase(), note=$('addCveNote').value.trim();
+  var rec=findVulnById(id);
+  if(rec){
+    addManualLink(id,a,rec,note);
+    closeAddCveModal();
+    toast(id+' liée à '+assetLabel(a)+' ✓');
+    render();
+    return;
+  }
+  var btn=$('addCveSubmit');btn.disabled=true;btn.textContent='Recherche en ligne…';
+  apiRefs(id).then(function(res){
+    var fetched=res&&res.record?res.record:null;
+    if(fetched)mergeEnrichedIntoLocal(id,fetched);
+    addManualLink(id,a,fetched||{id:id,priority:'P3',severity:'NON ÉVALUÉE',vendor:a.vendor||'',product:a.product||'',desc:'Vulnérabilité liée manuellement à '+assetLabel(a)+'.',_sources:['Lien manuel']},note);
+    btn.disabled=false;btn.textContent='Lier à cet équipement';
+    closeAddCveModal();
+    toast(id+' liée à '+assetLabel(a)+' ✓');
+    render();
+  }).catch(function(){
+    addManualLink(id,a,{id:id,priority:'P3',severity:'NON ÉVALUÉE',vendor:a.vendor||'',product:a.product||'',desc:'Vulnérabilité liée manuellement à '+assetLabel(a)+'.',_sources:['Lien manuel']},note);
+    btn.disabled=false;btn.textContent='Lier à cet équipement';
+    closeAddCveModal();
+    toast(id+' liée à '+assetLabel(a)+' ✓');
+    render();
+  });
+};
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){
+    if($('mitModal').classList.contains('open'))closeMitModal();
+    if($('linkModal').classList.contains('open'))closeLinkModal();
+    if($('addCveModal').classList.contains('open'))closeAddCveModal();
+    if($('auditModal').classList.contains('open'))closeAuditModal();
+  }
+});
 $('mitCveSel').onchange=function(){
   var cve=this.value;
   var r=findVulnById(cve);
-  var hits=populateMitAssets(cve,'');
+  var hits=populateMitAssets(cve,'','');
   $('mitForm').dataset.product=r?prodName(r):'';
-  $('mitModalSub').textContent=cve+(r?' · '+prodName(r):'')+' — cette vulnérabilité sera retirée des rappels pour ton parc.';
+  $('mitForm').dataset.fixed=(r&&r.pkg_fixed)?String(r.pkg_fixed).split(',')[0].trim():'';
+  $('mitModalSub').textContent=cve+(r?' · '+prodName(r):'')+' — cette vulnérabilité sera marquée comme traitée sur l\'équipement choisi.';
   if(!$('mitOwner').value&&hits.length===1&&hits[0].owner)$('mitOwner').value=hits[0].owner;
+  updateMitProofHelpers(cve,$('mitForm').dataset.fixed||'');
 };
 document.querySelectorAll('[data-mit-exp]').forEach(function(b){
   b.onclick=function(){
@@ -2079,8 +3654,11 @@ $('mitForm').onsubmit=function(e){
   var cve=(fromSel?$('mitCveSel').value:$('mitCve').value).trim().toUpperCase();
   if(!/^CVE-\d{4}-\d{4,}$/i.test(cve)){toast('Sélectionne une vulnérabilité liée à ton parc');return}
   if(!editId&&!parcHitsForCve(cve).length){toast('La mitigation concerne uniquement les vulnérabilités liées à ton parc');return}
-  var asset=$('mitAssetSel').value;
-  if(!asset){toast('Sélectionne un actif de ton parc');return}
+  var sel=$('mitAssetSel');
+  var asset=sel.value;
+  var selOpt=sel.options[sel.selectedIndex];
+  var akey=(selOpt&&selOpt.dataset&&selOpt.dataset.akey)||'';
+  if(!asset){toast('Sélectionne un équipement de ton parc');return}
   var status=$('mitStatus').value;
   var date=$('mitDate').value||todayISO();
   var expires=$('mitExpires').value.trim();
@@ -2089,17 +3667,39 @@ $('mitForm').onsubmit=function(e){
   if(!proof){toast('Indique une preuve ou l\'action réalisée');$('mitProof').focus();return}
   var prod=this.dataset.product||'';
   if(!prod){var r=findVulnById(cve);if(r)prod=prodName(r)}
-  var rec={id:editId||('m'+Date.now()+Math.random().toString(36).slice(2,6)),cve:cve,asset:asset,product:prod,status:status,date:date,expires:expires,owner:owner,proof:proof,updatedAt:new Date().toISOString()};
+  var nowIso=new Date().toISOString();
+  var prevRec=editId?MITS.find(function(m){return m.id===editId}):MITS.find(function(m){return m.cve===cve&&((akey&&(m.assetUid===akey||m.assetKey===akey))||(!akey&&!m.assetKey&&norm(m.asset)===norm(asset)))});
+  var hist=(prevRec&&Array.isArray(prevRec.history))?prevRec.history.slice(-19):[];
+  hist.push({at:nowIso,action:prevRec?'update':'create',status:status,by:owner||'',expires:expires,proof:proof});
+  var rec={id:editId||(prevRec?prevRec.id:('m'+Date.now()+Math.random().toString(36).slice(2,6))),cve:cve,asset:asset,assetUid:akey,assetKey:akey,product:prod,status:status,date:date,expires:expires,owner:owner,proof:proof,updatedAt:nowIso,history:hist};
   if(editId){
     var idx=MITS.findIndex(function(m){return m.id===editId});
     if(idx>=0)MITS[idx]=rec;else MITS.unshift(rec);
-  }else{
-    var dup=MITS.findIndex(function(m){return m.cve===cve&&norm(m.asset)===norm(asset)});
+  }else if(prevRec){
+    var dup=MITS.indexOf(prevRec);
     if(dup>=0)MITS[dup]=rec;else MITS.unshift(rec);
+  }else{
+    MITS.unshift(rec);
   }
   saveMits();
+  // Si l'utilisateur a coché la mise à jour de version de l'équipement, on l'applique et on auto-résout les autres failles corrigées !
+  var upChk=$('mitVerUpChk'), extraResolved=0, upVer='';
+  if(upChk&&upChk.checked&&upChk.dataset.fix&&upChk.dataset.akey){
+    var targetA=findAssetByKey(upChk.dataset.akey);
+    if(targetA){
+      var oldV=targetA.version||'';
+      upVer=upChk.dataset.fix;
+      targetA.version=upVer;
+      saveParc();
+      extraResolved=autoResolveUpgradedAsset(targetA,oldV);
+      scheduleParcScan(400);
+    }
+  }
   closeMitModal();
-  toast(isMitigationExpired(rec)?'Enregistrée (date de révision déjà atteinte)':expires?'Mitigation enregistrée — révision le '+fdate(expires)+' ✓':'Mitigation enregistrée — rappel désactivé ✓');
+  toast(upVer
+    ?('Traitement enregistré + '+asset+' passé en v'+upVer+(extraResolved?' · ✓ '+extraResolved+' autre(s) faille(s) auto-corrigée(s)':''))
+    :(isMitigationExpired(rec)?'Enregistrée (date de révision déjà atteinte)':expires?'Traitement enregistré — révision le '+fdate(expires)+' ✓':'Traitement enregistré sur '+asset+' ✓'));
+  if($('linkModal').classList.contains('open'))renderLinkModalBody();
   render();
 };
 $('btnTr').onclick=toggleAutoTranslate;
@@ -2113,6 +3713,7 @@ fetch('data.json?t='+Date.now(),{cache:'no-store'}).then(function(r){if(!r.ok)th
   $('health').innerHTML='État des sources : '+Object.keys(k.health||{}).map(function(s){var h=k.health[s];return h.fails?'<span class="bad">'+esc(s)+' en panne</span>':esc(s)+' ✓'}).join(' · ');
   var parts=location.hash.replace(/^#/,'').split('/');if(parts[1])q=decodeURIComponent(parts[1]);
   go(parts[0]||'home',false);
+  if(validParcAssets().length)triggerParcScan(false);
 }).catch(function(e){app.innerHTML='<div class="empty"><div class="ico">⚠️</div>Impossible de charger les données ('+esc(e.message)+'). Réessaie dans un instant.</div>'});
 })();
 </script>
