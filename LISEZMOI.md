@@ -39,6 +39,16 @@ Ordre de priorité des réglages : une variable GitHub (Settings → Variables),
 
 ---
 
+## Nouveautés (fin novembre 2026)
+
+- **Import automatique du parc** (console → Mon parc → Importer) : choisis un fichier depuis ton iPhone ou ton PC, VulnWatch reconnaît tout seul :
+  - un **scan réseau Nmap** (`nmap -sV -O -oX scan.xml 192.168.1.0/24`) : services, versions et systèmes détectés ;
+  - une **SBOM** CycloneDX ou SPDX (`.json`) : les composants logiciels d'une application ;
+  - un **export CSV** d'outil d'inventaire (Intune, Lansweeper, PDQ, GLPI, Excel…) avec des colonnes éditeur / logiciel / version ;
+  - la liste VulnWatch habituelle (`Nom;Fournisseur;Produit;Version;…`).
+  Aperçu avant import, doublons ignorés, noms nettoyés (« Google LLC » → « Google », « (x64) » retiré). Tout reste sur ton appareil.
+- **Avis officiels en français** du Centre canadien pour la cybersécurité : nouvel onglet dans la console, nouvelle feuille « Avis officiels » dans l'Excel (colonne « Touche ton parc » dans la version complète), lien vers le bulletin depuis chaque CVE citée, et **une alerte push quand un nouveau bulletin touche ton parc**. Réglage : `sources → avis_centre_canadien`.
+
 ## Nouveautés (novembre 2026)
 
 - **« Ta version est-elle touchée ? »** Si tu indiques la version de chaque équipement, VulnWatch la compare aux plages vulnérables déclarées par l'éditeur.

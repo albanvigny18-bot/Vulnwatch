@@ -313,3 +313,95 @@ def apply_ghsa(rec: dict, g: dict) -> None:
     rec["packages"] = g.get("packages", "")
     rec["pkg_ranges"] = g.get("ranges", "")
     rec["pkg_fixed"] = g.get("fixed", "")
+
+
+# --------------------------------------------------------------------------- avis officiels (Centre canadien pour la cybersécurité)
+
+CCCS_URL = "https://www.cyber.gc.ca/api/cccs/rss/v1/get"
+CCCS_PARAMS = {"feed": "alerts_advisories", "lang": "fr"}
+_CVE_RE = re.compile(r"CVE-\d{4}-\d{4,7}", re.I)
+_AV_RE = re.compile(r"\b(AV|AL)\d{2}-\d{2,5}\b", re.I)
+_TAG_RE = re.compile(r"<[^>]+>")
+_TITLE_VENDOR = re.compile(r"(?:bulletin de s[ée]curit[ée]|avis de s[ée]curit[ée]|security advisory|mise [àa] jour de s[ée]curit[ée])\s+(?:de\s+|d['’]\s*|du\s+|des\s+)?(.+?)\s*(?:\(|$)", re.I)
+
+
+def _unescape(s: str) -> str:
+    import html
+    return html.unescape(_TAG_RE.sub(" ", html.unescape(s or ""))).replace("\xa0", " ").strip()
+
+
+def parse_cccs_rss(text: str) -> list[dict]:
+    """Lit le flux RSS/Atom des avis du Centre canadien pour la cybersécurité, de façon tolérante.
+    Renvoie une liste d'avis : id, titre, lien, date (ISO), résumé, CVE citées, fournisseur, OT/ICS."""
+    import xml.etree.ElementTree as ET
+    from email.utils import parsedate_to_datetime
+    text = (text or "").lstrip("﻿").strip()
+    if not text.startswith("<"):
+        raise ValueError("réponse inattendue (pas du XML)")
+    root = ET.fromstring(text)
+    items = [e for e in root.iter() if e.tag.split("}")[-1] in ("item", "entry")]
+    out = []
+    for it in items:
+        f = {}
+        for ch in it:
+            tag = ch.tag.split("}")[-1].lower()
+            if tag == "link" and ch.get("href"):
+                f.setdefault("link", ch.get("href"))
+            elif ch.text and tag not in f:
+                f[tag] = ch.text
+        title = _unescape(f.get("title", ""))
+        if not title:
+            continue
+        summary = _unescape(f.get("description") or f.get("summary") or f.get("content") or "")
+        link = (f.get("link") or f.get("guid") or f.get("id") or "").strip()
+        raw_date = f.get("pubdate") or f.get("published") or f.get("updated") or f.get("date") or ""
+        try:
+            d = parsedate_to_datetime(raw_date) if "," in raw_date or raw_date[:3].isalpha() else dt.datetime.fromisoformat(raw_date.replace("Z", "+00:00"))
+            if d.tzinfo is None:
+                d = d.replace(tzinfo=dt.timezone.utc)
+            date = d.astimezone(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        except Exception:  # noqa: BLE001
+            date = ""
+        av = _AV_RE.search(title) or _AV_RE.search(summary) or _AV_RE.search(link)
+        aid = av.group(0).upper() if av else (link.rstrip("/").rsplit("/", 1)[-1] or title)[:80]
+        ics = bool(re.search(r"syst[èe]mes? de contr[ôo]le|industrial control|\bICS\b|\bSCADA\b|\bOT\b", title + " " + summary, re.I))
+        clean_title = re.sub(r"^\s*\[[^\]]*\]\s*", "", title)
+        m = _TITLE_VENDOR.search(clean_title)
+        vendor = (m.group(1).strip(" -–:") if m else "")[:80]
+        cves = sorted({c.upper() for c in _CVE_RE.findall(title + " " + summary)})
+        out.append({"id": aid, "title": title[:300], "url": link, "date": date, "summary": summary[:1200],
+                    "cves": cves[:60], "vendor": vendor, "ics": ics})
+    return out
+
+
+def fetch_cccs(http) -> list[dict]:
+    text = http.get_text(CCCS_URL, params=CCCS_PARAMS, headers={"Accept": "application/rss+xml, application/xml, text/xml"},
+                         tries=3, timeout=60)
+    items = parse_cccs_rss(text)
+    _log(f"Centre canadien pour la cybersécurité : {len(items)} avis dans le flux")
+    return items
+
+
+def _n(s: str) -> str:
+    import unicodedata
+    s = unicodedata.normalize("NFKD", s or "").encode("ascii", "ignore").decode().lower()
+    return " " + re.sub(r"[^a-z0-9]+", " ", s).strip() + " "
+
+
+def match_advisory(adv: dict, inventory: list[dict], watch_terms: list[str] | None = None) -> list[str]:
+    """Actifs (ou mots-clés surveillés) concernés par un avis, d'après le fournisseur / produit cité.
+    Résultat PRIVÉ : ne jamais l'écrire dans l'état ni dans les fichiers publiés."""
+    hay = _n(adv.get("title", "") + " " + adv.get("vendor", "") + " " + adv.get("summary", "")[:600])
+    head = _n(adv.get("title", "") + " " + adv.get("vendor", ""))
+    hits = []
+    for it in inventory or []:
+        v, p = _n(it.get("vendor", "")).strip(), _n(it.get("product", "")).strip()
+        v1 = v.split()[0] if v else ""
+        ok = (v1 and len(v1) >= 3 and f" {v1} " in head) or (p and len(p) >= 4 and f" {p} " in hay)
+        if ok:
+            hits.append(it.get("asset") or f"{it.get('vendor', '')} {it.get('product', '')}".strip())
+    for w in watch_terms or []:
+        wn = _n(w).strip()
+        if wn and len(wn) >= 3 and f" {wn} " in hay:
+            hits.append(w)
+    return list(dict.fromkeys(hits))

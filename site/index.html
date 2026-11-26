@@ -302,6 +302,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
     <button class="tab" data-go="explore">Explorer</button>
     <button class="tab" data-go="views">Vues expertes</button>
     <button class="tab" data-go="kev">Failles exploitées (CISA)</button>
+    <button class="tab" data-go="avis">Avis officiels (Canada)</button>
     <button class="tab" data-go="alerts">Alertes</button>
     <button class="tab" data-go="learn">Comprendre</button>
     <button class="tab" data-go="install">Mon propre VulnWatch</button>
@@ -321,7 +322,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 
 <footer>
   <div id="health" class="health"></div>
-  <p>Sources : NVD (NIST) · CISA KEV · CISA Vulnrichment · FIRST EPSS · GitHub Advisories · Metasploit · Nuclei · Exploit-DB.<br>
+  <p>Sources : NVD (NIST) · CISA KEV · CISA Vulnrichment · FIRST EPSS · GitHub Advisories · Metasploit · Nuclei · Exploit-DB · Centre canadien pour la cybersécurité.<br>
   This product uses the NVD API but is not endorsed or certified by the NVD.<br>
   Données ouvertes : <a href="data.json">JSON</a> · <a href="vulns.csv">CSV</a> · <a href="kev.csv">KEV</a> · <a href="feed.xml">RSS</a> · <a href="VulnWatch.xlsx">Excel</a></p>
 </footer>
@@ -673,6 +674,108 @@ function versionStatus(inst,ranges,hint){
     if(aboveLow&&belowHigh)return 'touchée'}
   return usable&&same?'non touchée':'à vérifier';
 }
+
+/* ---------- Import automatique du parc : Nmap XML, CycloneDX / SPDX JSON, CSV d'inventaire, liste VulnWatch ---------- */
+var NMAP_MAP=[[/^apache httpd/i,'Apache','HTTP Server'],[/^microsoft iis/i,'Microsoft','Internet Information Services'],[/^nginx/i,'F5','nginx'],
+  [/^openssh/i,'OpenBSD','OpenSSH'],[/^microsoft windows rpc/i,'',''],[/^microsoft-ds|^microsoft windows netbios/i,'',''],[/^isc bind/i,'ISC','BIND'],
+  [/^postfix/i,'Postfix','Postfix'],[/^exim/i,'Exim','Exim'],[/^mysql/i,'Oracle','MySQL'],[/^mariadb/i,'MariaDB','MariaDB'],[/^postgresql/i,'PostgreSQL','PostgreSQL'],
+  [/^vsftpd/i,'vsftpd','vsftpd'],[/^proftpd/i,'ProFTPD','ProFTPD'],[/^samba/i,'Samba','Samba'],[/^apache tomcat/i,'Apache','Tomcat'],[/^jetty/i,'Eclipse','Jetty'],
+  [/^lighttpd/i,'lighttpd','lighttpd'],[/^dropbear/i,'Dropbear','Dropbear SSH'],[/^fortinet|^fortigate/i,'Fortinet','FortiOS'],[/^cisco/i,'Cisco','']];
+function nmapProduct(p){
+  for(var i=0;i<NMAP_MAP.length;i++){if(NMAP_MAP[i][0].test(p)){if(!NMAP_MAP[i][1]&&!NMAP_MAP[i][2])return null;return {vendor:NMAP_MAP[i][1],product:NMAP_MAP[i][2]||p.replace(/^cisco\s*/i,'')}}}
+  var w=p.split(/\s+/);return w.length>1?{vendor:w[0],product:p.replace(/\s+(httpd|ftpd|smtpd|sshd)$/i,'')}:{vendor:'',product:p};
+}
+function cleanVendor(v){
+  return String(v||'').replace(/\s*\(.*?\)\s*/g,' ').replace(/[,.]?\s+(systems\s+)?(incorporated|inc\.?|llc|corporation|corp\.?|ltd\.?|limited|gmbh|s\.a\.s\.?|sas|sa|ag|co\.?|b\.v\.|plc|software foundation|foundation)\s*$/i,'').replace(/\s+/g,' ').trim();
+}
+function cleanProduct(p,version){
+  var x=String(p||'').replace(/\s*\((x64|x86|64-bit|32-bit|amd64|arm64)\)\s*/ig,' ').trim();
+  if(version){var i=x.indexOf(' '+version);if(i<0)i=x.indexOf(' v'+version);if(i>0)x=x.slice(0,i)}
+  return x.replace(/\s+v?\d+(\.\d+)+[a-z0-9.\-]*$/i,'').replace(/\s+/g,' ').trim();
+}
+function finishItems(items){
+  var out=[],seen={};
+  items.forEach(function(a){a.vendor=cleanVendor(a.vendor);a.product=cleanProduct(a.product,a.version);if(!a.product&&!a.vendor)return;
+    var k=norm(a.vendor)+'|'+norm(a.product)+'|'+norm(a.version);if(seen[k])return;seen[k]=1;out.push(a)});
+  /* Un système vu sans version (Nmap -O) n'est gardé que s'il n'existe pas déjà avec une version */
+  return out.filter(function(a){return a.version||!out.some(function(b){return b!==a&&b.version&&norm(b.vendor)===norm(a.vendor)&&norm(b.product)===norm(a.product)})});
+}
+function parseInventoryAny(text){var r=parseInventoryRaw(text);r.items=finishItems(r.items);return r}
+function parseInventoryRaw(text){
+  text=String(text||'').replace(/^\uFEFF/,'').trim();var items=[];
+  if(!text)return {format:'vide',items:items};
+  // 1. Nmap XML
+  if(/<nmaprun[\s>]/i.test(text)){
+    var doc=new DOMParser().parseFromString(text,'application/xml'),byKey={};
+    Array.prototype.forEach.call(doc.querySelectorAll('host'),function(h){
+      if(h.querySelector('status')&&h.querySelector('status').getAttribute('state')!=='up')return;
+      var ip=(h.querySelector('address[addrtype="ipv4"]')||h.querySelector('address')||{getAttribute:function(){return ''}}).getAttribute('addr')||'';
+      var hn=h.querySelector('hostnames hostname');var host=(hn&&hn.getAttribute('name'))||ip;
+      var add=function(vendor,product,version,where){if(!product)return;var k=norm(vendor)+'|'+norm(product)+'|'+norm(version);
+        if(byKey[k]){if(byKey[k]._hosts.indexOf(where)<0)byKey[k]._hosts.push(where);return}
+        byKey[k]={name:'',vendor:vendor,product:product,version:version||'',crit:'Moyenne',exposed:'Non',owner:'',_hosts:[where]}};
+      Array.prototype.forEach.call(h.querySelectorAll('ports port'),function(pt){
+        var st=pt.querySelector('state');if(st&&st.getAttribute('state')!=='open')return;
+        var sv=pt.querySelector('service');if(!sv)return;var prod=sv.getAttribute('product');if(!prod)return;
+        var m=nmapProduct(prod);if(!m)return;add(m.vendor,m.product,sv.getAttribute('version')||'',host+':'+pt.getAttribute('portid'));
+      });
+      var os=h.querySelector('os osmatch');if(os){var on=os.getAttribute('name')||'',w=on.split(/\s+/);
+        var oc=os.querySelector('osclass');var ven=(oc&&oc.getAttribute('vendor'))||w[0]||'';
+        var prodOs=on.replace(new RegExp('^'+ven.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*','i'),'').replace(/\s+or\s+.*$/i,'').replace(/\s+\d+(\.x)+$/i,'').trim();
+        if(prodOs)add(ven,prodOs,'',host)}
+    });
+    Object.keys(byKey).forEach(function(k){var a=byKey[k];a.name=[a.vendor,a.product].filter(Boolean).join(' ')+' — '+a._hosts.slice(0,3).join(', ')+(a._hosts.length>3?' +'+(a._hosts.length-3):'');delete a._hosts;items.push(a)});
+    return {format:'scan Nmap',items:items};
+  }
+  // 2. SBOM JSON (CycloneDX / SPDX)
+  if(/^[\[{]/.test(text)){
+    try{var j=JSON.parse(text);
+      var comps=j.components||(j.metadata&&j.metadata.component?[j.metadata.component]:[]);
+      if(comps&&comps.length){
+        var walk=function(list){(list||[]).forEach(function(c){
+          var pub=c.publisher||c.group||'';if(!pub&&c.purl){var m=String(c.purl).match(/^pkg:[^/]+\/([^/@]+)\//);if(m)pub=decodeURIComponent(m[1])}
+          if(c.name)items.push({name:c.name+(c.version?' '+c.version:''),vendor:pub,product:c.name,version:c.version||'',crit:'Moyenne',exposed:'Non',owner:''});
+          if(c.components)walk(c.components)})};
+        walk(j.components);return {format:'SBOM CycloneDX',items:items};
+      }
+      if(j.packages&&j.packages.length){
+        j.packages.forEach(function(pk){var sup=String(pk.supplier||'').replace(/^(Organization|Person):\s*/i,'');if(/NOASSERTION/i.test(sup))sup='';
+          if(pk.name)items.push({name:pk.name+(pk.versionInfo?' '+pk.versionInfo:''),vendor:sup,product:pk.name,version:pk.versionInfo||'',crit:'Moyenne',exposed:'Non',owner:''})});
+        return {format:'SBOM SPDX',items:items};
+      }
+    }catch(e){}
+  }
+  // 3. CSV / TSV avec en-têtes (export d'outil d'inventaire) ou liste VulnWatch
+  var lines=text.split(/\r?\n/).filter(function(l){return l.trim()});
+  var first=lines[0]||'',delim=first.indexOf('\t')>=0?'\t':(first.split(';').length>=first.split(',').length?';':',');
+  var splitL=function(l){var out=[],cur='',q=false;for(var i=0;i<l.length;i++){var ch=l[i];if(ch==='"'){if(q&&l[i+1]==='"'){cur+='"';i++}else q=!q}else if(ch===delim&&!q){out.push(cur.trim());cur=''}else cur+=ch}out.push(cur.trim());return out};
+  var head=splitL(first).map(function(h){return norm(h).replace(/[^a-z0-9]+/g,' ').trim()});
+  var col=function(syn){for(var i=0;i<head.length;i++){for(var j=0;j<syn.length;j++){if(head[i]===syn[j]||head[i].indexOf(syn[j])===0)return i}}return -1};
+  var cN=col(['actif','asset','nom de l appareil','device name','computer name','hostname','nom','name','appareil','machine']),
+      cV=col(['fournisseur','editeur','publisher','vendor','manufacturer','fabricant','software publisher','application publisher']),
+      cP=col(['produit','product','software name','application name','application','logiciel','software','display name','displayname','model','modele','title']),
+      cVer=col(['version','display version','displayversion','software version','application version','firmware']),
+      cC=col(['criticite','criticality','importance','priorite']),cE=col(['expose','exposed','internet','exposition']),cO=col(['proprietaire','responsable','owner','assigned to']);
+  if(cP<0&&cN>=0&&cV>=0){cP=cN;cN=-1}
+  var hasHeader=cP>=0&&(cV>=0||cVer>=0);
+  if(hasHeader){
+    lines.slice(1).forEach(function(l){var c=splitL(l);var prod=c[cP]||'';if(!prod)return;
+      items.push({name:(cN>=0?c[cN]:'')||prod,vendor:cV>=0?c[cV]||'':'',product:prod,version:cVer>=0?c[cVer]||'':'',
+        crit:/haute|crit|high|élev|elev/i.test(cC>=0?c[cC]:'')?'Haute':/bas|low|faible/i.test(cC>=0?c[cC]:'')?'Basse':'Moyenne',
+        exposed:/^(oui|yes|o|y|1|vrai|true)$/i.test(cE>=0?(c[cE]||'').trim():'')?'Oui':'Non',owner:cO>=0?c[cO]||'':''})});
+    return {format:'export CSV',items:items};
+  }
+  lines.forEach(function(l){var c=splitL(l);if(/^(actif|nom|asset)$/i.test(c[0]||''))return;if(!(c[1]||c[2]))return;
+    items.push({name:c[0]||'',vendor:c[1]||'',product:c[2]||'',version:c[3]||'',crit:/haute|crit|high|élev|elev/i.test(c[4]||'')?'Haute':/bas|low|faible/i.test(c[4]||'')?'Basse':'Moyenne',
+      exposed:/^(oui|yes|o|y|1|vrai|true)$/i.test((c[5]||'').trim())?'Oui':'Non',owner:c[6]||''})});
+  return {format:'liste VulnWatch',items:items};
+}
+function previewImport(){
+  var res=parseInventoryAny($('impT').value),el=$('impPrev');if(!el)return;
+  if(!res.items.length){el.innerHTML='Aucun équipement reconnu. Vérifie le format (voir la liste ci-dessus).';return}
+  el.innerHTML='<b>'+res.items.length+' équipement(s) reconnu(s)</b> — format : '+esc(res.format)+'<br>'+res.items.slice(0,8).map(function(a){return '• '+esc([a.vendor,a.product,a.version].filter(Boolean).join(' '))}).join('<br>')+(res.items.length>8?'<br>…':'')+
+    '<br><span class="count">Après l\'import, indique pour chacun son importance et s\'il est accessible depuis Internet.</span>';
+}
 function splitParcResults(){
   if(parcCache)return parcCache;
   if(!PARC.length||!D)return (parcCache={active:[],mitigated:[]});
@@ -915,7 +1018,7 @@ function card(r){
   var mine=displayHits.length?displayHits.map(function(h){return (h.name||h.product)+(h.version?' (ta version : '+h.version+')':'')}).join(', '):'';
   var vec=(r.vector||'').split('/').reduce(function(o,x){var k=x.split(':');if(k[1])o[k[0]]=k[1];return o},{});
   var rows=[[simple?'Pourquoi cette priorité':'En clair',simple?r.justification:plain,false],[simple?'Description':'',simple?descTxt:'',false],
-    ['Tes équipements',mine,false],['Ta version est-elle touchée ?',(r._vnotes&&r._vnotes.length)?r._vnotes.join(' · '):'',false],['Produits concernés',r.affected&&r.affected!==prodName(r)?r.affected:'',false],['Versions touchées',r.versions||r.pkg_ranges,false],['Version corrigée',r.pkg_fixed,false],['Type d\'attaque',r.tags,false],['Catégorie',r.family,false],
+    ['Tes équipements',mine,false],['Ta version est-elle touchée ?',(r._vnotes&&r._vnotes.length)?r._vnotes.join(' · '):'',false],['Produits concernés',r.affected&&r.affected!==prodName(r)?r.affected:'',false],['Versions touchées',r.versions||r.pkg_ranges,false],['Version corrigée',r.pkg_fixed,false],['Avis officiel (Canada)',r.avis,false],['Type d\'attaque',r.tags,false],['Catégorie',r.family,false],
     ['Depuis où ?',{N:'Réseau / Internet',A:'Réseau local',L:'Accès à la machine',P:'Accès physique'}[vec.AV],false],['Accès nécessaire',{N:'Aucun compte',L:'Compte simple',H:'Compte administrateur'}[vec.PR],false],
     ['Action de la victime',{N:'Aucune',R:'Requise (clic, ouverture…)',P:'Passive',A:'Active'}[vec.UI],false],
     ['Probabilité d\'attaque (30 j)',r.epss!=null?pct(r.epss)+(r.epss_pct!=null?' (top '+Math.max(1,Math.round((1-r.epss_pct)*100))+' %)':r.epss_delta!=null?' ('+(r.epss_delta>=0?'+':'')+(r.epss_delta*100).toFixed(1)+' pts en 7 j)':''):'',false],
@@ -1181,7 +1284,13 @@ S.parc=function(){
   h+='<h2>Mes équipements ('+PARC.length+')</h2>'+(PARC.length?'':'<p class="lead">Exemple : « VPN du siège » · Fortinet · FortiOS · 7.2.5 · Haute · Oui. Seuls le fournisseur et le produit sont indispensables.</p>')+
     '<div class="form" id="assets">'+PARC.map(assetForm).join('')+'</div>'+(function(){var dl=autoLists();return '<datalist id="dlV">'+dl.v+'</datalist><datalist id="dlP">'+dl.p+'</datalist>'})()+
     '<div class="bar"><button class="btn pri" id="addA">+ Ajouter un équipement</button><span style="display:flex;gap:6px;flex-wrap:wrap">'+(PARC.length?'<button class="btn sm pri" id="saveA">Enregistrer</button>':'')+'<button class="btn sm" id="impA">Importer une liste</button>'+(PARC.length?'<button class="btn sm" id="expA">Copier ma liste</button>':'')+'</span></div>'+
-    '<div id="impBox" style="display:none" class="card"><p class="lead">Colle une liste, une ligne par équipement : <span class="mono">Nom;Fournisseur;Produit;Version;Importance;Exposé;Responsable</span> (par exemple le contenu d\'un secret INVENTAIRE).</p><textarea class="in" id="impT"></textarea><p><button class="btn pri" id="impGo">Importer</button></p></div>'+
+    '<div id="impBox" style="display:none" class="card"><b>Importer automatiquement ton parc</b><p class="lead" style="margin-top:6px">Choisis un fichier ou colle son contenu. Formats reconnus :</p>'+
+      '<ul class="lead" style="margin-top:0;padding-left:18px"><li><b>Scan réseau Nmap</b> (fichier .xml, option <span class="mono">-sV -O -oX</span>) : services, versions et systèmes détectés</li>'+
+      '<li><b>SBOM</b> CycloneDX ou SPDX (.json) : composants logiciels d\'une application</li>'+
+      '<li><b>Export CSV</b> d\'un outil d\'inventaire (Intune, Lansweeper, PDQ, GLPI, Excel…) avec des colonnes éditeur / logiciel / version</li>'+
+      '<li>La liste VulnWatch <span class="mono">Nom;Fournisseur;Produit;Version;Importance;Exposé;Responsable</span> (ex. contenu du secret INVENTAIRE)</li></ul>'+
+      '<input type="file" id="impF" accept=".xml,.json,.csv,.txt,.tsv,text/*,application/json,application/xml" class="in"><textarea class="in" id="impT" placeholder="…ou colle ici le contenu du fichier"></textarea>'+
+      '<div id="impPrev" class="count" style="margin:8px 0"></div><p style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="impCheck">Analyser</button><button class="btn pri" id="impGo">Importer</button></p></div>'+
     '<div class="note">🔔 Pour recevoir des <b>alertes sur ton téléphone</b> pour ce parc, crée ton propre VulnWatch (gratuit, 10 min) : <a href="#install" data-go="install">voir comment</a>. « Copier ma liste » la prépare au bon format.</div>';
   return h;
 };
@@ -1381,6 +1490,37 @@ S.kev=function(){
       kAction+'</article>';
     }).join('')+'</div>';
 };
+/* ---------- Avis officiels (Centre canadien pour la cybersécurité, en français) ---------- */
+function avisHits(a){
+  var head=' '+norm((a.title||'')+' '+(a.vendor||'')).replace(/[^a-z0-9]+/g,' ')+' ';
+  var hay=' '+norm((a.title||'')+' '+(a.vendor||'')+' '+String(a.summary||'').slice(0,600)).replace(/[^a-z0-9]+/g,' ')+' ';
+  return PARC.filter(function(it){
+    var v=norm(it.vendor).replace(/[^a-z0-9]+/g,' ').trim(),p=norm(it.product).replace(/[^a-z0-9]+/g,' ').trim(),v1=v.split(' ')[0]||'';
+    return (v1.length>=3&&head.indexOf(' '+v1+' ')>=0)||(p.length>=4&&hay.indexOf(' '+p+' ')>=0);
+  });
+}
+var avisFilter='all';
+S.avis=function(){
+  var list=(D.avis||[]).map(function(a){return {a:a,hits:avisHits(a)}});
+  var mine=list.filter(function(x){return x.hits.length}).length,ot=list.filter(function(x){return x.a.ics}).length;
+  var shown=list.filter(function(x){return avisFilter==='mine'?x.hits.length:avisFilter==='ot'?x.a.ics:true});
+  if(avisFilter==='all'&&PARC.length)shown.sort(function(x,y){return (y.hits.length>0)-(x.hits.length>0)});
+  var chip=function(k,l,n){return '<button class="chip'+(avisFilter===k?' on':'')+'" data-avis-f="'+k+'">'+l+' ('+n+')</button>'};
+  var body=!list.length?'<div class="card"><p class="lead">Aucun avis pour le moment. La source est peut-être désactivée (<span class="mono">sources → avis_centre_canadien</span>) ou indisponible : elle sera relue au prochain passage.</p></div>':
+    shown.map(function(x){var a=x.a,d=(a.date||'').slice(0,10);
+      var cves=(a.cves||[]).slice(0,12).map(function(c){return '<button class="chip" data-go="q:'+esc(c)+'">'+esc(c)+'</button>'}).join('');
+      return '<article class="v '+(x.hits.length?'P2':'P4')+'" style="cursor:default"><div class="vh"><div class="vt"><h3>'+esc(a.title)+'</h3><div class="vid">'+esc(a.id)+(d?' · '+esc(d):'')+'</div></div></div>'+
+        '<div class="tags">'+(a.vendor?'<span class="t">'+esc(a.vendor)+'</span>':'')+(a.ics?'<span class="t high">Industriel (OT)</span>':'')+
+        (x.hits.length?'<span class="t parc">Mon parc : '+esc(x.hits.slice(0,3).map(function(h){return h.name||h.product}).join(', '))+(x.hits.length>3?' +'+(x.hits.length-3):'')+'</span>':'')+'</div>'+
+        (a.summary?'<p class="plain">'+esc(String(a.summary).slice(0,420))+(String(a.summary).length>420?'…':'')+'</p>':'')+
+        (x.hits.length?'<div class="todo"><b>Que faire</b>Ouvre le bulletin, repère la version corrigée de ton produit et planifie la mise à jour.</div>':'')+
+        (cves?'<div class="chips" style="margin-top:8px">'+cves+'</div>':'')+
+        (a.url?'<p style="margin-top:8px"><a class="btn sm" target="_blank" rel="noopener" href="'+esc(a.url)+'">Lire le bulletin officiel ↗</a></p>':'')+'</article>'}).join('');
+  return '<h1>Avis officiels</h1><p class="lead">Les bulletins <b>en français</b> du Centre canadien pour la cybersécurité. Un bulletin dit en général « tel éditeur a publié des correctifs » : s\'il touche ton parc, c\'est le signal de mettre à jour.</p>'+
+    (list.length?'<div class="chips" style="margin-bottom:10px">'+chip('all','Tous',list.length)+chip('mine','Mon parc',mine)+chip('ot','Industriel (OT)',ot)+'</div>':'')+
+    (!PARC.length&&list.length?'<p class="count">Ajoute tes équipements dans « Mon parc » pour voir tout de suite les bulletins qui te concernent.</p>':'')+
+    '<div class="list">'+(body||'<p class="count">Aucun avis dans ce filtre.</p>')+'</div>';
+};
 S.alerts=function(){
   var all=D.alerts.slice(0,200);
   var suppressed=all.filter(function(a){return isCveMitigated(a.cve)});
@@ -1554,13 +1694,13 @@ S.settings=function(){
   return h;
 };
 S.more=function(){
-  var items=[['mitigations','🛡️','Historique des mitigations','Preuves de correction et arrêt des rappels'],['views','📊','Vues expertes','20 analyses prêtes à l\'emploi'],['kev','🔥','Failles exploitées (CISA)','La liste officielle des failles attaquées'],['learn','📖','Comprendre','Les mots expliqués simplement'],
+  var items=[['mitigations','🛡️','Historique des mitigations','Preuves de correction et arrêt des rappels'],['views','📊','Vues expertes','20 analyses prêtes à l\'emploi'],['kev','🔥','Failles exploitées (CISA)','La liste officielle des failles attaquées'],['avis','🇨🇦','Avis officiels en français','Bulletins du Centre canadien, rattachés à ton parc'],['learn','📖','Comprendre','Les mots expliqués simplement'],
     ['install','🚀','Mon propre VulnWatch','Mes alertes et mon Excel, gratuitement'],['alerts','🔔','Alertes envoyées','Historique de cette installation'],['settings','⚙️','Réglages','Pour l\'administrateur de cette installation']];
   return '<h1>Plus</h1><div class="sheet">'+items.map(function(i){return '<button data-go="'+i[0]+'"><span style="font-size:24px">'+i[1]+'</span><div><b>'+esc(i[2])+'</b><span class="s">'+esc(i[3])+'</span></div></button>'}).join('')+
     '<a class="btn" href="VulnWatch.xlsx" style="justify-content:flex-start;padding:14px">📗&nbsp; Télécharger l\'Excel complet</a></div>';
 };
 /* ---------- navigation ---------- */
-var MORE=['mitigations','views','kev','alerts','learn','settings','install','more'];
+var MORE=['mitigations','views','kev','avis','alerts','learn','settings','install','more'];
 function go(target,push){
   var t=String(target);
   if(t.indexOf('q:')===0){
@@ -1652,6 +1792,7 @@ function render(){
 }
 function bind(){
   var m=$('more');if(m)m.onclick=function(){qShown+=60;render()};
+  document.querySelectorAll('[data-avis-f]').forEach(function(b){b.onclick=function(){avisFilter=b.dataset.avisF;render()}});
   var pm=$('pmore');if(pm)pm.onclick=function(){parcShown+=60;render()};
   var qi=$('q');
   if(qi){
@@ -1859,12 +2000,16 @@ function bindParc(){
     setTimeout(function(){var l=document.querySelectorAll('.asset');if(l.length){l[l.length-1].scrollIntoView({behavior:'smooth',block:'center'});var i=l[l.length-1].querySelector('input');if(i)i.focus()}},60)};
   var sv=$('saveA');if(sv)sv.onclick=function(){EDIT={};saveParc();toast('Enregistré — résultats mis à jour');render();window.scrollTo(0,0)};
   $('impA').onclick=function(){$('impBox').style.display='block';$('impT').focus()};
+  var impF=$('impF');if(impF)impF.onchange=function(){var f=impF.files&&impF.files[0];if(!f)return;
+    if(f.size>15*1024*1024){toast('Fichier trop volumineux (15 Mo max)');return}
+    var rd=new FileReader();rd.onload=function(){$('impT').value=String(rd.result||'');previewImport()};rd.readAsText(f)};
+  $('impCheck').onclick=previewImport;
   $('impGo').onclick=function(){
-    var n=0;$('impT').value.split(/\r?\n/).map(function(l){return l.trim()}).filter(Boolean).forEach(function(l){
-      var c=l.split(l.indexOf(';')>=0?';':',').map(function(x){return x.trim()});if(/^(actif|nom|asset)$/i.test(c[0]||''))return;if(!(c[1]||c[2]))return;
-      PARC.push({name:c[0]||'',vendor:c[1]||'',product:c[2]||'',version:c[3]||'',crit:/haute|crit|high|élev|elev/i.test(c[4]||'')?'Haute':/bas|low|faible/i.test(c[4]||'')?'Basse':'Moyenne',
-        exposed:/^(oui|yes|o|y|1|vrai|true)$/i.test(c[5]||'')?'Oui':'Non',owner:c[6]||''});n++});
-    saveParc();toast(n+' équipement(s) importé(s)');render()};
+    var res=parseInventoryAny($('impT').value);
+    var key=function(a){return norm(a.vendor)+'|'+norm(a.product)+'|'+norm(a.version)};
+    var seen={};PARC.forEach(function(a){seen[key(a)]=1});
+    var n=0,dup=0;res.items.forEach(function(a){if(seen[key(a)]){dup++;return}seen[key(a)]=1;PARC.push(a);n++});
+    saveParc();toast(n+' équipement(s) importé(s)'+(dup?' · '+dup+' déjà présent(s)':'')+' — format : '+res.format);render()};
   var ea=$('expA');if(ea)ea.onclick=function(){
     copyText('Actif;Fournisseur;Produit;Version;Criticite;Expose;Proprietaire\n'+PARC.filter(function(a){return a.vendor||a.product}).map(function(a){return [a.name,a.vendor,a.product,a.version,a.crit,a.exposed,a.owner].map(function(x){return String(x||'').replace(/;/g,',')}).join(';')}).join('\n'))};
 }

@@ -318,6 +318,7 @@ DETAIL_COLS = [
     ("kev_due", "Échéance CISA", 12, "date"),
     ("ref_patch", "Correctif / avis éditeur", 40, "url"),
     ("ghsa", "Avis GitHub (GHSA)", 22, "txt"),
+    ("avis", "Avis officiel (Centre canadien)", 18, "txt"),
     ("cwe", "CWE", 12, "txt"),
     ("status", "Statut NVD", 16, "txt"),
     ("source", "Émetteur (CNA)", 22, "txt"),
@@ -521,7 +522,8 @@ def _clean_rows(rows):
 
 
 def build_xlsx(path: Path, recs: list[dict], kev_rows: list[dict], alert_rows: list[dict],
-               kpi: dict, cfg: dict, tz, inventory: list | None = None, history: list | None = None) -> None:
+               kpi: dict, cfg: dict, tz, inventory: list | None = None, history: list | None = None,
+               advisories: list | None = None, watchlist: list | None = None) -> None:
     now = dt.datetime.now(UTC)
     recs, kev_rows, alert_rows = _clean_rows(recs), _clean_rows(kev_rows), _clean_rows(alert_rows)
     inventory = _clean_rows(inventory) if inventory else inventory
@@ -861,6 +863,27 @@ def build_xlsx(path: Path, recs: list[dict], kev_rows: list[dict], alert_rows: l
     _write_table(w, 4, kcols, krows, "CatalogueKEV", tz, "TableStyleMedium7", "Aucun ajout récent.")
 
     # ===================================================== 9. Journal des alertes
+    # ===================================================== 8 bis. Avis officiels du Centre canadien (en français)
+    import intel
+    w = _sheet(wb, "Avis officiels", "Bulletins du Centre canadien pour la cybersécurité (60 derniers jours), en français. "
+                                     "Un bulletin regroupe souvent plusieurs failles d'un même éditeur : c'est le signal « mets à jour ce produit ».",
+               "D52B1E")
+    arows = []
+    for a in _clean_rows(advisories or []):
+        hits = intel.match_advisory(a, inventory or [], watchlist or []) if (inventory or watchlist) else []
+        arows.append({"date": a.get("date"), "id": a.get("id"), "title": a.get("title"), "url": a.get("url"),
+                      "vendor": a.get("vendor"), "ics": "Oui" if a.get("ics") else "", "cves": ", ".join(a.get("cves") or []),
+                      "summary": a.get("summary"), "mine": ", ".join(hits)})
+    if inventory or watchlist:
+        arows.sort(key=lambda r: (bool(r["mine"]), r["date"] or ""), reverse=True)
+    acols = [("date", "Publié le", 16, "datetime"), ("id", "Numéro", 12, "txt"), ("vendor", "Éditeur", 18, "txt")]
+    if inventory or watchlist:
+        acols.append(("mine", "Touche ton parc", 28, "wrap"))
+    acols += [("ics", "Industriel (OT)", 11, "txt"), ("title", "Titre", 50, "wrap"), ("url", "Lien", 40, "url"),
+              ("cves", "CVE citées", 30, "wrap"), ("summary", "Résumé", 80, "wrap")]
+    _write_table(w, 4, acols, arows, "AvisOfficiels", tz, "TableStyleMedium3",
+                 "Aucun avis pour le moment (source désactivée ou indisponible).")
+
     w = _sheet(wb, "Journal des alertes", "Chaque alerte générée par VulnWatch, la plus récente en premier.", "7030A0")
     jcols = [("date", "Date", 16, "datetime"), ("cve", "CVE", 17, "link"), ("priority", "Niveau (5 = urgent)", 10, "int"),
              ("reasons", "Motifs", 60, "txt"), ("channels", "Canaux", 24, "txt"), ("message", "Détail", 110, "txt")]
@@ -907,6 +930,7 @@ def build_xlsx(path: Path, recs: list[dict], kev_rows: list[dict], alert_rows: l
         ("Par fournisseur", "Quels éditeurs concentrent le risque."),
         ("Tendances", "Évolution jour par jour, avec graphiques."),
         ("Catalogue KEV", "Les derniers ajouts officiels de la CISA, même hors de la base."),
+        ("Avis officiels", "Bulletins en français du Centre canadien pour la cybersécurité, rattachés à ton parc."),
         ("Journal des alertes", "Historique des alertes et des canaux utilisés."),
     ], start=i + 1):
         w.cell(row=j, column=1, value=sheet).font = Font(bold=True)

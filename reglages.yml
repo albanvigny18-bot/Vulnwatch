@@ -71,6 +71,7 @@ sources:
   exploits_publics: true          # Metasploit, Exploit-DB, Nuclei
   analyse_cisa: true              # CISA Vulnrichment (SSVC, versions touchées, note de l'éditeur)
   bibliotheques_open_source: true # GitHub Advisories (npm, PyPI, Maven…)
+  avis_centre_canadien: true     # bulletins en français du Centre canadien pour la cybersécurité (alerte si un bulletin touche ton parc)
   enrichissements_par_passage: 600
 
 # ── Suivi des corrections par tickets GitHub ───────────────────────────────────────

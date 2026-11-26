@@ -69,6 +69,7 @@ SETTINGS_MAP = {
     "INITIAL_DAYS": ("historique", "jours_premier_passage"),
     "USE_EXPLOIT_SOURCES": ("sources", "exploits_publics"), "USE_VULNRICHMENT": ("sources", "analyse_cisa"),
     "USE_GITHUB_ADVISORIES": ("sources", "bibliotheques_open_source"),
+    "USE_CCCS": ("sources", "avis_centre_canadien"),
     "ENRICH_MAX_PER_RUN": ("sources", "enrichissements_par_passage"),
     "TICKETS": ("suivi", "tickets"), "TICKET_PRIORITY": ("suivi", "priorite_des_tickets"),
     "TIMEZONE": ("affichage", "fuseau_horaire"), "HIDE_WATCHLIST": ("affichage", "masquer_mots_cles"),
@@ -168,6 +169,7 @@ def load_config() -> dict:
         "gh_repo": _env("GITHUB_REPOSITORY"),
         "enrich_max": _envi("ENRICH_MAX_PER_RUN", 600),
         "use_ghsa": _envb("USE_GITHUB_ADVISORIES", True),
+        "use_cccs": _envb("USE_CCCS", True),
         "use_exploits": _envb("USE_EXPLOIT_SOURCES", True),
         "use_vulnrichment": _envb("USE_VULNRICHMENT", True),
         "daily_report": _envb("DAILY_REPORT", True),
@@ -697,7 +699,7 @@ def build_outputs(site: Path, records: list[dict], kev_recent: list[dict], alert
             "historique": {"jours_de_cve": cfg["retention_days"], "jours_catalogue_cisa": cfg["kev_days"],
                            "jours_premier_passage": cfg["initial_days"]},
             "sources": {"exploits_publics": cfg["use_exploits"], "analyse_cisa": cfg["use_vulnrichment"],
-                        "bibliotheques_open_source": cfg["use_ghsa"], "enrichissements_par_passage": cfg["enrich_max"]},
+                        "bibliotheques_open_source": cfg["use_ghsa"], "avis_centre_canadien": cfg["use_cccs"], "enrichissements_par_passage": cfg["enrich_max"]},
             "suivi": {"tickets": cfg["tickets"], "priorite_des_tickets": cfg["ticket_min_priority"]},
             "affichage": {"fuseau_horaire": cfg["tz"], "masquer_mots_cles": cfg["hide_watch"]},
             "mots_cles": [str(w) for w in (SETTINGS.get("mots_cles") or [])],
@@ -732,6 +734,8 @@ def build_outputs(site: Path, records: list[dict], kev_recent: list[dict], alert
                                             "knownRansomwareCampaignUse")} for v in kev_rows],
         "alerts": [{k: a.get(k) for k in ("date", "cve", "reasons", "priority", "channels")} for a in pub_alerts[:300]],
         "stats": meta.get("stats", [])[-90:],
+        "avis": [{k: a.get(k) for k in ("id", "title", "url", "date", "summary", "cves", "vendor", "ics")}
+                 for a in (meta.get("advisories") or [])[:200]],
     }, compact=True)
 
     # ---- CSV (source Power Query) : mêmes colonnes détaillées que l'Excel
@@ -773,7 +777,8 @@ def build_outputs(site: Path, records: list[dict], kev_recent: list[dict], alert
     work.mkdir(parents=True, exist_ok=True)
     private = work / "VulnWatch.xlsx"
     try:
-        build_xlsx(private, recs, kev_rows, alert_rows, kpi, xcfg, tz, inventory, meta.get("stats"))
+        build_xlsx(private, recs, kev_rows, alert_rows, kpi, xcfg, tz, inventory, meta.get("stats"),
+                   meta.get("advisories"), meta.get("watchlist"))
     except Exception as e:  # noqa: BLE001
         # Ne jamais bloquer la veille : on garde le classeur précédent, le reste est publié, et on le signale.
         log(f"Excel : génération impossible ({type(e).__name__}: {e}). Le reste est publié.", "ERREUR")
@@ -786,7 +791,8 @@ def build_outputs(site: Path, records: list[dict], kev_recent: list[dict], alert
         shutil.copy(site / "VulnWatch.xlsx", private_send)
         log("Excel publié chiffré (mot de passe requis à l'ouverture).")
     elif hide:
-        build_xlsx(site / "VulnWatch.xlsx", pub, kev_rows, pub_alerts, kpi, xcfg, tz, None, meta.get("stats"))
+        build_xlsx(site / "VulnWatch.xlsx", pub, kev_rows, pub_alerts, kpi, xcfg, tz, None, meta.get("stats"),
+                   meta.get("advisories"), None)
         private_send = private
         log("Excel publié sans le détail de tes actifs (définis EXCEL_PASSWORD pour publier la version complète chiffrée).")
     else:
@@ -967,6 +973,36 @@ def run(args) -> int:
         except Exception as e:  # noqa: BLE001
             mark("GitHub Advisories", False, str(e))
             log(f"GitHub Advisories indisponible : {e}", "WARN")
+
+    # 6 bis. Avis officiels du Centre canadien pour la cybersécurité (en français)
+    advisories = state.get("cccs", [])
+    cccs_first = "cccs" not in state
+    if cfg["use_cccs"]:
+        try:
+            fresh = intel.fetch_cccs(http)
+            known = {a["id"]: a for a in advisories}
+            for a in fresh:
+                old = known.get(a["id"])
+                if old:
+                    a["first_seen"] = old.get("first_seen") or a.get("date")
+                else:
+                    a["first_seen"] = iso(now)
+                known[a["id"]] = a
+            cut = iso(now - dt.timedelta(days=60))
+            advisories = sorted((a for a in known.values() if (a.get("date") or a.get("first_seen") or "") >= cut),
+                                key=lambda a: a.get("date") or a.get("first_seen") or "", reverse=True)[:400]
+            state["cccs"] = advisories
+            mark("Centre canadien (avis)", True)
+        except Exception as e:  # noqa: BLE001
+            mark("Centre canadien (avis)", False, str(e)[:200])
+            log(f"Avis du Centre canadien indisponibles : {e}", "WARN")
+    # Rattache chaque CVE aux avis qui la citent
+    for r in db.values():
+        r.pop("avis", None)
+    for a in advisories:
+        for cid in a.get("cves") or []:
+            if cid in db:
+                db[cid]["avis"] = ", ".join(dict.fromkeys(filter(None, [db[cid].get("avis"), a["id"]])))
 
     # 7. EPSS (toutes une fois par jour, sinon seulement les modifiées) + historique 8 jours
     ids = list(db) if state.get("epss_full_date") != today else [t for t in touched if t in db]
@@ -1162,6 +1198,27 @@ def run(args) -> int:
         alerts.append({"date": iso(now), "cve": cid, "reasons": " · ".join(c["reasons"]), "priority": c["prio"],
                        "channels": channels, "message": " | ".join(lines), "keys": c["keys"]})
 
+    # Avis officiels qui touchent ton parc : une alerte par avis (les noms d'actifs ne sont jamais enregistrés)
+    adv_sent = 0
+    for a in advisories:
+        key = "AVIS:" + a["id"]
+        if key in sent_keys:
+            continue
+        hits = intel.match_advisory(a, inventory, cfg["watchlist"])
+        if not hits:
+            continue
+        if silent or cccs_first or inv_changed:
+            ch = "(référence initiale, non envoyée)"
+        elif adv_sent < 5:
+            lines = [a.get("summary", "")[:400] or a["title"], "Concerne ton parc : " + ", ".join(hits[:6])]
+            if a.get("cves"):
+                lines.append("CVE citées : " + ", ".join(a["cves"][:10]))
+            ch = notifier.send(f"Avis officiel : {a['title']}"[:180], lines, 4, a.get("url", ""), ["canada"]) or "(aucun canal)"
+            adv_sent += 1
+        else:
+            ch = "(regroupée dans le résumé)"
+        alerts.append({"date": iso(now), "cve": a["id"], "reasons": "Avis officiel (Centre canadien) sur un produit de ton parc",
+                       "priority": 4, "channels": ch, "message": a["title"], "keys": [key]})
     if crit_grouped:
         for cid in crit_grouped:
             alerts.append({"date": iso(now), "cve": cid, "reasons": f"Critique (CVSS {view[cid]['score']:.1f}), sans attaque connue",
@@ -1233,7 +1290,8 @@ def run(args) -> int:
     write_json(state_dir / "state.json", state)
 
     # 14. Publication
-    meta = {"kev_version": kev_version, "health": health, "inventory": inventory, "stats": state["stats"]}
+    meta = {"kev_version": kev_version, "health": health, "inventory": inventory, "stats": state["stats"],
+            "advisories": advisories, "watchlist": cfg["watchlist"]}
     private_xlsx = build_outputs(site_dir, list(db.values()), kev_recent, alerts, cfg, meta)
     tpl_dir = Path(__file__).with_name("site")
     if tpl_dir.is_dir():  # publie tout le dossier site/ (page, scripts, images…)

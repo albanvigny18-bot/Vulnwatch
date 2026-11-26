@@ -218,3 +218,42 @@ def test_version_format_mismatch_is_never_hidden():
     rg = [["Microsoft Exchange Server 2019", "15.02.0", "<", "15.02.1544.014"]]
     assert classify.version_status("2019 CU14", rg, "Exchange Server") == "à vérifier"
     assert classify.version_status("23H2", [["Microsoft Windows 11 Version 23H2", "10.0.22631.0", "<", "10.0.22631.4460"]], "Windows 11") == "à vérifier"
+
+
+CCCS_SAMPLE = """<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Alertes</title>
+<item><title>Bulletin de sécurité Fortinet (AV26-0812)</title><link>https://www.cyber.gc.ca/fr/x/av26-0812</link>
+<pubDate>Tue, 25 Nov 2026 14:12:00 GMT</pubDate><description>&lt;p&gt;Mises à jour FortiOS (CVE-2026-12345, cve-2026-2345).&lt;/p&gt;</description></item>
+<item><title>[Systèmes de contrôle] Bulletin de sécurité Siemens (AV26-0813)</title><link>https://www.cyber.gc.ca/fr/x/av26-0813</link>
+<pubDate>Tue, 25 Nov 2026 16:00:00 -0500</pubDate><description>SIMATIC</description></item>
+</channel></rss>"""
+
+CCCS_ATOM = """<feed xmlns="http://www.w3.org/2005/Atom"><entry><title>Bulletin de sécurité d'Apple (AV26-0900)</title>
+<link href="https://www.cyber.gc.ca/fr/x/av26-0900"/><updated>2026-11-26T10:00:00Z</updated><summary>iOS</summary></entry></feed>"""
+
+
+def test_cccs_parse_rss_and_atom():
+    a = intel.parse_cccs_rss(CCCS_SAMPLE)
+    assert [x["id"] for x in a] == ["AV26-0812", "AV26-0813"]
+    assert a[0]["vendor"] == "Fortinet" and a[0]["cves"] == ["CVE-2026-12345", "CVE-2026-2345"]
+    assert a[1]["ics"] and not a[0]["ics"] and a[1]["vendor"] == "Siemens"
+    assert a[1]["date"] == "2026-11-25T21:00:00Z"
+    b = intel.parse_cccs_rss(CCCS_ATOM)
+    assert b[0]["id"] == "AV26-0900" and b[0]["vendor"] == "Apple" and b[0]["url"].endswith("av26-0900")
+
+
+def test_cccs_bad_payload_fails_safely():
+    import pytest
+    with pytest.raises(Exception):
+        intel.parse_cccs_rss("<html><body>maintenance</body>")  # mal formé : l'appelant marque la source en échec
+    with pytest.raises(ValueError):
+        intel.parse_cccs_rss('{"erreur": 1}')
+
+
+def test_cccs_match_inventory():
+    a = intel.parse_cccs_rss(CCCS_SAMPLE)
+    inv = [{"asset": "FW", "vendor": "Fortinet", "product": "FortiGate"},
+           {"asset": "PLC", "vendor": "Siemens AG", "product": "SIMATIC S7-1500"},
+           {"asset": "PC", "vendor": "Microsoft", "product": "Windows"}]
+    assert intel.match_advisory(a[0], inv) == ["FW"]
+    assert intel.match_advisory(a[1], inv) == ["PLC"]
+    assert intel.match_advisory(a[0], [], ["fortios"]) == ["fortios"]
