@@ -235,6 +235,28 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 :root[data-theme="dark"] .st-badge.rev{color:#fb923c}
 :root[data-theme="dark"] .st-badge.soon{color:#facc15}
 :root[data-theme="dark"] .mit-exp-box b{color:#fbbf24}
+.exp-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.exp-head h1{margin:0}
+.online-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--brandsoft);border:1px solid color-mix(in srgb,var(--brand) 22%,transparent);border-radius:12px;padding:10px 13px;margin:10px 0;font-size:13.5px;color:var(--ink)}
+.online-err{background:var(--p1s);border:1px solid color-mix(in srgb,var(--p1) 28%,transparent);border-radius:12px;padding:12px 14px;margin:10px 0;font-size:13.5px;color:var(--p1)}
+.refs-sec{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.refs-hd{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--mute)}
+.refs-portals{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.refs-list{display:grid;gap:6px;list-style:none;padding:0;margin:0}
+.ref-item{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:7px 10px;font-size:13px}
+.ref-item a{color:var(--brand);text-decoration:none;word-break:break-all;font-weight:500;flex:1;min-width:180px}
+.ref-item a:hover{text-decoration:underline}
+.ref-tags{display:flex;gap:4px;flex-wrap:wrap;flex:none}
+.ref-tag{font-size:11px;font-weight:650;padding:1px 6px;border-radius:6px;background:var(--surface);border:1px solid var(--line);color:var(--ink2);white-space:nowrap}
+.ref-tag.patch{background:var(--oks);color:var(--ok);border-color:transparent}
+.ref-tag.adv{background:var(--brandsoft);color:var(--brand);border-color:transparent}
+.ref-tag.exp{background:var(--p1s);color:var(--p1);border-color:transparent}
+.ref-tag.gov{background:var(--p2s);color:var(--p2);border-color:transparent}
+.ref-tag.mit{background:var(--p3s);color:var(--p3);border-color:transparent}
+:root[data-theme="dark"] .ref-tag.patch{color:#4ade80}
+:root[data-theme="dark"] .ref-tag.exp{color:#f87171}
+:root[data-theme="dark"] .ref-tag.gov{color:#fb923c}
+:root[data-theme="dark"] .ref-tag.mit{color:#facc15}
 @media (prefers-reduced-motion:reduce){.chart-bar,.chart-tip{transition:none}}
 </style>
 <script>
@@ -368,6 +390,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 var D=null, view='home', sub='', simple=true, PARC=[], MITS=[], q='', qShown=40, parcShown=40, curRows=[], EDIT={}, chartScope='all', chartRO=null;
 var theme='white', autoFr=true, TR={}, trBusy=false, trFailed=false, trSeq=0;
 var showMitPrio=false, showMitAlerts=false, mitQ='', mitFilter='all', expMitFilter='all', mitLastFocus=null;
+var expMode='online', CVE_RE=/^CVE-\d{4}-\d{4,7}$/i;
+var onlineState={query:null,page:0,total:0,hasMore:false,loading:false,loadingMore:false,error:'',sources:[],results:[],seq:0};
+var REFS_CACHE={}, REFS_INFLIGHT={};
 var $=function(id){return document.getElementById(id)};
 var app=$('app');
 function store(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
@@ -494,7 +519,11 @@ function validParcAssets(){
 }
 function findVulnById(cve){
   var id=String(cve||'').trim().toUpperCase();
-  if(!D||!id)return null;
+  if(!id)return null;
+  if(REFS_CACHE[id])return REFS_CACHE[id];
+  var fromOnline=onlineState.results.find(function(x){return x.id===id});
+  if(fromOnline)return fromOnline;
+  if(!D)return null;
   return D.vulns.find(function(x){return x.id===id})||null;
 }
 function matchedParcAssets(r){
@@ -628,8 +657,129 @@ function evalRowMitigation(r){
   }
   return {inParc:true,parcHits:parcHits,mitParcHits:mitParcHits,expParcHits:expParcHits,activeParcHits:activeParcHits,ms:ms,expMs:expMs,isMit:isMit,needsRev:needsRev,partial:partial,soonDays:soonDays};
 }
+function safeUrl(u){
+  if(typeof u!=='string')return '';
+  var s=u.trim();
+  return /^https?:\/\/[^\s"'<>]+$/i.test(s)?s:'';
+}
+var REF_TAG_FR={
+  'Patch':'Correctif','Vendor Advisory':'Avis éditeur','Mitigation':'Mitigation','Exploit':'Exploit / PoC',
+  'US Government Resource':'CERT / Gov','Release Notes':'Notes de version','Third Party Advisory':'Avis tiers',
+  'Issue Tracking':'Ticket / Bug','Technical Description':'Analyse technique','Mailing List':'Liste de diffusion',
+  'VDB Entry':'Base VDB','Broken Link':'Lien mort'
+};
+function refTagClass(t){
+  if(t==='Patch')return 'patch';
+  if(t==='Vendor Advisory'||t==='Release Notes')return 'adv';
+  if(t==='Exploit')return 'exp';
+  if(t==='US Government Resource')return 'gov';
+  if(t==='Mitigation')return 'mit';
+  return '';
+}
+function shortUrlLabel(u){
+  try{
+    var o=new URL(u);
+    var p=(o.pathname||'')+(o.search||'');
+    if(p==='/')p='';
+    if(p.length>58)p=p.slice(0,55)+'…';
+    return o.hostname.replace(/^www\./,'')+p;
+  }catch(e){return u}
+}
+function cweLinksHTML(cweStr,cweName){
+  if(!cweStr)return '';
+  var ids=String(cweStr).split(/[,\s;]+/).map(function(x){return x.trim().toUpperCase()}).filter(function(x){return /^CWE-\d+$/.test(x)});
+  if(!ids.length)return esc([cweStr,cweName].filter(Boolean).join(' — '));
+  return ids.map(function(id){
+    var num=id.replace('CWE-','');
+    return '<a target="_blank" rel="noopener noreferrer" href="https://cwe.mitre.org/data/definitions/'+esc(num)+'.html">'+esc(id)+' ↗</a>';
+  }).join(' · ')+(cweName?' — '+esc(cweName):'');
+}
+function refsSectionHTML(r){
+  var enriched=REFS_CACHE[r.id]||r;
+  var refs=Array.isArray(enriched.references)?enriched.references:[];
+  var id=r.id;
+  var cveNum=id.replace(/^CVE-/i,'');
+  var patchUrl=safeUrl(enriched.ref_patch||r.ref_patch);
+  var ticketUrl=safeUrl(r.ticket_url);
+  var portals='<div class="refs-portals">'+
+    (patchUrl?'<a class="btn sm pri" target="_blank" rel="noopener noreferrer" href="'+esc(patchUrl)+'">Correctif / avis ↗</a>':'')+
+    '<a class="btn sm" target="_blank" rel="noopener noreferrer" href="https://nvd.nist.gov/vuln/detail/'+esc(id)+'">NVD (NIST) ↗</a>'+
+    '<a class="btn sm" target="_blank" rel="noopener noreferrer" href="https://www.cve.org/CVERecord?id='+esc(id)+'">CVE.org ↗</a>'+
+    (enriched.kev||r.kev?'<a class="btn sm" target="_blank" rel="noopener noreferrer" href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog?field_cve='+esc(id)+'">CISA KEV ↗</a>':'')+
+    '<a class="btn sm" target="_blank" rel="noopener noreferrer" href="https://github.com/advisories?query='+esc(id)+'">GitHub Advisories ↗</a>'+
+    '<a class="btn sm" target="_blank" rel="noopener noreferrer" href="https://www.exploit-db.com/search?cve='+esc(cveNum)+'">Exploit-DB ↗</a>'+
+    '<a class="btn sm" target="_blank" rel="noopener noreferrer" href="https://api.first.org/data/v1/epss?cve='+esc(id)+'">EPSS ↗</a>'+
+    (ticketUrl?'<a class="btn sm" target="_blank" rel="noopener noreferrer" href="'+esc(ticketUrl)+'">Ticket ↗</a>':'')+
+    '</div>';
+  var isLoading=!!REFS_INFLIGHT[id];
+  var loaded=!!(REFS_CACHE[id]||enriched._refsLoaded);
+  var listPart='';
+  if(refs.length){
+    var itemsHtml=refs.map(function(ref,idx){
+      var u=safeUrl(ref.url);
+      if(!u)return '';
+      var tags=Array.isArray(ref.tags)?ref.tags:[];
+      var tHtml=tags.map(function(t){return '<span class="ref-tag '+refTagClass(t)+'">'+esc(REF_TAG_FR[t]||t)+'</span>'}).join('');
+      return '<li class="ref-item"'+(idx>=8?' data-ref-extra="1" style="display:none"':'')+'><a target="_blank" rel="noopener noreferrer" href="'+esc(u)+'" title="'+esc(u)+'">'+esc(shortUrlLabel(u))+' ↗</a>'+(tHtml?'<span class="ref-tags">'+tHtml+'</span>':'')+'</li>';
+    }).filter(Boolean).join('');
+    var moreBtn=refs.length>8?'<button type="button" class="btn sm" style="margin-top:8px" data-refs-more="1">Afficher toutes les '+refs.length+' références</button>':'';
+    listPart='<ul class="refs-list">'+itemsHtml+'</ul>'+moreBtn;
+  }else if(isLoading){
+    listPart='<div class="count">Chargement des références complètes (NVD · CVE.org · EPSS)…</div>';
+  }else if(loaded){
+    listPart='<div class="count">Aucune référence externe supplémentaire publiée pour cette CVE. Utilise les portails officiels ci-dessus.</div>';
+  }else{
+    listPart='<div class="count">Références détaillées chargées automatiquement à l\'ouverture…</div>';
+  }
+  var statusRight=isLoading?'<span>Chargement…</span>':(!loaded?'<button type="button" class="btn sm" data-load-refs="'+esc(id)+'">Actualiser les références</button>':'<span>NVD · CVE.org · EPSS</span>');
+  return '<div class="refs-sec" data-refs-cve="'+esc(id)+'"><div class="refs-hd"><span>Références officielles ('+refs.length+')</span>'+statusRight+'</div>'+portals+listPart+'</div>';
+}
+function mergeEnrichedIntoLocal(id,rec){
+  if(!rec)return;
+  REFS_CACHE[id]=rec;
+  function patchTarget(target){
+    if(!target)return;
+    ['score','severity','vector','score_source','cwe','versions','pkg_fixed','epss','epss_pct','ssvc_exploitation','ssvc_automatable','ssvc_impact','ref_patch','exploit_ref','status','source','references','kev','kev_due','ransomware'].forEach(function(k){
+      if(rec[k]!=null&&rec[k]!==''&&(!Array.isArray(rec[k])||rec[k].length)){target[k]=rec[k]}
+    });
+    if(rec.patch_available)target.patch_available=rec.patch_available;
+    target._refsLoaded=true;
+  }
+  if(D&&D.vulns)patchTarget(D.vulns.find(function(x){return x.id===id}));
+  patchTarget(onlineState.results.find(function(x){return x.id===id}));
+}
+function loadCveRefs(cveId,cardEl){
+  var id=String(cveId||'').trim().toUpperCase();
+  if(!CVE_RE.test(id)||REFS_CACHE[id]||REFS_INFLIGHT[id])return;
+  REFS_INFLIGHT[id]=true;
+  var box=cardEl&&cardEl.querySelector('[data-refs-cve="'+CSS.escape(id)+'"]');
+  var existing=findVulnById(id)||{id:id};
+  if(box)box.outerHTML=refsSectionHTML(existing);
+  fetch('api/cve-refs?id='+encodeURIComponent(id))
+    .then(function(r){return r.json().then(function(b){if(!r.ok)throw new Error(b.error||'HTTP '+r.status);return b})})
+    .then(function(res){
+      delete REFS_INFLIGHT[id];
+      if(res&&res.record){
+        mergeEnrichedIntoLocal(id,res.record);
+      }else{
+        REFS_CACHE[id]=Object.assign({},existing,{_refsLoaded:true});
+      }
+      document.querySelectorAll('[data-refs-cve="'+CSS.escape(id)+'"]').forEach(function(el){
+        el.outerHTML=refsSectionHTML(REFS_CACHE[id]);
+      });
+    })
+    .catch(function(){
+      delete REFS_INFLIGHT[id];
+      var rec=findVulnById(id)||{id:id};
+      document.querySelectorAll('[data-refs-cve="'+CSS.escape(id)+'"]').forEach(function(el){
+        el.outerHTML=refsSectionHTML(Object.assign({},rec,{_refsLoaded:true}));
+      });
+    });
+}
 /* ---------- fiche ---------- */
 function card(r){
+  var merged=REFS_CACHE[r.id]?Object.assign({},r,REFS_CACHE[r.id],{_mine:r._mine,_hits:r._hits,_mitHits:r._mitHits,_mits:r._mits,_mitigated:r._mitigated}):r;
+  r=merged;
   var p=r.priority||'P4', sev=r.severity||'NON ÉVALUÉE';
   var tr=autoFr?TR[r.id]:null;
   var plainBase=(tr&&tr.plain)?tr.plain:(r.plain||fallbackPlain(r));
@@ -640,6 +790,7 @@ function card(r){
   var ms=st.ms, expMs=st.expMs, isMit=st.isMit, needsRev=st.needsRev, partial=st.partial, parcHits=st.parcHits;
   var displayHits=r._mine?(r._hits||[]):parcHits;
   if(r._mine)plain+=' Elle concerne : '+r._hits.map(function(h){return assetLabel(h)}).join(', ')+'.';
+  var refCount=Array.isArray(r.references)?r.references.length:0;
   var tags='';
   tags+=r.score!=null?'<span class="t '+(r.score>=9?'crit':r.score>=7?'high':'')+'">Gravité '+r.score.toFixed(1)+'/10</span>':'<span class="t">Gravité non évaluée</span>';
   if(r.kev||r.ssvc_exploitation==='Active')tags+='<span class="t kev">Exploitée</span>';
@@ -654,7 +805,8 @@ function card(r){
   if(isMit)tags+='<span class="t ok">✓ Mitigée'+(ms[0]&&ms[0].status&&ms[0].status!=='Corrigée'?' ('+esc(ms[0].status)+')':'')+'</span>';
   else if(needsRev)tags+='<span class="t high">⏰ Révision requise</span>';
   else if(partial)tags+='<span class="t ok">Mitigée sur '+st.mitParcHits.length+'/'+parcHits.length+' actif'+(parcHits.length>1?'s':'')+'</span>';
-  if(!simple&&r.epss!=null)tags+='<span class="t">EPSS '+pct(r.epss)+'</span>';
+  if(r.epss!=null&&(!simple||r.epss>=0.1))tags+='<span class="t">EPSS '+pct(r.epss)+'</span>';
+  if(refCount)tags+='<span class="t">'+refCount+' référence'+(refCount>1?'s':'')+'</span>';
   if(!simple&&r.risk!=null)tags+='<span class="t">Risque '+r.risk+'/100</span>';
   var hdrStatus='';
   if(isMit){
@@ -673,18 +825,14 @@ function card(r){
     :'<p class="plain"><b>'+esc(PLABEL[p])+'.</b> '+esc(r.justification||'')+'</p><p class="plain" style="font-size:13.5px" data-tr-id="'+esc(r.id)+'" data-tr-field="desc">'+esc(descTxt)+'</p>';
   var mine=displayHits.length?displayHits.map(function(h){return (h.name||h.product)+(h.version?' (ta version : '+h.version+')':'')}).join(', '):'';
   var vec=(r.vector||'').split('/').reduce(function(o,x){var k=x.split(':');if(k[1])o[k[0]]=k[1];return o},{});
-  var rows=[[simple?'Pourquoi cette priorité':'En clair',simple?r.justification:plain],[simple?'Description':'',simple?descTxt:''],
-    ['Tes équipements',mine],['Versions touchées',r.versions||r.pkg_ranges],['Version corrigée',r.pkg_fixed],['Type d\'attaque',r.tags],['Catégorie',r.family],
-    ['Depuis où ?',{N:'Réseau / Internet',A:'Réseau local',L:'Accès à la machine',P:'Accès physique'}[vec.AV]],['Accès nécessaire',{N:'Aucun compte',L:'Compte simple',H:'Compte administrateur'}[vec.PR]],
-    ['Action de la victime',{N:'Aucune',R:'Requise (clic, ouverture…)',P:'Passive',A:'Active'}[vec.UI]],
-    ['Probabilité d\'attaque (30 j)',r.epss!=null?pct(r.epss)+(r.epss_delta!=null?' ('+(r.epss_delta>=0?'+':'')+(r.epss_delta*100).toFixed(1)+' pts en 7 j)':''):''],
-    ['Analyse CISA (SSVC)',[r.ssvc_exploitation,r.ssvc_automatable&&('automatisable : '+r.ssvc_automatable),r.ssvc_impact&&('impact : '+r.ssvc_impact)].filter(Boolean).join(' · ')],
-    ['Outil Metasploit',r.msf],['Exploit-DB',r.edb],['Échéance CISA',r.kev_due],['Faiblesse',[r.cwe,r.cwe_name].filter(Boolean).join(' — ')],
-    ['Source de la note',r.score_source],['Vecteur CVSS',simple?'':r.vector],['Publiée',fmt(r.published)],['Modifiée',fmt(r.modified)],['Suivi',r.ticket_status]];
-  var links='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">'+
-    (r.ref_patch?'<a class="btn sm pri" target="_blank" rel="noopener" href="'+esc(r.ref_patch)+'">Correctif / avis ↗</a>':'')+
-    '<a class="btn sm" target="_blank" rel="noopener" href="https://nvd.nist.gov/vuln/detail/'+esc(r.id)+'">Fiche officielle ↗</a>'+
-    (r.ticket_url?'<a class="btn sm" target="_blank" rel="noopener" href="'+esc(r.ticket_url)+'">Ticket ↗</a>':'')+'</div>';
+  var rows=[[simple?'Pourquoi cette priorité':'En clair',simple?r.justification:plain,false],[simple?'Description':'',simple?descTxt:'',false],
+    ['Tes équipements',mine,false],['Produits concernés',r.affected&&r.affected!==prodName(r)?r.affected:'',false],['Versions touchées',r.versions||r.pkg_ranges,false],['Version corrigée',r.pkg_fixed,false],['Type d\'attaque',r.tags,false],['Catégorie',r.family,false],
+    ['Depuis où ?',{N:'Réseau / Internet',A:'Réseau local',L:'Accès à la machine',P:'Accès physique'}[vec.AV],false],['Accès nécessaire',{N:'Aucun compte',L:'Compte simple',H:'Compte administrateur'}[vec.PR],false],
+    ['Action de la victime',{N:'Aucune',R:'Requise (clic, ouverture…)',P:'Passive',A:'Active'}[vec.UI],false],
+    ['Probabilité d\'attaque (30 j)',r.epss!=null?pct(r.epss)+(r.epss_pct!=null?' (top '+Math.max(1,Math.round((1-r.epss_pct)*100))+' %)':r.epss_delta!=null?' ('+(r.epss_delta>=0?'+':'')+(r.epss_delta*100).toFixed(1)+' pts en 7 j)':''):'',false],
+    ['Analyse CISA (SSVC)',[r.ssvc_exploitation,r.ssvc_automatable&&('automatisable : '+r.ssvc_automatable),r.ssvc_impact&&('impact : '+r.ssvc_impact)].filter(Boolean).join(' · '),false],
+    ['Outil Metasploit',r.msf,false],['Exploit-DB',r.edb,false],['Échéance CISA',r.kev_due,false],['Faiblesse (CWE)',cweLinksHTML(r.cwe,r.cwe_name),true],
+    ['Source / CNA',r.source||r.score_source,false],['Statut NVD',r.status,false],['Vecteur CVSS',r.vector,false],['Publiée',fmt(r.published),false],['Modifiée',fmt(r.modified),false],['Suivi',r.ticket_status,false]];
   var title=prodName(r);
   if(r._mine){var h0=r._hits[0],hp=[h0.vendor,h0.product].filter(Boolean).join(' ');if(hp&&norm(title).indexOf(norm(h0.product||h0.vendor))<0)title=hp+' (et autres produits)'}
   var defaultAsset=(st.activeParcHits.length===1)?assetLabel(st.activeParcHits[0]):(parcHits.length===1?assetLabel(parcHits[0]):'');
@@ -694,11 +842,11 @@ function card(r){
      (st.inParc?expiredMitNoticeHTML(expMs):'')+
      (st.mitParcHits.length?'<div class="mit-meta">Déjà mitigée sur : '+esc(st.mitParcHits.map(assetLabel).join(', '))+'</div>':'');
   var footerAct=(!st.inParc||isMit)
-    ?'<div class="card-act"><span class="more">Touche pour voir le détail</span></div>'
-    :'<div class="card-act"><button type="button" class="btn sm ok" data-mit-open="'+esc(r.id)+'" data-mit-prod="'+esc(title)+'" data-mit-prio="'+esc(p)+'" data-mit-asset="'+esc(defaultAsset)+'">✓ Marquer comme mitigée</button><span class="more">Touche pour voir le détail</span></div>';
+    ?'<div class="card-act"><span class="more">Touche pour voir le détail et les références</span></div>'
+    :'<div class="card-act"><button type="button" class="btn sm ok" data-mit-open="'+esc(r.id)+'" data-mit-prod="'+esc(title)+'" data-mit-prio="'+esc(p)+'" data-mit-asset="'+esc(defaultAsset)+'">✓ Marquer comme mitigée</button><span class="more">Touche pour voir le détail et les références</span></div>';
   return '<article class="v '+p+(isMit?' mitigated':needsRev?' needs-rev':'')+'" data-cve="'+esc(r.id)+'"><div class="vh"><div class="vt"><h3>'+esc(title)+'</h3><div class="vid">'+esc(r.id)+' · '+esc(sev.toLowerCase())+(r.published?' · '+fdate(r.published):'')+'</div></div><div class="vh-badges">'+hdrStatus+'<span class="prio '+p+'" title="'+esc(PLABEL[p])+'">'+p+'</span></div></div>'+
     '<div class="tags">'+tags+'</div>'+body+actionArea+
-    '<div class="det"><dl class="kv">'+rows.filter(function(x){return x[0]&&x[1]}).map(function(x){return '<dt>'+esc(x[0])+'</dt><dd'+(x[0]==='Description'?' data-tr-id="'+esc(r.id)+'" data-tr-field="desc"':'')+'>'+esc(x[1])+'</dd>'}).join('')+'</dl>'+links+'</div>'+
+    '<div class="det"><dl class="kv">'+rows.filter(function(x){return x[0]&&x[1]}).map(function(x){return '<dt>'+esc(x[0])+'</dt><dd'+(x[0]==='Description'?' data-tr-id="'+esc(r.id)+'" data-tr-field="desc"':'')+'>'+(x[2]?x[1]:esc(x[1]))+'</dd>'}).join('')+'</dl>'+refsSectionHTML(r)+'</div>'+
     footerAct+'</article>';
 }
 function listHTML(rows,n,moreId){
@@ -940,8 +1088,76 @@ var SAVED=[['Déjà exploitées','kev:oui'],['Outil d\'attaque public','exploit:
   ['VPN et pare-feu critiques','famille:périmétrique gravite>=9'],['Industriel (OT)','famille:ot'],['Microsoft (Patch Tuesday)','fournisseur:microsoft p:P1,P2,P3'],
   ['Probabilité d\'attaque en hausse','vue:"EPSS en hausse"'],['Nouvelles critiques','nouveau:oui gravite>=9'],['Critiques sans correctif','gravite>=9 correctif:non'],
   ['Bibliothèques open source','paquet:*'],['Rançongiciels','ransomware:oui']];
+var ONLINE_QUICK=[['Dernières CVE mondiales',''],['Log4Shell (CVE-2021-44228)','CVE-2021-44228'],['PAN-OS (CVE-2024-3400)','CVE-2024-3400'],
+  ['FortiOS','FortiOS'],['Microsoft Exchange','Exchange'],['OpenSSL','OpenSSL'],['Apache','Apache'],['Chrome','Chrome'],['Linux kernel','Linux kernel'],['Cisco','Cisco']];
+function isLocalSyntaxQuery(s){
+  return /(?:^|\s)-?(p|priorite|kev|exploitee|parc|nouveau|mitigee|mitige|revision|correctif|ransomware|rancongiciel|exploit|av|pr|ui|tri|vue|famille|categorie|tag|type|fournisseur|editeur|vendor|produit|product|paquet|sev|severite|source|ssvc|auto|statut|ticket|cvss|score|gravite|epss|risque|age)\s*(:|>=|<=|>|<|=)/i.test(s||'');
+}
+function renderExploreKeepFocus(){
+  var active=document.activeElement;
+  var keepQ=active&&active.id==='q';
+  var pos=keepQ?active.selectionStart:null;
+  render();
+  if(keepQ){
+    var n=$('q');
+    if(n){n.focus();try{if(pos!=null)n.setSelectionRange(pos,pos)}catch(e){}}
+  }
+}
+function runOnlineSearch(queryStr,append){
+  var targetQ=String(queryStr||'').trim();
+  var nextPage=append?(onlineState.page+1):0;
+  var mySeq=++onlineState.seq;
+  onlineState.query=targetQ;
+  onlineState.error='';
+  if(append){onlineState.loadingMore=true}
+  else{onlineState.loading=true;onlineState.loadingMore=false;onlineState.page=0;onlineState.results=[];onlineState.total=0;onlineState.hasMore=false;onlineState.sources=[]}
+  if(view==='explore')renderExploreKeepFocus();
+  fetch('api/cve-search?q='+encodeURIComponent(targetQ)+'&page='+nextPage+'&limit=20')
+    .then(function(r){return r.json().then(function(b){if(!r.ok&&!b.results)throw new Error(b.error||'HTTP '+r.status);return b})})
+    .then(function(res){
+      if(mySeq!==onlineState.seq)return;
+      onlineState.loading=false;
+      onlineState.loadingMore=false;
+      onlineState.page=res.page||nextPage;
+      onlineState.total=Number(res.totalResults||0);
+      onlineState.hasMore=!!res.hasMore;
+      onlineState.sources=Array.isArray(res.sources)?res.sources:[];
+      onlineState.error=res.error||'';
+      var incoming=Array.isArray(res.results)?res.results:[];
+      incoming.forEach(function(item){if(item._refsLoaded)REFS_CACHE[item.id]=item});
+      if(append){
+        var seen={};
+        onlineState.results.forEach(function(x){seen[x.id]=1});
+        incoming.forEach(function(x){if(!seen[x.id]){seen[x.id]=1;onlineState.results.push(x)}});
+      }else{
+        onlineState.results=incoming;
+      }
+      if(view==='explore'){
+        renderExploreKeepFocus();
+        if(CVE_RE.test(targetQ)&&onlineState.results.length===1){
+          var firstCard=document.querySelector('#app .v');
+          if(firstCard){
+            firstCard.classList.add('open');
+            var ml=firstCard.querySelector('.more');
+            if(ml)ml.textContent='Touche pour refermer';
+          }
+        }
+      }
+    })
+    .catch(function(err){
+      if(mySeq!==onlineState.seq)return;
+      onlineState.loading=false;
+      onlineState.loadingMore=false;
+      onlineState.error=err.message||'Impossible d\'interroger les bases CVE en ligne pour le moment.';
+      if(view==='explore')renderExploreKeepFocus();
+    });
+}
 S.explore=function(){
-  var rawRows=q?runQ(D.vulns,q):[];
+  var isOnline=expMode==='online';
+  if(isOnline&&onlineState.query!==q&&!onlineState.loading){
+    setTimeout(function(){if(view==='explore'&&expMode==='online'&&onlineState.query!==q)runOnlineSearch(q,false)},0);
+  }
+  var rawRows=isOnline?onlineState.results:(q?runQ(D.vulns,q):[]);
   var stMap={};
   var nMit=0, nRev=0, nAct=0;
   rawRows.forEach(function(r){
@@ -968,25 +1184,61 @@ S.explore=function(){
       if(parcMits.some(isMitigationExpired))saved.push(['À réviser (mon parc)','parc:oui revision:oui']);
     }
   }
-  var summaryParts=[rows.length+' résultat'+(rows.length>1?'s':'')];
-  if(expMitFilter==='all'){
-    if(nMit)summaryParts.push(nMit+' mitigée'+(nMit>1?'s':''));
-    if(nRev)summaryParts.push(nRev+' à réviser');
-  }
-  var filterBar=(q&&(nMit||nRev))?'<div class="chips" style="margin-top:8px">'+
+  var filterBar=(rawRows.length&&(nMit||nRev))?'<div class="chips" style="margin-top:8px">'+
     '<button type="button" class="chip'+(expMitFilter==='all'?' on':'')+'" data-exp-f="all">Tous ('+rawRows.length+')</button>'+
     '<button type="button" class="chip'+(expMitFilter==='act'?' on':'')+'" data-exp-f="act">Actives ('+(rawRows.length-nMit)+')</button>'+
     (nMit?'<button type="button" class="chip'+(expMitFilter==='mit'?' on':'')+'" data-exp-f="mit">✓ Mitigées ('+nMit+')</button>':'')+
     (nRev?'<button type="button" class="chip'+(expMitFilter==='rev'?' on':'')+'" data-exp-f="rev">⏰ Révision ('+nRev+')</button>':'')+
     '</div>':'';
-  return '<h1>Explorer</h1><p class="lead">Cherche un produit, un éditeur ou une CVE, ou choisis une recherche toute prête.</p>'+
-    '<div class="search"><input id="q" type="search" enterkeyhint="search" value="'+esc(q)+'" placeholder="ex. Fortinet, Chrome, CVE-2024-3400…" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="btn" id="hb" aria-label="Aide">?</button></div>'+
-    '<div class="chips">'+saved.map(function(s){return '<button class="chip'+(q===s[1]?' on':'')+'" data-q=\''+esc(s[1])+'\'>'+esc(s[0])+'</button>'}).join('')+'</div>'+
-    '<div class="card help" id="help" style="margin-top:10px"><b>Recherche avancée (pour les pros)</b> — combine les critères ; « - » devant un critère l\'exclut ; une virgule veut dire « ou ».<br>'+
-    ['p:P1,P2','gravite>=9','epss>=10%','risque>=80','age<=7','kev:oui','parc:oui','mitigee:oui','mitigee:non','revision:oui','correctif:non','exploit:metasploit','exploit:poc','fournisseur:fortinet','produit:"pan-os"','famille:ot','tag:rce','vue:"RCE pré-auth"','av:internet','pr:aucun','ui:aucune','paquet:npm','source:cna','tri:risque'].map(function(x){return '<span class="mono">'+esc(x)+'</span>'}).join(' ')+'</div>'+
-    filterBar+
-    (q?'<div class="bar"><span class="count">'+esc(summaryParts.join(' · '))+'</span><button class="btn sm" id="exp">Exporter pour Excel</button></div>'+listHTML(rows,qShown,'more')
-      :'<div class="empty"><div class="ico">🔎</div>Tape un nom de produit ou choisis une recherche ci-dessus.</div>');
+  var header='<div class="exp-head"><h1>Explorer</h1>'+
+    '<div class="seg" role="group" aria-label="Périmètre de découverte">'+
+      '<button type="button" data-exp-mode="online" class="'+(isOnline?'on':'')+'">Toutes les CVE en ligne</button>'+
+      '<button type="button" data-exp-mode="local" class="'+(!isOnline?'on':'')+'">Veille locale ('+D.vulns.length+')</button>'+
+    '</div></div>'+
+    '<p class="lead">'+(isOnline
+      ?'Interroge <b>n\'importe quelle CVE au monde</b> en direct (NVD · CVE.org · CISA KEV · EPSS) avec toutes ses références officielles, correctifs et avis éditeurs.'
+      :'Filtre la veille récente ('+D.vulns.length+' failles) avec les critères rapides ou la syntaxe experte.')+'</p>'+
+    '<div class="search"><input id="q" type="search" enterkeyhint="search" value="'+esc(q)+'" placeholder="'+(isOnline?'ex. CVE-2021-44228, FortiOS, Exchange, OpenSSL, Chrome…':'ex. Fortinet, Chrome, kev:oui, gravite>=9…')+'" autocomplete="off" autocapitalize="off" spellcheck="false">'+
+    (isOnline?'<button type="button" class="btn pri" id="qGo">Rechercher</button>':'')+
+    '<button type="button" class="btn" id="hb" aria-label="Aide">?</button></div>';
+  var chips=isOnline
+    ?'<div class="chips">'+ONLINE_QUICK.map(function(s){return '<button type="button" class="chip'+(q===s[1]?' on':'')+'" data-online-q="'+esc(s[1])+'">'+esc(s[0])+'</button>'}).join('')+'</div>'
+    :'<div class="chips">'+saved.map(function(s){return '<button type="button" class="chip'+(q===s[1]?' on':'')+'" data-q=\''+esc(s[1])+'\'>'+esc(s[0])+'</button>'}).join('')+'</div>';
+  var help='<div class="card help" id="help" style="margin-top:10px">'+
+    (isOnline
+      ?'<b>Découverte mondiale en ligne</b> — tape un numéro CVE exact (ex. <span class="mono">CVE-2021-44228</span>, <span class="mono">CVE-2017-0144</span>) pour obtenir la fiche fusionnée NVD + CVE.org + CISA KEV + EPSS et <b>toutes ses références</b>, ou tape un produit / éditeur (ex. <span class="mono">FortiOS</span>, <span class="mono">Apache</span>, <span class="mono">Windows</span>) pour parcourir l\'ensemble des CVE publiées.<br>Pour les filtres experts (<span class="mono">kev:oui</span>, <span class="mono">gravite>=9</span>, <span class="mono">parc:oui</span>…), bascule sur <b>Veille locale</b>.'
+      :'<b>Recherche avancée (veille locale)</b> — combine les critères ; « - » devant un critère l\'exclut ; une virgule veut dire « ou ».<br>'+
+        ['p:P1,P2','gravite>=9','epss>=10%','risque>=80','age<=7','kev:oui','parc:oui','mitigee:oui','mitigee:non','revision:oui','correctif:non','exploit:metasploit','exploit:poc','fournisseur:fortinet','produit:"pan-os"','famille:ot','tag:rce','vue:"RCE pré-auth"','av:internet','pr:aucun','ui:aucune','paquet:npm','source:cna','tri:risque'].map(function(x){return '<span class="mono">'+esc(x)+'</span>'}).join(' '))+'</div>';
+
+  if(isOnline){
+    var body='';
+    if(onlineState.loading){
+      body='<div class="online-bar"><span>🌐 Interrogation en direct des bases CVE (NVD · CVE.org · CISA KEV · EPSS)…</span></div><div class="list"><div class="skel"></div><div class="skel"></div><div class="skel"></div></div>';
+    }else if(onlineState.error){
+      body='<div class="online-err">⚠️ '+esc(onlineState.error)+' <button type="button" class="btn sm" style="margin-left:8px" id="qRetry">Réessayer</button></div>';
+    }else if(!rows.length){
+      body='<div class="empty"><div class="ico">🔎</div>'+(q?'Aucune CVE trouvée en ligne pour « '+esc(q)+' ». Vérifie l\'orthographe ou le format (ex. CVE-2021-44228).':'Aucune CVE à afficher pour le moment.')+'</div>';
+    }else{
+      var totalFmt=onlineState.total?onlineState.total.toLocaleString('fr-CA'):String(rows.length);
+      var label=q?(CVE_RE.test(q)?'Fiche complète trouvée en ligne':'« '+q+' » · '+totalFmt+' CVE en ligne ('+rows.length+' affichées)'):('Dernières CVE mondiales (30 j) · '+totalFmt+' CVE en ligne ('+rows.length+' affichées)');
+      var srcTxt=onlineState.sources.length?' · Sources : '+onlineState.sources.join(' · '):'';
+      var rem=Math.max(0,onlineState.total-onlineState.results.length);
+      body='<div class="bar"><span class="count">🌐 '+esc(label+srcTxt)+'</span><button type="button" class="btn sm" id="exp">Exporter pour Excel</button></div>'+
+        '<div class="list">'+rows.map(card).join('')+'</div>'+
+        (onlineState.hasMore?'<p style="text-align:center;margin-top:14px"><button type="button" class="btn" id="onlineMore"'+(onlineState.loadingMore?' disabled':'')+'>'+(onlineState.loadingMore?'Chargement des CVE suivantes…':'Charger plus de CVE en ligne ('+rem.toLocaleString('fr-CA')+' restantes)')+'</button></p>':'');
+    }
+    return header+chips+help+filterBar+body;
+  }
+
+  var summaryParts=[rows.length+' résultat'+(rows.length>1?'s':'')];
+  if(expMitFilter==='all'){
+    if(nMit)summaryParts.push(nMit+' mitigée'+(nMit>1?'s':''));
+    if(nRev)summaryParts.push(nRev+' à réviser');
+  }
+  var jumpOnline=(q&&!isLocalSyntaxQuery(q))?'<div class="online-bar"><span>Tu cherches une CVE plus ancienne ou hors veille récente ?</span><button type="button" class="btn sm pri" id="jumpOnlineBtn">🌐 Chercher « '+esc(q)+' » dans toutes les CVE en ligne</button></div>':'';
+  return header+chips+help+filterBar+jumpOnline+
+    (q?'<div class="bar"><span class="count">'+esc(summaryParts.join(' · '))+'</span><button type="button" class="btn sm" id="exp">Exporter pour Excel</button></div>'+listHTML(rows,qShown,'more')
+      :'<div class="empty"><div class="ico">🔎</div>Tape un nom de produit, une CVE ou choisis une recherche ci-dessus.</div>');
 };
 S.views=function(){
   return '<h1>Vues expertes</h1><p class="lead">20 analyses prêtes à l\'emploi, utilisées par les équipes de sécurité. Touche une vue pour l\'ouvrir.</p><div class="views">'+D.views.map(function(v){
@@ -1211,8 +1463,13 @@ S.more=function(){
 var MORE=['mitigations','views','kev','alerts','learn','settings','install','more'];
 function go(target,push){
   var t=String(target);
-  if(t.indexOf('q:')===0){q=t.slice(2);t='explore'}
+  if(t.indexOf('q:')===0){
+    q=t.slice(2);
+    expMode=isLocalSyntaxQuery(q)?'local':'online';
+    t='explore';
+  }
   var parts=t.split(':');view=S[parts[0]]?parts[0]:'home';sub=parts[1]||'';qShown=40;parcShown=40;expMitFilter='all';
+  if(view==='explore'&&q&&isLocalSyntaxQuery(q))expMode='local';
   document.querySelectorAll('.tabs [data-go]').forEach(function(b){b.classList.toggle('on',b.dataset.go===view)});
   document.querySelectorAll('.bnav [data-go]').forEach(function(b){b.classList.toggle('on',b.dataset.go===view||(b.dataset.go==='more'&&MORE.indexOf(view)>=0))});
   render();window.scrollTo(0,0);
@@ -1298,8 +1555,60 @@ function bind(){
   var m=$('more');if(m)m.onclick=function(){qShown+=60;render()};
   var pm=$('pmore');if(pm)pm.onclick=function(){parcShown+=60;render()};
   var qi=$('q');
-  if(qi){var tm;qi.oninput=function(){clearTimeout(tm);tm=setTimeout(function(){q=qi.value.trim();expMitFilter='all';qShown=40;var pos=qi.selectionStart;render();var n=$('q');n.focus();try{n.setSelectionRange(pos,pos)}catch(e){}
-    try{history.replaceState(null,'','#explore'+(q?'/'+encodeURIComponent(q):''))}catch(e){}},220)};$('hb').onclick=function(){$('help').classList.toggle('on')}}
+  if(qi){
+    var tm;
+    function commitSearch(immediate){
+      var val=qi.value.trim();
+      q=val;
+      expMitFilter='all';
+      qShown=40;
+      if(isLocalSyntaxQuery(val)){
+        expMode='local';
+      }else if(expMode==='local'&&CVE_RE.test(val)&&!runQ(D.vulns,val).length){
+        expMode='online';
+      }
+      try{history.replaceState(null,'','#explore'+(q?'/'+encodeURIComponent(q):''))}catch(e){}
+      if(expMode==='online'){
+        runOnlineSearch(q,false);
+      }else{
+        var pos=qi.selectionStart;
+        render();
+        var n=$('q');
+        if(n&&!immediate){n.focus();try{n.setSelectionRange(pos,pos)}catch(e){}}
+      }
+    }
+    qi.oninput=function(){
+      clearTimeout(tm);
+      var delay=expMode==='online'?480:220;
+      tm=setTimeout(function(){commitSearch(false)},delay);
+    };
+    qi.onkeydown=function(e){
+      if(e.key==='Enter'){e.preventDefault();clearTimeout(tm);commitSearch(true)}
+    };
+    var qGo=$('qGo');if(qGo)qGo.onclick=function(){clearTimeout(tm);commitSearch(true)};
+    var hb=$('hb');if(hb)hb.onclick=function(){$('help').classList.toggle('on')};
+  }
+  document.querySelectorAll('[data-exp-mode]').forEach(function(b){
+    b.onclick=function(){
+      var next=b.dataset.expMode;
+      if(next===expMode)return;
+      expMode=next;expMitFilter='all';qShown=40;
+      if(expMode==='online'&&isLocalSyntaxQuery(q))q='';
+      if(expMode==='online')runOnlineSearch(q,false);
+      else render();
+    };
+  });
+  document.querySelectorAll('[data-online-q]').forEach(function(b){
+    b.onclick=function(){
+      q=b.dataset.onlineQ||'';
+      expMode='online';expMitFilter='all';
+      try{history.replaceState(null,'','#explore'+(q?'/'+encodeURIComponent(q):''))}catch(e){}
+      runOnlineSearch(q,false);
+    };
+  });
+  var om=$('onlineMore');if(om)om.onclick=function(){runOnlineSearch(q,true)};
+  var qr=$('qRetry');if(qr)qr.onclick=function(){runOnlineSearch(q,false)};
+  var jo=$('jumpOnlineBtn');if(jo)jo.onclick=function(){expMode='online';runOnlineSearch(q,false)};
   document.querySelectorAll('[data-exp-f]').forEach(function(b){b.onclick=function(){expMitFilter=b.dataset.expF;qShown=40;render()}});
   var ex=$('exp');if(ex)ex.onclick=exportRows;
   if(view==='home'){
@@ -1488,10 +1797,18 @@ document.addEventListener('click',function(e){
     if(idx>=0){MITS.splice(idx,1);saveMits();toast('Rappel réactivé pour cette vulnérabilité');render()}
     return;
   }
-  var g=e.target.closest('[data-go]');if(g){e.preventDefault();if(g.dataset.go==='explore'&&g.closest('.tabs,.bnav'))q='';go(g.dataset.go);return}
+  var rm=e.target.closest('[data-refs-more]');if(rm){var box=rm.closest('.refs-sec');if(box){box.querySelectorAll('[data-ref-extra]').forEach(function(li){li.style.display='flex'});rm.remove()}return}
+  var lr=e.target.closest('[data-load-refs]');if(lr){loadCveRefs(lr.dataset.loadRefs,lr.closest('.v'));return}
+  var g=e.target.closest('[data-go]');if(g){e.preventDefault();if(g.dataset.go==='explore'&&g.closest('.tabs,.bnav')){q='';expMode='online';onlineState.query=null}go(g.dataset.go);return}
   var tl=e.target.closest('[data-tile]');if(tl){go(tl.dataset.tile);return}
-  var c=e.target.closest('[data-q]');if(c){q=c.dataset.q;go('explore');return}
-  var v=e.target.closest('.v');if(v&&!e.target.closest('a,button,input,select,textarea')){v.classList.toggle('open');var el=v.querySelector('.more');if(el)el.textContent=v.classList.contains('open')?'Touche pour refermer':'Touche pour voir le détail'}
+  var c=e.target.closest('[data-q]');if(c){q=c.dataset.q;expMode=isLocalSyntaxQuery(q)?'local':'online';go('explore');return}
+  var v=e.target.closest('.v');if(v&&!e.target.closest('a,button,input,select,textarea')){
+    v.classList.toggle('open');
+    var isOpen=v.classList.contains('open');
+    var el=v.querySelector('.more');
+    if(el)el.textContent=isOpen?'Touche pour refermer':'Touche pour voir le détail et les références';
+    if(isOpen&&v.dataset.cve){loadCveRefs(v.dataset.cve,v)}
+  }
 });
 $('mitClose').onclick=closeMitModal;
 $('mitCancel').onclick=closeMitModal;

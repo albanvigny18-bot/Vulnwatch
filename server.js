@@ -14,10 +14,13 @@ const SITE_DIR = path.join(__dirname, "site");
 const D3_BUNDLE = path.join(__dirname, "node_modules", "d3", "dist", "d3.min.js");
 
 const NVD_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0";
+const MITRE_CVE_URL = "https://cveawg.mitre.org/api/cve";
+const EPSS_URL = "https://api.first.org/data/v1/epss";
 const KEV_URLS = [
   "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
   "https://raw.githubusercontent.com/cisagov/kev-data/main/known_exploited_vulnerabilities.json",
 ];
+const CVE_ID_RE = /^CVE-\d{4}-\d{4,7}$/i;
 
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -93,7 +96,169 @@ function buildViewsForRecord(r, nowMs) {
   return views.join("; ");
 }
 
-function parseNvdCve(item, nowMs, cutoff1) {
+function safeHttpUrl(raw) {
+  if (typeof raw !== "string") return "";
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed.length > 2048) return "";
+  try {
+    const u = new URL(trimmed);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return "";
+    return u.toString();
+  } catch {
+    return "";
+  }
+}
+
+const REF_TAG_MAP = {
+  patch: "Patch",
+  "vendor-advisory": "Vendor Advisory",
+  "vendor advisory": "Vendor Advisory",
+  mitigation: "Mitigation",
+  exploit: "Exploit",
+  "release-notes": "Release Notes",
+  "release notes": "Release Notes",
+  "third-party-advisory": "Third Party Advisory",
+  "third party advisory": "Third Party Advisory",
+  "us-government-resource": "US Government Resource",
+  "us government resource": "US Government Resource",
+  "government-resource": "US Government Resource",
+  "issue-tracking": "Issue Tracking",
+  "issue tracking": "Issue Tracking",
+  "mailing-list": "Mailing List",
+  "mailing list": "Mailing List",
+  "technical-description": "Technical Description",
+  "technical description": "Technical Description",
+  "vdb-entry": "VDB Entry",
+  "vdb entry": "VDB Entry",
+  "broken-link": "Broken Link",
+  "broken link": "Broken Link",
+};
+
+const REF_TAG_PRIO = {
+  Patch: 0,
+  "Vendor Advisory": 1,
+  Mitigation: 2,
+  Exploit: 3,
+  "US Government Resource": 4,
+  "Release Notes": 5,
+  "Third Party Advisory": 6,
+  "Technical Description": 7,
+  "Issue Tracking": 8,
+  "Mailing List": 9,
+  "VDB Entry": 10,
+};
+
+function normalizeRefTags(tags) {
+  if (!Array.isArray(tags)) return [];
+  const out = [];
+  for (const t of tags) {
+    const raw = String(t || "").trim();
+    if (!raw || raw.startsWith("x_refsource_") || raw.startsWith("x_transferred")) continue;
+    const mapped = REF_TAG_MAP[raw.toLowerCase()] || raw;
+    if (!out.includes(mapped)) out.push(mapped);
+  }
+  return out;
+}
+
+function mergeReferenceLists(...lists) {
+  const byUrl = new Map();
+  for (const list of lists) {
+    if (!Array.isArray(list)) continue;
+    for (const item of list) {
+      const url = safeHttpUrl(typeof item === "string" ? item : item?.url);
+      if (!url) continue;
+      const key = url.replace(/\/+$/, "").toLowerCase();
+      const tags = normalizeRefTags(item?.tags);
+      const name = typeof item?.name === "string" ? item.name.trim().slice(0, 140) : "";
+      const source = typeof item?.source === "string" ? item.source.trim().slice(0, 80) : "";
+      const existing = byUrl.get(key);
+      if (existing) {
+        for (const t of tags) {
+          if (!existing.tags.includes(t)) existing.tags.push(t);
+        }
+        if (!existing.name && name) existing.name = name;
+        if (!existing.source && source) existing.source = source;
+      } else {
+        byUrl.set(key, { url, tags, name, source });
+      }
+    }
+  }
+  const rank = (ref) => {
+    if (!ref.tags.length) return 50;
+    if (ref.tags.includes("Broken Link")) return 99;
+    return Math.min(...ref.tags.map((t) => (REF_TAG_PRIO[t] != null ? REF_TAG_PRIO[t] : 30)));
+  };
+  return Array.from(byUrl.values())
+    .sort((a, b) => rank(a) - rank(b))
+    .slice(0, 45);
+}
+
+function extractCpeInfo(configs) {
+  let vendor = "";
+  let product = "";
+  const affectedList = [];
+  const versionRanges = [];
+  for (const cfg of Array.isArray(configs) ? configs : []) {
+    for (const node of cfg.nodes || []) {
+      for (const m of node.cpeMatch || []) {
+        if (m.vulnerable === false) continue;
+        const parts = String(m.criteria || "").split(":");
+        if (parts.length < 5) continue;
+        const v = parts[3] && parts[3] !== "*" && parts[3] !== "-" ? parts[3].replace(/_/g, " ") : "";
+        const p = parts[4] && parts[4] !== "*" && parts[4] !== "-" ? parts[4].replace(/_/g, " ") : "";
+        const ver = parts[5] && parts[5] !== "*" && parts[5] !== "-" ? parts[5] : "";
+        if (!vendor && v) vendor = v;
+        if (!product && p) product = p;
+        const label = [v, p].filter(Boolean).join(" ").trim();
+        if (label && !affectedList.includes(label) && affectedList.length < 6) {
+          affectedList.push(label);
+        }
+        let range = "";
+        if (m.versionStartIncluding && m.versionEndExcluding) range = `>= ${m.versionStartIncluding}, < ${m.versionEndExcluding}`;
+        else if (m.versionStartIncluding && m.versionEndIncluding) range = `>= ${m.versionStartIncluding}, <= ${m.versionEndIncluding}`;
+        else if (m.versionEndExcluding) range = `< ${m.versionEndExcluding}`;
+        else if (m.versionEndIncluding) range = `<= ${m.versionEndIncluding}`;
+        else if (m.versionStartIncluding) range = `>= ${m.versionStartIncluding}`;
+        else if (ver) range = ver;
+        if (range) {
+          const entry = p && affectedList.length > 1 ? `${p} ${range}` : range;
+          if (!versionRanges.includes(entry) && versionRanges.length < 8) versionRanges.push(entry);
+        }
+      }
+    }
+  }
+  return {
+    vendor,
+    product,
+    affected: affectedList.join("; "),
+    versions: versionRanges.join(", "),
+  };
+}
+
+function applyKevToRecord(rec, k, nowMs) {
+  if (!rec || !k) return rec;
+  const ransomware = k.knownRansomwareCampaignUse === "Known" ? "Known" : "";
+  rec.kev = true;
+  rec.kev_due = k.dueDate || rec.kev_due || "";
+  if (ransomware) rec.ransomware = ransomware;
+  rec.ssvc_exploitation = "Active";
+  rec.priority = "P1";
+  rec.risk = Math.max(rec.risk || 0, ransomware ? 96 : rec.family === "Périmétrique" ? 93 : 88);
+  if (!rec.vendor && k.vendorProject) rec.vendor = k.vendorProject;
+  if (!rec.product && k.product) rec.product = k.product;
+  if (!rec.affected && (k.vendorProject || k.product)) rec.affected = `${k.vendorProject || ""} ${k.product || ""}`.trim();
+  rec.justification = ransomware
+    ? "Exploitée activement (catalogue CISA KEV) et utilisée par des rançongiciels."
+    : "Exploitée activement par des attaquants (catalogue officiel CISA KEV).";
+  if (!rec.plain) {
+    rec.plain = `Une faille dans ${rec.affected || rec.id} (${k.vulnerabilityName || rec.id}). ⚠️ Des pirates l'utilisent déjà dans de vraies attaques${ransomware ? ", y compris des groupes de rançongiciels" : ""}.`;
+  }
+  rec.todo = `URGENT — sous 48 h : ${k.requiredAction || "appliquer la mise à jour de sécurité de l'éditeur"}.${k.dueDate ? ` Échéance recommandée par la CISA : ${k.dueDate}.` : ""}`;
+  rec.views = buildViewsForRecord(rec, nowMs);
+  return rec;
+}
+
+function parseNvdCve(item, nowMs, cutoff1, kevMap = null) {
   const cve = item?.cve;
   if (!cve?.id) return null;
 
@@ -113,27 +278,27 @@ function parseNvdCve(item, nowMs, cutoff1) {
   const descs = Array.isArray(cve.descriptions) ? cve.descriptions : [];
   const desc = (descs.find((d) => d.lang === "fr") || descs.find((d) => d.lang === "en") || descs[0])?.value || "";
 
-  let vendor = "";
-  let product = "";
-  const configs = Array.isArray(cve.configurations) ? cve.configurations : [];
-  for (const cfg of configs) {
-    for (const node of cfg.nodes || []) {
-      for (const m of node.cpeMatch || []) {
-        const parts = String(m.criteria || "").split(":");
-        if (parts.length >= 5) {
-          vendor = parts[3].replace(/_/g, " ");
-          product = parts[4].replace(/_/g, " ");
-          break;
-        }
+  const cpeInfo = extractCpeInfo(cve.configurations);
+  const { vendor, product, versions } = cpeInfo;
+
+  const cwes = [];
+  for (const w of Array.isArray(cve.weaknesses) ? cve.weaknesses : []) {
+    for (const d of w.description || []) {
+      const val = String(d?.value || "").trim();
+      if (/^CWE-\d+$/i.test(val) && !cwes.includes(val.toUpperCase())) {
+        cwes.push(val.toUpperCase());
       }
-      if (product) break;
     }
-    if (product) break;
   }
 
-  const refs = Array.isArray(cve.references) ? cve.references : [];
-  const patchRef = refs.find((r) => Array.isArray(r.tags) && r.tags.includes("Patch"))?.url || "";
-  const hasExploitRef = refs.some((r) => Array.isArray(r.tags) && r.tags.includes("Exploit"));
+  const references = mergeReferenceLists(Array.isArray(cve.references) ? cve.references : []);
+  const patchRef =
+    references.find((r) => r.tags.includes("Patch"))?.url ||
+    references.find((r) => r.tags.includes("Vendor Advisory"))?.url ||
+    references.find((r) => r.tags.includes("Mitigation"))?.url ||
+    "";
+  const exploitRef = references.find((r) => r.tags.includes("Exploit"))?.url || "";
+  const hasExploitRef = Boolean(exploitRef);
 
   const published = cve.published ? `${cve.published.slice(0, 19)}Z` : "";
   const modified = cve.lastModified ? `${cve.lastModified.slice(0, 19)}Z` : published;
@@ -157,7 +322,7 @@ function parseNvdCve(item, nowMs, cutoff1) {
 
   const family = detectFamily(vendor, product, desc);
   const risk = score == null ? 20 : Math.min(95, Math.round(score * 8 + (hasExploitRef ? 12 : 0)));
-  const affected = [vendor, product].filter(Boolean).join(" ").trim();
+  const affected = cpeInfo.affected || [vendor, product].filter(Boolean).join(" ").trim();
 
   const rec = {
     id: cve.id,
@@ -170,19 +335,230 @@ function parseNvdCve(item, nowMs, cutoff1) {
     vendor,
     product,
     affected,
+    versions,
+    cwe: cwes.join(", "),
     family,
     desc,
+    status: cve.vulnStatus || "",
+    source: cve.sourceIdentifier || "",
     kev: false,
     exploit_maturity: hasExploitRef ? "Preuve de concept publique" : "",
+    exploit_ref: exploitRef,
     patch_available: patchRef ? "Oui" : "",
     ref_patch: patchRef,
+    references,
     new: isNew,
     published,
     modified,
     justification,
   };
   rec.views = buildViewsForRecord(rec, nowMs);
+  if (kevMap && kevMap.has(rec.id)) {
+    applyKevToRecord(rec, kevMap.get(rec.id), nowMs);
+  }
   return rec;
+}
+
+function parseMitreCve5(payload, nowMs, cutoff1, kevMap = null) {
+  const meta = payload?.cveMetadata;
+  const cveId = meta?.cveId;
+  if (!cveId) return null;
+  const cna = payload?.containers?.cna || {};
+  const adps = Array.isArray(payload?.containers?.adp) ? payload.containers.adp : [];
+
+  const descs = Array.isArray(cna.descriptions) ? cna.descriptions : [];
+  const desc = (descs.find((d) => /^fr/i.test(d.lang || "")) || descs.find((d) => /^en/i.test(d.lang || "")) || descs[0])?.value || cna.title || "";
+
+  let vendor = "";
+  let product = "";
+  const affectedList = [];
+  const versionList = [];
+  const fixedList = [];
+  for (const a of Array.isArray(cna.affected) ? cna.affected : []) {
+    const v = String(a.vendor || "").trim();
+    const p = String(a.product || "").trim();
+    if (!vendor && v && v.toLowerCase() !== "n/a") vendor = v;
+    if (!product && p && p.toLowerCase() !== "n/a") product = p;
+    const lbl = [v !== "n/a" ? v : "", p !== "n/a" ? p : ""].filter(Boolean).join(" ").trim();
+    if (lbl && !affectedList.includes(lbl) && affectedList.length < 6) affectedList.push(lbl);
+    for (const ver of Array.isArray(a.versions) ? a.versions : []) {
+      if (ver.status === "affected") {
+        let s = "";
+        if (ver.lessThan) s = `< ${ver.lessThan}`;
+        else if (ver.lessThanOrEqual) s = `<= ${ver.lessThanOrEqual}`;
+        else if (ver.version && ver.version !== "0" && ver.version !== "unspecified") s = String(ver.version);
+        if (s && !versionList.includes(s) && versionList.length < 8) versionList.push(s);
+        if (ver.lessThan && !fixedList.includes(ver.lessThan) && fixedList.length < 4) fixedList.push(ver.lessThan);
+      }
+    }
+  }
+
+  const allMetrics = [...(Array.isArray(cna.metrics) ? cna.metrics : []), ...adps.flatMap((x) => x.metrics || [])];
+  let score = null;
+  let vector = "";
+  let rawSev = "";
+  let scoreSource = "CNA";
+  let ssvcExploitation = "";
+  let ssvcAutomatable = "";
+  let ssvcImpact = "";
+
+  for (const m of allMetrics) {
+    const cvss = m.cvssV3_1 || m.cvssV4_0 || m.cvssV3_0 || m.cvssV2_0;
+    if (cvss && score == null && typeof cvss.baseScore === "number") {
+      score = cvss.baseScore;
+      vector = cvss.vectorString || "";
+      rawSev = String(cvss.baseSeverity || "").toUpperCase();
+    }
+    if (m.other?.type === "ssvc" && Array.isArray(m.other?.content?.options)) {
+      for (const opt of m.other.content.options) {
+        if (opt.Exploitation) {
+          const ev = String(opt.Exploitation).toLowerCase();
+          ssvcExploitation = ev === "active" ? "Active" : ev === "poc" ? "Preuve de concept" : "Aucune";
+        }
+        if (opt.Automatable) {
+          ssvcAutomatable = String(opt.Automatable).toLowerCase() === "yes" ? "Oui" : "Non";
+        }
+        if (opt["Technical Impact"]) {
+          ssvcImpact = String(opt["Technical Impact"]).toLowerCase() === "total" ? "Totale" : "Partielle";
+        }
+      }
+    }
+  }
+
+  const cwes = [];
+  const allProblems = [...(Array.isArray(cna.problemTypes) ? cna.problemTypes : []), ...adps.flatMap((x) => x.problemTypes || [])];
+  for (const pt of allProblems) {
+    for (const d of pt.descriptions || []) {
+      const id = String(d.cweId || "").trim().toUpperCase();
+      if (/^CWE-\d+$/.test(id) && !cwes.includes(id)) cwes.push(id);
+    }
+  }
+
+  const cnaRefs = Array.isArray(cna.references) ? cna.references : [];
+  const adpRefs = adps.flatMap((x) => x.references || []);
+  const references = mergeReferenceLists(cnaRefs, adpRefs);
+  const patchRef =
+    references.find((r) => r.tags.includes("Patch"))?.url ||
+    references.find((r) => r.tags.includes("Vendor Advisory"))?.url ||
+    references.find((r) => r.tags.includes("Mitigation"))?.url ||
+    "";
+  const exploitRef = references.find((r) => r.tags.includes("Exploit"))?.url || "";
+  const hasExploitRef = Boolean(exploitRef) || ssvcExploitation === "Preuve de concept";
+
+  const severity = SEV_FR[rawSev] || (score == null ? "NON ÉVALUÉE" : score >= 9 ? "CRITIQUE" : score >= 7 ? "ÉLEVÉE" : score >= 4 ? "MOYENNE" : "FAIBLE");
+  const published = meta.datePublished ? `${String(meta.datePublished).slice(0, 19)}Z` : "";
+  const modified = meta.dateUpdated ? `${String(meta.dateUpdated).slice(0, 19)}Z` : published;
+  const pubMs = Date.parse(published) || nowMs;
+  const family = detectFamily(vendor, product, desc);
+
+  let priority = "P4";
+  let justification = "Fiche CVE officielle (CVE.org / CNA).";
+  if (ssvcExploitation === "Active" || (score != null && score >= 9.0 && hasExploitRef)) {
+    priority = "P1";
+    justification = ssvcExploitation === "Active"
+      ? "Exploitation active signalée par la CISA (SSVC)."
+      : `Faille critique (${score.toFixed(1)}/10) avec preuve de concept publique.`;
+  } else if (score != null && score >= 9.0) {
+    priority = "P2";
+    justification = `Faille de gravité critique (${score.toFixed(1)}/10) à corriger cette semaine.`;
+  } else if (score != null && score >= 7.0) {
+    priority = hasExploitRef ? "P2" : "P3";
+    justification = `Gravité élevée (${score.toFixed(1)}/10).`;
+  }
+
+  const rec = {
+    id: cveId,
+    priority,
+    severity,
+    score,
+    score_source: score != null ? scoreSource : "",
+    vector,
+    risk: score == null ? 20 : Math.min(95, Math.round(score * 8 + (ssvcExploitation === "Active" ? 20 : hasExploitRef ? 12 : 0))),
+    vendor,
+    product,
+    affected: affectedList.join("; ") || [vendor, product].filter(Boolean).join(" ").trim(),
+    versions: versionList.join(", "),
+    pkg_fixed: fixedList.join(", "),
+    cwe: cwes.join(", "),
+    family,
+    desc,
+    status: meta.state || "",
+    source: meta.assignerShortName || "",
+    kev: false,
+    ssvc_exploitation: ssvcExploitation,
+    ssvc_automatable: ssvcAutomatable,
+    ssvc_impact: ssvcImpact,
+    exploit_maturity: hasExploitRef ? "Preuve de concept publique" : "",
+    exploit_ref: exploitRef,
+    patch_available: patchRef || fixedList.length ? "Oui" : "",
+    ref_patch: patchRef,
+    references,
+    new: pubMs >= cutoff1,
+    published,
+    modified,
+    justification,
+  };
+  rec.views = buildViewsForRecord(rec, nowMs);
+  if (kevMap && kevMap.has(rec.id)) {
+    applyKevToRecord(rec, kevMap.get(rec.id), nowMs);
+  }
+  return rec;
+}
+
+function mergeCveRecords(nvdRec, mitreRec, epssEntry, kevEntry, nowMs) {
+  const base = nvdRec ? { ...nvdRec } : mitreRec ? { ...mitreRec } : null;
+  if (!base) return null;
+  if (nvdRec && mitreRec) {
+    if (base.score == null && mitreRec.score != null) {
+      base.score = mitreRec.score;
+      base.severity = mitreRec.severity;
+      base.vector = base.vector || mitreRec.vector;
+      base.score_source = mitreRec.score_source || "CNA";
+    }
+    if (!base.vendor && mitreRec.vendor) base.vendor = mitreRec.vendor;
+    if (!base.product && mitreRec.product) base.product = mitreRec.product;
+    if (!base.affected && mitreRec.affected) base.affected = mitreRec.affected;
+    if (!base.versions && mitreRec.versions) base.versions = mitreRec.versions;
+    if (!base.pkg_fixed && mitreRec.pkg_fixed) base.pkg_fixed = mitreRec.pkg_fixed;
+    if (!base.desc && mitreRec.desc) base.desc = mitreRec.desc;
+    if (!base.family && mitreRec.family) base.family = mitreRec.family;
+    if (!base.source && mitreRec.source) base.source = mitreRec.source;
+    if (!base.ssvc_exploitation && mitreRec.ssvc_exploitation) base.ssvc_exploitation = mitreRec.ssvc_exploitation;
+    if (!base.ssvc_automatable && mitreRec.ssvc_automatable) base.ssvc_automatable = mitreRec.ssvc_automatable;
+    if (!base.ssvc_impact && mitreRec.ssvc_impact) base.ssvc_impact = mitreRec.ssvc_impact;
+    const mergedCwes = Array.from(
+      new Set([...(base.cwe ? base.cwe.split(/,\s*/) : []), ...(mitreRec.cwe ? mitreRec.cwe.split(/,\s*/) : [])].filter(Boolean))
+    );
+    base.cwe = mergedCwes.join(", ");
+    base.references = mergeReferenceLists(base.references || [], mitreRec.references || []);
+    if (!base.ref_patch) {
+      base.ref_patch =
+        base.references.find((r) => r.tags.includes("Patch"))?.url ||
+        base.references.find((r) => r.tags.includes("Vendor Advisory"))?.url ||
+        mitreRec.ref_patch ||
+        "";
+    }
+    if (!base.exploit_ref) {
+      base.exploit_ref = base.references.find((r) => r.tags.includes("Exploit"))?.url || mitreRec.exploit_ref || "";
+    }
+    if (base.ref_patch || base.pkg_fixed) base.patch_available = "Oui";
+    if (base.exploit_ref && !base.exploit_maturity) base.exploit_maturity = "Preuve de concept publique";
+  }
+  if (epssEntry) {
+    base.epss = epssEntry.epss;
+    base.epss_pct = epssEntry.percentile;
+    if (base.epss >= 0.5 && (base.priority === "P3" || base.priority === "P4")) {
+      base.priority = "P2";
+    } else if (base.epss >= 0.1 && base.score != null && base.score >= 9.0) {
+      base.priority = "P1";
+    }
+  }
+  if (kevEntry) {
+    applyKevToRecord(base, kevEntry, nowMs);
+  }
+  base._refsLoaded = true;
+  base.views = buildViewsForRecord(base, nowMs);
+  return base;
 }
 
 function buildDataset(kevPayload, nvdPayload, kevOk, nvdOk) {
@@ -194,6 +570,10 @@ function buildDataset(kevPayload, nvdPayload, kevOk, nvdOk) {
   const cutoff1 = nowMs - 86400000;
 
   const rawKev = Array.isArray(kevPayload?.vulnerabilities) ? kevPayload.vulnerabilities : [];
+  const fullKevMap = new Map();
+  for (const k of rawKev) {
+    if (k?.cveID) fullKevMap.set(String(k.cveID).toUpperCase(), k);
+  }
   const recentKev = rawKev
     .filter((k) => {
       const t = Date.parse(k.dateAdded || "");
@@ -213,6 +593,9 @@ function buildDataset(kevPayload, nvdPayload, kevOk, nvdOk) {
     const isNew = addedMs >= cutoff1;
     const ransomware = k.knownRansomwareCampaignUse === "Known" ? "Known" : "";
     const risk = ransomware ? 96 : family === "Périmétrique" ? 93 : 88;
+    const kevNoteRefs = String(k.notes || "")
+      .split(/\s*;\s*/)
+      .map((u) => ({ url: u, tags: ["Vendor Advisory"] }));
     const rec = {
       id: k.cveID,
       priority: "P1",
@@ -230,6 +613,7 @@ function buildDataset(kevPayload, nvdPayload, kevOk, nvdOk) {
       ransomware,
       ssvc_exploitation: "Active",
       patch_available: "Oui",
+      references: mergeReferenceLists(kevNoteRefs),
       new: isNew,
       published: `${k.dateAdded || nowIso.slice(0, 10)}T00:00:00Z`,
       modified: `${k.dateAdded || nowIso.slice(0, 10)}T00:00:00Z`,
@@ -239,19 +623,24 @@ function buildDataset(kevPayload, nvdPayload, kevOk, nvdOk) {
       plain: `Une faille dans ${vendor} ${product} (${k.vulnerabilityName || k.cveID}). ⚠️ Des pirates l'utilisent déjà dans de vraies attaques${ransomware ? ", y compris des groupes de rançongiciels" : ""}.`,
       todo: `URGENT — sous 48 h : ${k.requiredAction || "appliquer la mise à jour de sécurité de l'éditeur"}.${k.dueDate ? ` Échéance recommandée par la CISA : ${k.dueDate}.` : ""}`,
     };
+    rec.ref_patch = rec.references[0]?.url || "";
     rec.views = buildViewsForRecord(rec, nowMs);
     byId.set(rec.id, rec);
   }
 
   const rawNvd = Array.isArray(nvdPayload?.vulnerabilities) ? nvdPayload.vulnerabilities : [];
   for (const item of rawNvd) {
-    const rec = parseNvdCve(item, nowMs, cutoff1);
+    const rec = parseNvdCve(item, nowMs, cutoff1, fullKevMap);
     if (!rec) continue;
     const existing = byId.get(rec.id);
     if (existing) {
       if (rec.score != null) existing.score = rec.score;
       if (rec.vector) existing.vector = rec.vector;
+      if (rec.cwe) existing.cwe = rec.cwe;
+      if (rec.versions) existing.versions = rec.versions;
       if (rec.ref_patch) existing.ref_patch = rec.ref_patch;
+      if (rec.exploit_ref) existing.exploit_ref = rec.exploit_ref;
+      existing.references = mergeReferenceLists(existing.references || [], rec.references || []);
     } else {
       byId.set(rec.id, rec);
     }
@@ -434,8 +823,29 @@ let cachedTtlMs = 0;
 let inFlightData = null;
 let lastGoodKev = null;
 let lastGoodNvd = null;
+let fullKevMapCache = new Map();
 const CACHE_TTL_MS = 30 * 60 * 1000;
 const FAIL_CACHE_TTL_MS = 60 * 1000;
+
+function updateFullKevMap(kevPayload) {
+  const arr = Array.isArray(kevPayload?.vulnerabilities) ? kevPayload.vulnerabilities : [];
+  if (!arr.length) return;
+  const next = new Map();
+  for (const k of arr) {
+    if (k?.cveID) next.set(String(k.cveID).toUpperCase(), k);
+  }
+  fullKevMapCache = next;
+}
+
+async function getFullKevMap() {
+  if (fullKevMapCache.size > 0) return fullKevMapCache;
+  try {
+    await getLiveData();
+  } catch {
+    // ignore
+  }
+  return fullKevMapCache;
+}
 
 async function getLiveData() {
   if (cachedData && Date.now() - cachedAt < cachedTtlMs) {
@@ -465,7 +875,10 @@ async function getLiveData() {
 
     const kevOk = Boolean(kevRes.ok && kevRes.data?.vulnerabilities);
     const nvdOk = Boolean(nvdRes.ok && nvdRes.data?.vulnerabilities);
-    if (kevOk) lastGoodKev = kevRes.data;
+    if (kevOk) {
+      lastGoodKev = kevRes.data;
+      updateFullKevMap(kevRes.data);
+    }
     if (nvdOk) lastGoodNvd = nvdRes.data;
     if (!nvdOk) console.warn("NVD fetch failed:", nvdRes.reason);
 
@@ -491,6 +904,254 @@ async function getLiveData() {
   }
 }
 
+const onlineSearchCache = new Map();
+const onlineDetailCache = new Map();
+const kwTotalCache = new Map();
+const ONLINE_SEARCH_TTL_MS = 5 * 60 * 1000;
+const ONLINE_DETAIL_TTL_MS = 15 * 60 * 1000;
+
+function setBoundedCache(map, key, value, maxSize = 250) {
+  if (map.size >= maxSize) {
+    const first = map.keys().next().value;
+    if (first) map.delete(first);
+  }
+  map.set(key, { value, at: Date.now() });
+}
+
+function getBoundedCache(map, key, ttlMs) {
+  const hit = map.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.at > ttlMs) {
+    map.delete(key);
+    return null;
+  }
+  return hit.value;
+}
+
+async function fetchEpssBatch(cveIds) {
+  const out = new Map();
+  const clean = Array.from(new Set(cveIds.filter((id) => CVE_ID_RE.test(id)))).slice(0, 40);
+  if (!clean.length) return out;
+  const url = `${EPSS_URL}?cve=${encodeURIComponent(clean.join(","))}`;
+  const res = await fetchJsonWithTimeout(url, 8000, {}, 0);
+  if (res.ok && Array.isArray(res.data?.data)) {
+    for (const row of res.data.data) {
+      if (!row?.cve) continue;
+      const epss = Number(row.epss);
+      const percentile = Number(row.percentile);
+      if (!Number.isNaN(epss)) {
+        out.set(String(row.cve).toUpperCase(), {
+          epss,
+          percentile: Number.isNaN(percentile) ? null : percentile,
+        });
+      }
+    }
+  }
+  return out;
+}
+
+async function lookupSingleCveOnline(cveId) {
+  const id = String(cveId || "").trim().toUpperCase();
+  if (!CVE_ID_RE.test(id)) return null;
+  const cached = getBoundedCache(onlineDetailCache, id, ONLINE_DETAIL_TTL_MS);
+  if (cached) return cached;
+
+  const nvdHeaders = process.env.NVD_API_KEY ? { apiKey: process.env.NVD_API_KEY } : {};
+  const nowMs = Date.now();
+  const cutoff1 = nowMs - 86400000;
+
+  const [nvdRes, mitreRes, epssMap, kevMap] = await Promise.all([
+    fetchJsonWithTimeout(`${NVD_URL}?cveId=${encodeURIComponent(id)}`, 15000, nvdHeaders, 1),
+    fetchJsonWithTimeout(`${MITRE_CVE_URL}/${encodeURIComponent(id)}`, 10000, {}, 1),
+    fetchEpssBatch([id]),
+    getFullKevMap(),
+  ]);
+
+  const nvdItem = nvdRes.ok && Array.isArray(nvdRes.data?.vulnerabilities) ? nvdRes.data.vulnerabilities[0] : null;
+  const nvdRec = nvdItem ? parseNvdCve(nvdItem, nowMs, cutoff1, kevMap) : null;
+  const mitreRec = mitreRes.ok && mitreRes.data?.cveMetadata ? parseMitreCve5(mitreRes.data, nowMs, cutoff1, kevMap) : null;
+  const kevEntry = kevMap.get(id) || null;
+  const epssEntry = epssMap.get(id) || null;
+
+  let merged = mergeCveRecords(nvdRec, mitreRec, epssEntry, kevEntry, nowMs);
+  if (!merged && kevEntry) {
+    merged = applyKevToRecord(
+      {
+        id,
+        priority: "P1",
+        severity: "CRITIQUE",
+        score: kevEntry.knownRansomwareCampaignUse === "Known" ? 9.8 : 9.0,
+        score_source: "CISA KEV",
+        risk: 92,
+        vendor: kevEntry.vendorProject || "",
+        product: kevEntry.product || "",
+        affected: `${kevEntry.vendorProject || ""} ${kevEntry.product || ""}`.trim(),
+        family: detectFamily(kevEntry.vendorProject, kevEntry.product, kevEntry.shortDescription),
+        desc: kevEntry.shortDescription || kevEntry.vulnerabilityName || "",
+        references: mergeReferenceLists(
+          String(kevEntry.notes || "")
+            .split(/\s*;\s*/)
+            .map((u) => ({ url: u, tags: ["Vendor Advisory"] }))
+        ),
+        published: kevEntry.dateAdded ? `${kevEntry.dateAdded}T00:00:00Z` : "",
+        modified: kevEntry.dateAdded ? `${kevEntry.dateAdded}T00:00:00Z` : "",
+        _refsLoaded: true,
+      },
+      kevEntry,
+      nowMs
+    );
+    if (epssEntry) {
+      merged.epss = epssEntry.epss;
+      merged.epss_pct = epssEntry.percentile;
+    }
+  }
+
+  const sources = [];
+  if (nvdRec) sources.push("NVD");
+  if (mitreRec) sources.push("CVE.org");
+  if (kevEntry) sources.push("CISA KEV");
+  if (epssEntry) sources.push("EPSS");
+
+  const result = { record: merged, sources };
+  if (merged) {
+    setBoundedCache(onlineDetailCache, id, result, 300);
+  }
+  return result;
+}
+
+async function searchCvesOnline(rawQuery, page = 0, limit = 20) {
+  const q = String(rawQuery || "").replace(/[\x00-\x1F\x7F]/g, "").trim().slice(0, 120);
+  const safePage = Math.max(0, Math.min(500, Math.floor(Number(page) || 0)));
+  const safeLimit = Math.max(1, Math.min(30, Math.floor(Number(limit) || 20)));
+
+  if (CVE_ID_RE.test(q)) {
+    const looked = await lookupSingleCveOnline(q);
+    return {
+      mode: "cve",
+      query: q.toUpperCase(),
+      page: 0,
+      limit: 1,
+      totalResults: looked?.record ? 1 : 0,
+      hasMore: false,
+      sources: looked?.sources || [],
+      results: looked?.record ? [looked.record] : [],
+    };
+  }
+
+  const cacheKey = `${q.toLowerCase()}|${safePage}|${safeLimit}`;
+  const cached = getBoundedCache(onlineSearchCache, cacheKey, ONLINE_SEARCH_TTL_MS);
+  if (cached) return cached;
+
+  const nvdHeaders = process.env.NVD_API_KEY ? { apiKey: process.env.NVD_API_KEY } : {};
+  const nowMs = Date.now();
+  const cutoff1 = nowMs - 86400000;
+  const kevMap = await getFullKevMap();
+
+  let totalResults = 0;
+  let items = [];
+  let nvdError = "";
+
+  if (!q) {
+    // Parcourir les dernières CVE mondiales (fenêtre 30 jours)
+    const end = new Date();
+    const start = new Date(end.getTime() - 30 * 86400000);
+    const fmtNvd = (d) => d.toISOString().replace(/\.\d{3}Z$/, ".000");
+    const baseUrl = `${NVD_URL}?pubStartDate=${encodeURIComponent(fmtNvd(start))}&pubEndDate=${encodeURIComponent(fmtNvd(end))}`;
+    let total = getBoundedCache(kwTotalCache, "__recent30__", ONLINE_SEARCH_TTL_MS);
+    if (total == null) {
+      const probe = await fetchJsonWithTimeout(`${baseUrl}&resultsPerPage=1&startIndex=0`, 15000, nvdHeaders, 1);
+      if (!probe.ok) {
+        nvdError = probe.reason || "NVD indisponible";
+      } else {
+        total = Number(probe.data?.totalResults || 0);
+        setBoundedCache(kwTotalCache, "__recent30__", total, 100);
+      }
+    }
+    if (!nvdError && total > 0) {
+      totalResults = total;
+      const endIdx = total - safePage * safeLimit;
+      if (endIdx > 0) {
+        const startIdx = Math.max(0, endIdx - safeLimit);
+        const count = endIdx - startIdx;
+        const pageRes = await fetchJsonWithTimeout(`${baseUrl}&resultsPerPage=${count}&startIndex=${startIdx}`, 15000, nvdHeaders, 1);
+        if (pageRes.ok && Array.isArray(pageRes.data?.vulnerabilities)) {
+          items = pageRes.data.vulnerabilities.slice().reverse();
+        } else {
+          nvdError = pageRes.reason || "NVD indisponible";
+        }
+      }
+    }
+  } else {
+    const kwKey = `kw:${q.toLowerCase()}`;
+    let total = getBoundedCache(kwTotalCache, kwKey, ONLINE_SEARCH_TTL_MS);
+    if (total == null) {
+      const probe = await fetchJsonWithTimeout(
+        `${NVD_URL}?keywordSearch=${encodeURIComponent(q)}&resultsPerPage=1&startIndex=0`,
+        15000,
+        nvdHeaders,
+        1
+      );
+      if (!probe.ok) {
+        nvdError = probe.reason || "NVD indisponible";
+      } else {
+        total = Number(probe.data?.totalResults || 0);
+        setBoundedCache(kwTotalCache, kwKey, total, 200);
+        if (total === 1 && Array.isArray(probe.data?.vulnerabilities)) {
+          items = probe.data.vulnerabilities;
+          totalResults = 1;
+        }
+      }
+    }
+    if (!nvdError && total > 0 && !items.length) {
+      totalResults = total;
+      const endIdx = total - safePage * safeLimit;
+      if (endIdx > 0) {
+        const startIdx = Math.max(0, endIdx - safeLimit);
+        const count = endIdx - startIdx;
+        const pageRes = await fetchJsonWithTimeout(
+          `${NVD_URL}?keywordSearch=${encodeURIComponent(q)}&resultsPerPage=${count}&startIndex=${startIdx}`,
+          15000,
+          nvdHeaders,
+          1
+        );
+        if (pageRes.ok && Array.isArray(pageRes.data?.vulnerabilities)) {
+          items = pageRes.data.vulnerabilities.slice().reverse();
+        } else {
+          nvdError = pageRes.reason || "NVD indisponible";
+        }
+      }
+    }
+  }
+
+  const records = items.map((it) => parseNvdCve(it, nowMs, cutoff1, kevMap)).filter(Boolean);
+  if (records.length) {
+    const epssMap = await fetchEpssBatch(records.map((r) => r.id));
+    for (const rec of records) {
+      const e = epssMap.get(rec.id);
+      if (e) {
+        rec.epss = e.epss;
+        rec.epss_pct = e.percentile;
+      }
+    }
+  }
+
+  const out = {
+    mode: q ? "keyword" : "recent",
+    query: q,
+    page: safePage,
+    limit: safeLimit,
+    totalResults,
+    hasMore: (safePage + 1) * safeLimit < totalResults,
+    sources: nvdError ? [] : ["NVD", "EPSS", "CISA KEV"],
+    error: nvdError || undefined,
+    results: records,
+  };
+  if (!nvdError) {
+    setBoundedCache(onlineSearchCache, cacheKey, out, 250);
+  }
+  return out;
+}
+
 function escapeCsv(val) {
   const s = String(val ?? "");
   return `"${s.replace(/"/g, '""')}"`;
@@ -513,8 +1174,9 @@ function findStaticFile(relPath) {
   }
 
   for (const baseDir of [PUBLIC_DIR, SITE_DIR]) {
-    const full = path.join(baseDir, target);
-    if (full.startsWith(baseDir) && fs.existsSync(full) && fs.statSync(full).isFile()) {
+    const resolvedBase = path.resolve(baseDir);
+    const full = path.resolve(resolvedBase, target);
+    if ((full === resolvedBase || full.startsWith(resolvedBase + path.sep)) && fs.existsSync(full) && fs.statSync(full).isFile()) {
       return full;
     }
   }
@@ -595,6 +1257,40 @@ const server = http.createServer(async (req, res) => {
 
     if (pathname === "/api/translate" && req.method === "POST") {
       await handleTranslate(req, res);
+      return;
+    }
+
+    if (pathname === "/api/cve-search" && req.method === "GET") {
+      const qParam = urlObj.searchParams.get("q") || "";
+      const pageParam = urlObj.searchParams.get("page") || "0";
+      const limitParam = urlObj.searchParams.get("limit") || "20";
+      const result = await searchCvesOnline(qParam, pageParam, limitParam);
+      res.writeHead(result.error ? 502 : 200, {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "no-store",
+      });
+      res.end(JSON.stringify(result));
+      return;
+    }
+
+    if (pathname === "/api/cve-refs" && req.method === "GET") {
+      const idParam = (urlObj.searchParams.get("id") || "").trim().toUpperCase();
+      if (!CVE_ID_RE.test(idParam)) {
+        res.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
+        res.end(JSON.stringify({ error: "Identifiant CVE invalide (format attendu : CVE-AAAA-NNNN)." }));
+        return;
+      }
+      const looked = await lookupSingleCveOnline(idParam);
+      if (!looked?.record) {
+        res.writeHead(404, { "Content-Type": "application/json; charset=utf-8" });
+        res.end(JSON.stringify({ error: `CVE ${idParam} introuvable dans les bases en ligne.` }));
+        return;
+      }
+      res.writeHead(200, {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "no-store",
+      });
+      res.end(JSON.stringify(looked));
       return;
     }
 
