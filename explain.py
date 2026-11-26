@@ -137,7 +137,14 @@ def en_clair(r: dict, show_assets: bool = True) -> str:
     if r.get("watch"):
         if show_assets and r.get("assets"):
             vers = dict(x.split(": ", 1) for x in (r.get("asset_versions") or "").split("; ") if ": " in x)
-            names = [f"{a} (version installée {vers[a]})" if vers.get(a) else a for a in r["assets"].split("; ")]
+            chk = dict(x.split(" : ", 1) for x in (r.get("version_check") or "").split("; ") if " : " in x)
+            names = []
+            for a in r["assets"].split("; "):
+                st = (chk.get(a) or "").split(" (")[0]
+                txt = a + (f" (version {vers[a]}" if vers.get(a) else "")
+                if vers.get(a):
+                    txt += {"touchée": ", touchée)", "à vérifier": ", à vérifier)"}.get(st, ")")
+                names.append(txt)
             out.append("Elle concerne ton parc : " + ", ".join(names) + ".")
         else:
             out.append("Elle concerne des technologies de ton parc.")

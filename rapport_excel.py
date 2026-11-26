@@ -283,6 +283,7 @@ DETAIL_COLS = [
     ("asset_crit_label", "Criticité actif", 10, "txt"),
     ("asset_exposed_label", "Actif exposé Internet", 10, "txt"),
     ("asset_versions", "Version installée", 22, "txt"),
+    ("version_check", "Ta version est-elle touchée ?", 30, "txt"),
     ("asset_owner", "Responsable", 18, "txt"),
     ("new", "Nouveau (24 h)", 9, "txt"),
     # --- contexte
@@ -345,6 +346,9 @@ GUIDE = [
     ("Mon parc / Criticité / Exposition", "Actifs de ton inventaire (secret INVENTAIRE) ou mots de ta liste (secret WATCHLIST) concernés, "
                                           "avec leur criticité métier et leur exposition à Internet."),
     ("Version installée / Versions affectées", "Compare la version de ton actif aux versions déclarées vulnérables par l'éditeur."),
+    ("Ta version est-elle touchée ?", "Comparaison automatique de la version de ton inventaire avec les plages vulnérables de l'éditeur : "
+                                      "« touchée », « non touchée » (l'actif est alors retiré de « Mon parc ») ou « à vérifier » "
+                                      "(version non renseignée ou plage ambiguë)."),
     ("Type d'impact", "Classification automatique : RCE, Pré-authentification à distance, Élévation de privilèges, Contournement "
                       "d'authentification, Injection SQL, XSS, SSRF, Corruption mémoire, Déni de service, Zero-click…"),
     ("Famille de produit", "Périmétrique (VPN, pare-feu), OT/ICS, Navigateur, Système d'exploitation, Virtualisation/Cloud, Messagerie, etc."),

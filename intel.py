@@ -185,6 +185,23 @@ def parse_cve5(rec5: dict) -> dict:
             vers.append(f"{a.get('product', '')}: {s}" if len(aff) > 1 else s)
     out["affected"] = "; ".join(prods)
     out["versions"] = " | ".join(vers)[:600]
+    # Plages structurées, pour comparer automatiquement avec la version installée
+    ranges = []
+    for a in aff[:10]:
+        prod = " ".join(x for x in (a.get("vendor"), a.get("product")) if x and x.lower() != "n/a")
+        for v in a.get("versions") or []:
+            if v.get("status") != "affected":
+                continue
+            low = str(v.get("version", "") or "")
+            if v.get("lessThan"):
+                ranges.append([prod, low, "<", str(v["lessThan"])])
+            elif v.get("lessThanOrEqual"):
+                ranges.append([prod, low, "<=", str(v["lessThanOrEqual"])])
+            elif low:
+                ranges.append([prod, low, "=", ""])
+            if len(ranges) >= 40:
+                break
+    out["ranges"] = ranges
     if aff:
         out["cna_vendor"] = (aff[0].get("vendor") or "").strip()
         out["cna_product"] = (aff[0].get("product") or "").strip()
@@ -236,6 +253,7 @@ def apply_cve5(rec: dict, info: dict) -> None:
     rec["ssvc_impact"] = SSVC_FR.get(info.get("ssvc_impact", ""), info.get("ssvc_impact", ""))
     rec["affected"] = info.get("affected", "")
     rec["versions"] = info.get("versions", "")
+    rec["ranges"] = info.get("ranges", [])
     if not rec.get("vendor") and info.get("cna_vendor"):
         rec["vendor"] = info["cna_vendor"]
         rec["product"] = info.get("cna_product", "")

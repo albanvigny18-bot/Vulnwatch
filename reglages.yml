@@ -34,6 +34,11 @@ alertes:
   # Alerter quand une faille devient critique.
   failles_critiques: true
 
+  # false (conseillé) = les failles critiques SANS attaque connue et HORS de ton parc sont regroupées
+  # dans un résumé silencieux ; les urgentes (P1), exploitées ou touchant ton parc sonnent toujours.
+  # true = une notification par faille critique (beaucoup plus de notifications).
+  critiques_une_par_une: false
+
   # Petit résumé silencieux des nouvelles failles, à chaque passage.
   resume_horaire: true
 

@@ -456,6 +456,73 @@ function prodName(r){
   if(v&&p&&norm(p).indexOf(norm(v))===0)v='';
   return [cap(v),cap(p)].filter(Boolean).join(' ')||(r.packages?r.packages.split(',')[0]:'Logiciel non précisé');
 }
+
+/* ---------- Serveur facultatif : détection et repli « site statique » (GitHub Pages) ---------- */
+var API={ok:null,translate:false};
+var apiProbe=fetch('api/health',{cache:'no-store'}).then(function(r){var ct=r.headers.get('content-type')||'';if(!r.ok||ct.indexOf('json')<0)throw 0;return r.json()})
+  .then(function(b){API.ok=true;API.translate=!!(b&&b.translate)})
+  .catch(function(){API.ok=false;API.translate=false})
+  .then(function(){if(!API.translate){autoFr=false;var b=$('btnTr');if(b)b.style.display='none'}});
+function jsonOrThrow(r){return r.json().then(function(b){if(!r.ok&&!(b&&b.results))throw new Error((b&&b.error)||'HTTP '+r.status);return b})}
+var NVD_API='https://services.nvd.nist.gov/rest/json/cves/2.0';
+function nvdToRec(item){
+  var c=item&&item.cve;if(!c||!c.id)return null;
+  var m=c.metrics||{},me=(m.cvssMetricV40||m.cvssMetricV31||m.cvssMetricV30||m.cvssMetricV2||[])[0]||{},cd=me.cvssData||{};
+  var score=typeof cd.baseScore==='number'?cd.baseScore:null;
+  var sevEn=String(cd.baseSeverity||me.baseSeverity||'').toUpperCase();
+  var sev={CRITICAL:'CRITIQUE',HIGH:'ÉLEVÉE',MEDIUM:'MOYENNE',LOW:'FAIBLE'}[sevEn]||(score==null?'NON ÉVALUÉE':score>=9?'CRITIQUE':score>=7?'ÉLEVÉE':score>=4?'MOYENNE':'FAIBLE');
+  var d=(c.descriptions||[]).filter(function(x){return x.lang==='en'})[0]||(c.descriptions||[])[0]||{};
+  var vendor='',product='';
+  (c.configurations||[]).some(function(cf){return (cf.nodes||[]).some(function(n){return (n.cpeMatch||[]).some(function(cm){if(cm.vulnerable&&cm.criteria){var p=cm.criteria.split(':');vendor=(p[3]||'').replace(/_/g,' ');product=(p[4]||'').replace(/_/g,' ');return true}return false})})});
+  var refs=c.references||[], tagged=function(t){var x=refs.filter(function(r){return (r.tags||[]).indexOf(t)>=0})[0];return x?x.url:''};
+  var patch=tagged('Patch')||tagged('Vendor Advisory'), expl=tagged('Exploit');
+  var cwes=[];(c.weaknesses||[]).forEach(function(w){(w.description||[]).forEach(function(x){if(/^CWE-\d+$/.test(x.value)&&cwes.indexOf(x.value)<0)cwes.push(x.value)})});
+  var local=(D&&D.vulns||[]).filter(function(x){return x.id===c.id})[0];
+  if(local)return local;
+  var r={id:c.id,severity:sev,score:score,vector:cd.vectorString||'',vendor:vendor,product:product,desc:(d.value||'').replace(/\s+/g,' ').trim(),
+    cwe:cwes.join(', '),status:c.vulnStatus||'',kev:!!c.cisaExploitAdd,kev_due:c.cisaActionDue||'',ref_patch:patch,patch_available:patch?'Oui':'',
+    exploit_maturity:expl?'Preuve de concept publique':'',published:c.published?c.published.slice(0,19)+'Z':'',modified:c.lastModified?c.lastModified.slice(0,19)+'Z':'',
+    score_source:'NVD',references:refs.slice(0,30).map(function(x){return {url:x.url,tags:x.tags||[]}})};
+  var av=(r.vector.match(/AV:(\w)/)||[])[1],pr=(r.vector.match(/PR:(\w)/)||[])[1];
+  if(av==='N'&&pr==='N')r.pre_auth_rce=(/remote code|execute arbitrary|command injection|authentication bypass/i.test(r.desc))?'Oui':'';
+  r.priority=prioFor(r,null);
+  r.risk=Math.min(100,Math.round((score==null?5:score)*6+(r.kev?15:0)+(expl?5:0)));
+  r._refsLoaded=true;
+  return r;
+}
+function nvdFetch(qs){return fetch(NVD_API+'?'+qs,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('NVD '+r.status);return r.json()})}
+function localFallback(q,why){
+  var rows=(D&&D.vulns)?runQ(D.vulns,q).slice(0,40):[];
+  setTimeout(function(){toast(why+' Résultats de ta veille locale affichés.')},50);
+  return {results:rows,totalResults:rows.length,hasMore:false,page:0,sources:['Veille locale (NVD injoignable)']};
+}
+function browserSearch(q,page,limit){
+  q=String(q||'').trim();
+  if(CVE_RE.test(q)){
+    var loc=(D&&D.vulns||[]).filter(function(x){return x.id===q.toUpperCase()})[0];
+    if(loc)return Promise.resolve({results:[loc],totalResults:1,hasMore:false,page:0,sources:['Veille locale']});
+    return nvdFetch('cveId='+encodeURIComponent(q.toUpperCase())).then(function(d){var rs=(d.vulnerabilities||[]).map(nvdToRec).filter(Boolean);
+      return {results:rs,totalResults:rs.length,hasMore:false,page:0,sources:['NVD (direct)']}}).catch(function(){return localFallback(q,'Base mondiale NVD injoignable.')});
+  }
+  var base=q?'keywordSearch='+encodeURIComponent(q):(function(){var e=new Date(),s=new Date(e-30*864e5),f=function(x){return x.toISOString().replace(/\.\d{3}Z$/,'.000')};return 'pubStartDate='+encodeURIComponent(f(s))+'&pubEndDate='+encodeURIComponent(f(e))})();
+  return nvdFetch(base+'&resultsPerPage=1&startIndex=0').then(function(p){
+    var total=Number(p.totalResults||0),end=total-page*limit;if(end<=0)return {results:[],totalResults:total,hasMore:false,page:page,sources:['NVD (direct)']};
+    var st=Math.max(0,end-limit);
+    return nvdFetch(base+'&resultsPerPage='+(end-st)+'&startIndex='+st).then(function(d){
+      var rs=(d.vulnerabilities||[]).slice().reverse().map(nvdToRec).filter(Boolean);
+      return {results:rs,totalResults:total,hasMore:st>0,page:page,sources:['NVD (direct)']}});
+  }).catch(function(){return localFallback(q,'Recherche mondiale indisponible pour le moment.')});
+}
+function apiSearch(q,page,limit){return apiProbe.then(function(){
+  if(API.ok)return fetch('api/cve-search?q='+encodeURIComponent(q)+'&page='+page+'&limit='+limit).then(jsonOrThrow);
+  return browserSearch(q,page,limit)})}
+function apiRefs(id){return apiProbe.then(function(){
+  if(API.ok)return fetch('api/cve-refs?id='+encodeURIComponent(id)).then(jsonOrThrow);
+  return nvdFetch('cveId='+encodeURIComponent(id)).then(function(d){var v=(d.vulnerabilities||[])[0];return {record:v?nvdToRec(v):null}}).catch(function(){return {record:null}})})}
+function apiTranslate(batch){return apiProbe.then(function(){
+  if(!API.translate)throw new Error('Traduction automatique indisponible sur cette installation');
+  return fetch('api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:batch})}).then(jsonOrThrow)})}
+
 function fallbackPlain(r){
   var s=r.score, g=s==null?'Gravité pas encore évaluée.':'Gravité '+(s>=9?'très élevée':s>=7?'élevée':s>=4?'moyenne':'faible')+' ('+s.toFixed(1)+'/10).';
   var t=(r.kev||r.ssvc_exploitation==='Active')?' ⚠️ Des pirates l\'utilisent déjà.':(r.msf?' Un outil d\'attaque public existe.':' Aucune attaque connue à ce jour.');
@@ -586,25 +653,48 @@ function activeVulns(){
   if(!D)return [];
   return D.vulns.filter(function(r){return !isCveMitigated(r.id)});
 }
+
+/* ---------- Ta version est-elle touchée ? (mêmes règles que le moteur) ---------- */
+function vtok(v){return (String(v||'').toLowerCase().match(/\d+|[a-z]+/g)||[]).map(function(t){return /^\d+$/.test(t)?parseInt(t,10):t})}
+function vcmp(a,b){var x=vtok(a),y=vtok(b);for(var i=0;i<Math.max(x.length,y.length);i++){var p=i<x.length?x[i]:0,q=i<y.length?y[i]:0;
+  if(typeof p==='number'&&typeof q==='number'){if(p!==q)return p<q?-1:1}else{p=String(p);q=String(q);if(p!==q){var pd=/^\d+$/.test(p),qd=/^\d+$/.test(q);if(pd!==qd)return pd?1:-1;return p<q?-1:1}}}return 0}
+var VOPEN={'':1,'0':1,'*':1,'n/a':1,'-':1,'unspecified':1,'all':1};
+function versionStatus(inst,ranges,hint){
+  inst=String(inst||'').trim();if(!inst||!vtok(inst).length||!ranges||!ranges.length)return 'à vérifier';
+  var h=nrm(hint).trim(),rel=ranges.filter(function(r){var p=nrm(r[0]).trim();return h&&(p.indexOf(h)>=0||h.indexOf(p)>=0)});
+  if(!rel.length)return 'à vérifier';
+  var first=function(x){var t=vtok(x);return t.length&&typeof t[0]==='number'?t[0]:null};
+  var firsts={};rel.forEach(function(r){[r[1],r[3]].forEach(function(b){if(b&&!VOPEN[String(b).toLowerCase()]){var f=first(b);if(f!=null)firsts[f]=1}})});
+  var same=first(inst)!=null&&firsts[first(inst)], usable=0;
+  for(var i=0;i<rel.length;i++){var r=rel[i],low=r[1]||'',op=r[2],high=r[3]||'';
+    if(op==='='){if(!low||VOPEN[low.toLowerCase()])continue;usable++;if(vcmp(inst,low)===0||inst.indexOf(low+'.')===0)return 'touchée';continue}
+    if(!high||VOPEN[high.toLowerCase()])continue;usable++;
+    var aboveLow=(!low||VOPEN[low.toLowerCase()])||vcmp(inst,low)>=0, belowHigh=op==='<'?vcmp(inst,high)<0:vcmp(inst,high)<=0;
+    if(aboveLow&&belowHigh)return 'touchée'}
+  return usable&&same?'non touchée':'à vérifier';
+}
 function splitParcResults(){
   if(parcCache)return parcCache;
   if(!PARC.length||!D)return (parcCache={active:[],mitigated:[]});
-  var assets=validParcAssets(), active=[], mitigated=[];
+  var assets=validParcAssets(), active=[], mitigated=[], patched=0;
   D.vulns.forEach(function(r){
     var hits=assets.filter(function(a){return matchAsset(r,a)});
     if(!hits.length)return;
+    var vnotes=[];
+    hits=hits.filter(function(a){var st=versionStatus(a.version,r.ranges,a.product);if(a.version)vnotes.push((a.name||a.product)+' : '+st+' (version '+a.version+')');return st!=='non touchée'});
+    if(!hits.length){patched++;return}
     var activeHits=[], mitHits=[];
     hits.forEach(function(a){if(findAssetMitigation(r.id,a))mitHits.push(a);else activeHits.push(a)});
     var ms=activeMitigationsForCve(r.id).filter(function(m){return isGlobalAsset(m.asset)||hits.some(function(a){return mitigationMatchesAsset(m,a)})});
     if(activeHits.length){
       var best={crit:Math.max.apply(null,activeHits.map(function(h){return h.crit==='Haute'?3:h.crit==='Basse'?1:2})),exposed:activeHits.some(function(h){return h.exposed==='Oui'})};
-      active.push(Object.assign({},r,{priority:prioFor(r,best),_hits:activeHits,_mitHits:mitHits,_mits:ms,_mine:true,risk:Math.min(100,(r.risk||0)+best.crit*3+(best.exposed?5:0))}));
+      active.push(Object.assign({},r,{priority:prioFor(r,best),_vnotes:vnotes,_hits:activeHits,_mitHits:mitHits,_mits:ms,_mine:true,risk:Math.min(100,(r.risk||0)+best.crit*3+(best.exposed?5:0))}));
     }else{
       var bestM={crit:Math.max.apply(null,hits.map(function(h){return h.crit==='Haute'?3:h.crit==='Basse'?1:2})),exposed:hits.some(function(h){return h.exposed==='Oui'})};
       mitigated.push(Object.assign({},r,{priority:prioFor(r,bestM),_hits:hits,_mitHits:hits,_mits:ms,_mine:true,_mitigated:true}));
     }
   });
-  return (parcCache={active:active.sort(byPrio),mitigated:mitigated.sort(byPrio)});
+  return (parcCache={active:active.sort(byPrio),mitigated:mitigated.sort(byPrio),patched:patched});
 }
 function parcResults(){return splitParcResults().active}
 function mitBoxHTML(ms){
@@ -755,8 +845,7 @@ function loadCveRefs(cveId,cardEl){
   var box=cardEl&&cardEl.querySelector('[data-refs-cve="'+CSS.escape(id)+'"]');
   var existing=findVulnById(id)||{id:id};
   if(box)box.outerHTML=refsSectionHTML(existing);
-  fetch('api/cve-refs?id='+encodeURIComponent(id))
-    .then(function(r){return r.json().then(function(b){if(!r.ok)throw new Error(b.error||'HTTP '+r.status);return b})})
+  apiRefs(id)
     .then(function(res){
       delete REFS_INFLIGHT[id];
       if(res&&res.record){
@@ -826,7 +915,7 @@ function card(r){
   var mine=displayHits.length?displayHits.map(function(h){return (h.name||h.product)+(h.version?' (ta version : '+h.version+')':'')}).join(', '):'';
   var vec=(r.vector||'').split('/').reduce(function(o,x){var k=x.split(':');if(k[1])o[k[0]]=k[1];return o},{});
   var rows=[[simple?'Pourquoi cette priorité':'En clair',simple?r.justification:plain,false],[simple?'Description':'',simple?descTxt:'',false],
-    ['Tes équipements',mine,false],['Produits concernés',r.affected&&r.affected!==prodName(r)?r.affected:'',false],['Versions touchées',r.versions||r.pkg_ranges,false],['Version corrigée',r.pkg_fixed,false],['Type d\'attaque',r.tags,false],['Catégorie',r.family,false],
+    ['Tes équipements',mine,false],['Ta version est-elle touchée ?',(r._vnotes&&r._vnotes.length)?r._vnotes.join(' · '):'',false],['Produits concernés',r.affected&&r.affected!==prodName(r)?r.affected:'',false],['Versions touchées',r.versions||r.pkg_ranges,false],['Version corrigée',r.pkg_fixed,false],['Type d\'attaque',r.tags,false],['Catégorie',r.family,false],
     ['Depuis où ?',{N:'Réseau / Internet',A:'Réseau local',L:'Accès à la machine',P:'Accès physique'}[vec.AV],false],['Accès nécessaire',{N:'Aucun compte',L:'Compte simple',H:'Compte administrateur'}[vec.PR],false],
     ['Action de la victime',{N:'Aucune',R:'Requise (clic, ouverture…)',P:'Passive',A:'Active'}[vec.UI],false],
     ['Probabilité d\'attaque (30 j)',r.epss!=null?pct(r.epss)+(r.epss_pct!=null?' (top '+Math.max(1,Math.round((1-r.epss_pct)*100))+' %)':r.epss_delta!=null?' ('+(r.epss_delta>=0?'+':'')+(r.epss_delta*100).toFixed(1)+' pts en 7 j)':''):'',false],
@@ -1058,8 +1147,17 @@ function assetForm(a,i){
   }
   return assetEdit(a,i);
 }
+var ACL=null;
+function autoLists(){
+  if(ACL||!D)return ACL||{v:'',p:''};
+  var vc={},pc={};
+  D.vulns.forEach(function(r){if(r.vendor)vc[cap(r.vendor)]=(vc[cap(r.vendor)]||0)+1;if(r.product)pc[r.product]=(pc[r.product]||0)+1;
+    (r.affected||'').split(';').forEach(function(x){x=x.trim();if(x)pc[x]=(pc[x]||0)+1})});
+  var top=function(o,n){return Object.keys(o).sort(function(a,b){return o[b]-o[a]}).slice(0,n)};
+  return (ACL={v:top(vc,600).map(function(x){return '<option value="'+esc(x)+'">'}).join(''),p:top(pc,1500).map(function(x){return '<option value="'+esc(x)+'">'}).join('')});
+}
 function assetEdit(a,i){
-  var f=function(k,l,ph,full){return '<label class="'+(full?'full':'')+'">'+l+'<input class="in" data-i="'+i+'" data-k="'+k+'" value="'+esc(a[k]||'')+'" placeholder="'+esc(ph)+'"></label>'};
+  var f=function(k,l,ph,full){var list=k==='vendor'?' list="dlV"':k==='product'?' list="dlP"':'';return '<label class="'+(full?'full':'')+'">'+l+'<input class="in" data-i="'+i+'" data-k="'+k+'" value="'+esc(a[k]||'')+'" placeholder="'+esc(ph)+'"'+list+' autocomplete="off"></label>'};
   var s=function(k,l,opts){return '<label>'+l+'<select class="in" data-i="'+i+'" data-k="'+k+'">'+opts.map(function(o){return '<option'+(a[k]===o?' selected':'')+'>'+o+'</option>'}).join('')+'</select></label>'};
   return '<div class="asset"><div class="ah"><span>'+esc(a.name||((a.vendor||'')+' '+(a.product||'')).trim()||'Nouvel équipement')+'</span><button class="btn sm" data-del="'+i+'" aria-label="Supprimer">✕</button></div><div class="g2">'+
     f('name','Nom (pour toi)','ex. VPN du siège',true)+f('vendor','Fournisseur / éditeur','ex. Fortinet')+f('product','Produit','ex. FortiOS')+f('version','Version installée','ex. 7.2.5')+
@@ -1073,12 +1171,15 @@ S.parc=function(){
     var u=res.filter(function(r){return r.priority==='P1'||r.priority==='P2'}).length;
     h+='<h2>'+res.length+' faille'+(res.length>1?'s':'')+' active'+(res.length>1?'s':'')+' sur ton parc'+(u?' — dont '+u+' à traiter rapidement':'')+'</h2>'+
       (res.length?'<div class="bar"><span class="count">Marque une faille comme mitigée avec ta preuve pour stopper ses rappels.</span><button class="btn sm" id="exp">Exporter pour Excel</button></div>':'')+listHTML(res,parcShown,'pmore');
+    if(ps.patched){
+      h+='<div class="note">✅ <b>'+ps.patched+' faille'+(ps.patched>1?'s':'')+' écartée'+(ps.patched>1?'s':'')+'</b> : ta version installée est déjà corrigée. Renseigne la version de chaque équipement pour un tri encore plus précis.</div>';
+    }
     if(mitRes.length){
       h+='<div class="mit-summary"><span><b>✓ '+mitRes.length+' vulnérabilité'+(mitRes.length>1?'s':'')+' mitigée'+(mitRes.length>1?'s':'')+' sur ton parc</b> — retirée'+(mitRes.length>1?'s':'')+' des rappels continus.</span><button type="button" class="btn sm" data-go="mitigations">Voir l\'historique →</button></div>';
     }
   }
   h+='<h2>Mes équipements ('+PARC.length+')</h2>'+(PARC.length?'':'<p class="lead">Exemple : « VPN du siège » · Fortinet · FortiOS · 7.2.5 · Haute · Oui. Seuls le fournisseur et le produit sont indispensables.</p>')+
-    '<div class="form" id="assets">'+PARC.map(assetForm).join('')+'</div>'+
+    '<div class="form" id="assets">'+PARC.map(assetForm).join('')+'</div>'+(function(){var dl=autoLists();return '<datalist id="dlV">'+dl.v+'</datalist><datalist id="dlP">'+dl.p+'</datalist>'})()+
     '<div class="bar"><button class="btn pri" id="addA">+ Ajouter un équipement</button><span style="display:flex;gap:6px;flex-wrap:wrap">'+(PARC.length?'<button class="btn sm pri" id="saveA">Enregistrer</button>':'')+'<button class="btn sm" id="impA">Importer une liste</button>'+(PARC.length?'<button class="btn sm" id="expA">Copier ma liste</button>':'')+'</span></div>'+
     '<div id="impBox" style="display:none" class="card"><p class="lead">Colle une liste, une ligne par équipement : <span class="mono">Nom;Fournisseur;Produit;Version;Importance;Exposé;Responsable</span> (par exemple le contenu d\'un secret INVENTAIRE).</p><textarea class="in" id="impT"></textarea><p><button class="btn pri" id="impGo">Importer</button></p></div>'+
     '<div class="note">🔔 Pour recevoir des <b>alertes sur ton téléphone</b> pour ce parc, crée ton propre VulnWatch (gratuit, 10 min) : <a href="#install" data-go="install">voir comment</a>. « Copier ma liste » la prépare au bon format.</div>';
@@ -1112,8 +1213,7 @@ function runOnlineSearch(queryStr,append){
   if(append){onlineState.loadingMore=true}
   else{onlineState.loading=true;onlineState.loadingMore=false;onlineState.page=0;onlineState.results=[];onlineState.total=0;onlineState.hasMore=false;onlineState.sources=[]}
   if(view==='explore')renderExploreKeepFocus();
-  fetch('api/cve-search?q='+encodeURIComponent(targetQ)+'&page='+nextPage+'&limit=20')
-    .then(function(r){return r.json().then(function(b){if(!r.ok&&!b.results)throw new Error(b.error||'HTTP '+r.status);return b})})
+  apiSearch(targetQ,nextPage,20)
     .then(function(res){
       if(mySeq!==onlineState.seq)return;
       onlineState.loading=false;
@@ -1424,7 +1524,7 @@ S.install=function(){
 };
 var FIELDS=[['seuils','cvss_critique','num','Seuil « critique » (note sur 10)','À partir de quelle gravité une faille est critique. Standard : 9.'],
   ['seuils','epss_alerte','num','Probabilité d\'attaque qui déclenche une alerte','0.5 = 50 %.'],['seuils','cvss_min_parc','num','Gravité minimale pour alerter sur ton parc',''],
-  ['alertes','failles_exploitees','bool','Alerter sur les failles exploitées',''],['alertes','failles_critiques','bool','Alerter sur les failles critiques',''],
+  ['alertes','failles_exploitees','bool','Alerter sur les failles exploitées',''],['alertes','failles_critiques','bool','Alerter sur les failles critiques',''],['alertes','critiques_une_par_une','bool','Une notification par faille critique','Non (conseillé) : les critiques sans attaque connue et hors de ton parc arrivent dans un résumé silencieux. Les urgences sonnent toujours.'],
   ['alertes','resume_horaire','bool','Résumé horaire silencieux',''],['alertes','maximum_par_passage','num','Alertes maximum par heure','Au-delà, elles sont regroupées.'],
   ['alertes','heures_calmes','txt','Heures calmes','La nuit, seules les urgences sonnent. Ex. 22-7. Vide = jamais.'],['alertes','rapport_quotidien','bool','Point quotidien',''],
   ['alertes','heure_du_rapport','num','Heure du point quotidien','De 0 à 23.'],['alertes','courriel_niveau_minimum','sel:5=Urgent seulement|4=Urgent et important|2=Tout','Par courriel, je reçois',''],
@@ -1525,8 +1625,7 @@ function runAutoTranslate(manual){
   trBusy=true;
   if(stEl)stEl.textContent='Traduction FR…';
   var batch=items.slice(0,10);
-  fetch('api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:batch})})
-    .then(function(r){return r.json().then(function(body){if(!r.ok)throw new Error(body.error||'HTTP '+r.status);return body})})
+  apiTranslate(batch)
     .then(function(res){
       if(mySeq!==trSeq)return;
       trBusy=false;trFailed=false;
@@ -1744,7 +1843,7 @@ function closeMitModal(){
 function exportRows(){
   var cols=[['CVE','id'],['Priorité','priority'],['Produit',prodName],['En clair',function(r){return r.plain||fallbackPlain(r)}],['Que faire',function(r){return (r._mine||!r.todo)?fallbackTodo(r.priority,r):r.todo}],
     ['Gravité (sur 10)','score'],['Probabilité d\'attaque (EPSS)','epss'],['Exploitée (CISA)',function(r){return r.kev?'Oui':'Non'}],['Outil d\'attaque public',function(r){return r.msf?'Oui':''}],
-    ['Mes équipements',function(r){return r._hits?r._hits.map(function(h){return h.name||h.product}).join(', '):''}],['Versions touchées','versions'],['Version corrigée','pkg_fixed'],
+    ['Mes équipements',function(r){return r._hits?r._hits.map(function(h){return h.name||h.product}).join(', '):''}],['Ta version est-elle touchée ?',function(r){return (r._vnotes||[]).join(' · ')}],['Versions touchées','versions'],['Version corrigée','pkg_fixed'],
     ['Correctif',function(r){return r.ref_patch||''}],['Publiée','published'],['Fiche officielle',function(r){return 'https://nvd.nist.gov/vuln/detail/'+r.id}]];
   var lines=[cols.map(function(c){return c[0]}).join(';')].concat(curRows.map(function(r){return cols.map(function(c){var v=typeof c[1]==='function'?c[1](r):r[c[1]];v=v==null?'':String(v);return '"'+v.replace(/"/g,'""')+'"'}).join(';')}));
   download('vulnwatch-'+view+'.csv',lines.join('\n'));toast('Fichier prêt : ouvre-le avec Excel');

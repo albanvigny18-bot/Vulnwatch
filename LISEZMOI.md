@@ -37,6 +37,22 @@ Ordre de priorité des réglages : une variable GitHub (Settings → Variables),
 
 ---
 
+---
+
+## Nouveautés (novembre 2026)
+
+- **« Ta version est-elle touchée ? »** Si tu indiques la version de chaque équipement, VulnWatch la compare aux plages vulnérables déclarées par l'éditeur.
+  - **Touchée** : la faille reste dans « Mon parc ».
+  - **Non touchée** : ta version est déjà corrigée, la faille est retirée de ton parc.
+  - **À vérifier** : la version n'est pas renseignée, ou elle est écrite dans un format différent de celui de l'éditeur. Exemple : « 23H2 » au lieu de « 10.0.22631 ». Par sécurité, VulnWatch ne masque jamais une faille dans ce cas.
+  - Ça marche aussi dans l'onglet « Mon parc » de la console, sans compte.
+- **Moins de notifications, plus utiles.** Les failles critiques sans attaque connue et hors de ton parc arrivent dans **un seul résumé silencieux**. Les urgences (P1), les failles exploitées et celles qui touchent ton parc sonnent toujours. Pour revenir à une notification par faille critique, utilise le réglage `critiques_une_par_une: true`.
+- **Ajouter ou modifier ton inventaire ne déclenche plus de rafale.** Tu reçois un seul message de synthèse, puis seulement les nouveautés.
+- **Saisie assistée des équipements.** Les noms de fournisseurs et de produits te sont suggérés pendant la frappe.
+- **La console marche partout.** Elle fonctionne avec ou sans le serveur facultatif (`server.js`). Sur GitHub Pages, sans serveur, la recherche mondiale interroge directement la NVD, ou affiche ta veille locale si la NVD ne répond pas. La traduction automatique n'est proposée que lorsque le serveur et sa clé Gemini sont présents.
+
+---
+
 ## 1. Ce que fait l'outil
 
 ### Sources croisées

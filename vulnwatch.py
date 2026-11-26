@@ -61,6 +61,7 @@ SETTINGS_MAP = {
     "CRITICAL_SCORE": ("seuils", "cvss_critique"), "EPSS_ALERT": ("seuils", "epss_alerte"),
     "WATCHLIST_MIN_SCORE": ("seuils", "cvss_min_parc"),
     "ALERT_ON_KEV": ("alertes", "failles_exploitees"), "ALERT_ON_CRITICAL": ("alertes", "failles_critiques"),
+    "CRITICAL_INDIVIDUAL_ALERTS": ("alertes", "critiques_une_par_une"),
     "SEND_DIGEST": ("alertes", "resume_horaire"), "MAX_ALERTS_PER_RUN": ("alertes", "maximum_par_passage"),
     "QUIET_HOURS": ("alertes", "heures_calmes"), "DAILY_REPORT": ("alertes", "rapport_quotidien"),
     "DAILY_REPORT_HOUR": ("alertes", "heure_du_rapport"), "EMAIL_MIN_PRIORITY": ("alertes", "courriel_niveau_minimum"),
@@ -136,6 +137,7 @@ def load_config() -> dict:
         "watch_min": _envf("WATCHLIST_MIN_SCORE", 7.0),
         "alert_kev": _envb("ALERT_ON_KEV", True),
         "alert_critical": _envb("ALERT_ON_CRITICAL", True),
+        "critical_individual": _envb("CRITICAL_INDIVIDUAL_ALERTS", False),
         "digest": _envb("SEND_DIGEST", True),
         "max_alerts": _envi("MAX_ALERTS_PER_RUN", 10),
         "silent_first": _envb("SILENT_FIRST_RUN", True),
@@ -602,7 +604,7 @@ def is_priority(r: dict) -> bool:
     return r.get("priority") in ("P1", "P2")
 
 
-PRIVATE_FIELDS = ("assets", "asset_versions", "asset_owner")
+PRIVATE_FIELDS = ("assets", "asset_versions", "asset_owner", "version_check")
 INTERNAL_FIELDS = ("epss_hist", "vr_checked", "severity_en", "cna_vendor", "cna_product")
 # Champs recalculables côté navigateur (à partir du vecteur CVSS ou de la priorité) : retirés du JSON pour alléger la console.
 SLIM_FIELDS = ("av", "ac", "pr", "ui", "cia", "action", "first_seen", "exploit_ref", "score_source_raw")
@@ -688,6 +690,7 @@ def build_outputs(site: Path, records: list[dict], kev_recent: list[dict], alert
         "settings": {
             "seuils": {"cvss_critique": cfg["critical"], "epss_alerte": cfg["epss_alert"], "cvss_min_parc": cfg["watch_min"]},
             "alertes": {"failles_exploitees": cfg["alert_kev"], "failles_critiques": cfg["alert_critical"],
+                        "critiques_une_par_une": cfg["critical_individual"],
                         "resume_horaire": cfg["digest"], "maximum_par_passage": cfg["max_alerts"],
                         "heures_calmes": cfg["quiet_hours"] or "", "rapport_quotidien": cfg["daily_report"],
                         "heure_du_rapport": cfg["daily_hour"], "courriel_niveau_minimum": cfg["email_min_priority"]},
@@ -797,7 +800,7 @@ def build_outputs(site: Path, records: list[dict], kev_recent: list[dict], alert
 
 RULES_VERSION = "3.1"
 KEEP_ON_UPDATE = ("epss", "epss_pct", "epss_hist", "ssvc_exploitation", "ssvc_automatable", "ssvc_impact", "affected",
-                  "versions", "ghsa", "packages", "pkg_ranges", "pkg_fixed", "ransomware", "kev_added", "kev_due",
+                  "versions", "ranges", "ghsa", "packages", "pkg_ranges", "pkg_fixed", "ransomware", "kev_added", "kev_due",
                   "score", "vector", "cvss_version", "score_source", "severity", "severity_en")
 
 
@@ -935,7 +938,7 @@ def run(args) -> int:
             return (0 if r.get("kev") else 1 if r.get("score") is None else 2 if (r.get("score") or 0) >= 7 else 3,
                     -(r.get("score") or 0), r.get("modified", "") and -int(re.sub(r"\D", "", r["modified"])[:12] or 0))
         todo = [cid for cid, r in sorted(db.items(), key=_urgency)
-                if not r.get("vr_checked") or (r.get("score") is None and (parse_dt(r["vr_checked"]) or now) < now - dt.timedelta(hours=12))]
+                if not r.get("vr_checked") or (r.get("versions") and "ranges" not in r) or (r.get("score") is None and (parse_dt(r["vr_checked"]) or now) < now - dt.timedelta(hours=12))]
         todo = todo[: cfg["enrich_max"]]
         found = 0
         for cid in todo:
@@ -996,6 +999,10 @@ def run(args) -> int:
             r["severity"] = sev_from_score(r["score"])
         classify.classify(r)
         hits = classify.match_inventory(r, inventory)
+        if hits:
+            hits = classify.apply_version_check(r, hits)  # écarte les actifs dont la version est déjà corrigée
+        else:
+            r.pop("version_check", None)
         active_hits, fully_mitigated, _ = classify.filter_mitigated(r["id"], hits, mitigations)
         if fully_mitigated:
             mitigated_cves.add(r["id"])
@@ -1032,6 +1039,7 @@ def run(args) -> int:
     # 11. Alertes (compare avec l'historique des mitigations pour éviter les rappels continus)
     sent_keys = {k for a in alerts for k in a.get("keys", [])}
     cand: dict[str, dict] = {}
+    crit_grouped: list[str] = []
 
     def add(cid, key, reason, prio, kev=None):
         if key in sent_keys or cid in mitigated_cves:
@@ -1058,7 +1066,11 @@ def run(args) -> int:
         if cfg["alert_critical"] and s_ is not None and s_ >= cfg["critical"]:
             prev = prev_scores.get(cid)
             if prev is None or prev < cfg["critical"]:
-                add(cid, "CRIT:" + cid, f"Critique (CVSS {s_:.1f})", 5)
+                if cfg["critical_individual"] or v["priority"] == "P1" or v.get("watch"):
+                    add(cid, "CRIT:" + cid, f"Critique (CVSS {s_:.1f})", 5)
+                elif "CRIT:" + cid not in sent_keys:
+                    # Critique sans attaque connue et hors de ton parc : regroupée dans un résumé silencieux
+                    crit_grouped.append(cid)
         if v.get("ssvc_exploitation") == "Active" and not v.get("kev"):
             add(cid, "SSVC:" + cid, "Exploitation active signalée par la CISA (SSVC)", 5)
         if v.get("msf") and (s_ or 0) >= 7:
@@ -1083,6 +1095,27 @@ def run(args) -> int:
                 alerts.append({"date": iso(now), "cve": cid, "reasons": "Passée en priorité P1", "priority": 5,
                                "channels": "(référence nouvelles règles, non envoyée)", "message": "", "keys": ["P1:" + cid]})
     state["rules_version"] = RULES_VERSION
+    # Inventaire ajouté ou modifié : les failles du parc déjà connues deviennent la nouvelle référence.
+    # Un seul message de synthèse au lieu de centaines d'alertes ; ensuite, seules les nouveautés sont signalées.
+    import hashlib
+    inv_hash = hashlib.sha256((cfg["inventory_csv"] or "").strip().encode("utf-8")).hexdigest()[:16]
+    inv_changed = bool(inventory) and state.get("inventory_hash") not in (None, inv_hash) or \
+        (bool(inventory) and state.get("inventory_hash") is None and not first_run)
+    inv_baseline = []
+    if inv_changed and not silent:
+        for cid in list(cand):
+            c = cand[cid]
+            parc_keys = [k for k in c["keys"] if k.startswith(("PARC:", "P1:"))] if view.get(cid, {}).get("watch") else []
+            if not parc_keys:
+                continue
+            inv_baseline.append(cid)
+            alerts.append({"date": iso(now), "cve": cid, "reasons": "Inventaire mis à jour (référence)", "priority": c["prio"],
+                           "channels": "(référence inventaire, non envoyée)", "message": "", "keys": parc_keys})
+            c["keys"] = [k for k in c["keys"] if k not in parc_keys]
+            c["reasons"] = [x for x in c["reasons"] if not x.startswith(("Touche ton parc", "Passée en priorité P1"))]
+            if not c["keys"]:
+                del cand[cid]
+    state["inventory_hash"] = inv_hash if inventory else None
     ordered = sorted(cand.items(), key=lambda kv: (kv[1]["prio"], (view.get(kv[0]) or {}).get("risk") or 0), reverse=True)
     sent_n, overflow = 0, []
     for cid, c in ordered:
@@ -1129,7 +1162,25 @@ def run(args) -> int:
         alerts.append({"date": iso(now), "cve": cid, "reasons": " · ".join(c["reasons"]), "priority": c["prio"],
                        "channels": channels, "message": " | ".join(lines), "keys": c["keys"]})
 
+    if crit_grouped:
+        for cid in crit_grouped:
+            alerts.append({"date": iso(now), "cve": cid, "reasons": f"Critique (CVSS {view[cid]['score']:.1f}), sans attaque connue",
+                           "priority": 2, "channels": "(résumé silencieux)" if not silent else "(référence initiale, non envoyée)",
+                           "message": view[cid].get("plain", ""), "keys": ["CRIT:" + cid]})
     if not silent:
+        if inv_baseline:
+            mine = [view[c] for c in view if view[c].get("watch")]
+            p = Counter(v["priority"] for v in mine)
+            top = sorted(mine, key=priority_key, reverse=True)[:5]
+            notifier.send("VulnWatch : inventaire pris en compte ✅",
+                          [f"{len(mine)} failles connues touchent ton parc : P1 {p.get('P1', 0)} · P2 {p.get('P2', 0)} · P3 {p.get('P3', 0)}.",
+                           "Détail dans l'Excel, feuilles « Mon parc » et « Exposition par actif ». Désormais, seules les nouveautés te seront signalées."]
+                          + [f"• [{v['priority']}] {v['id']} {explain._product(v)}" for v in top], 4, "", ["clipboard"])
+        if crit_grouped:
+            top = sorted((view[c] for c in crit_grouped), key=priority_key, reverse=True)[:6]
+            notifier.send(f"VulnWatch : {len(crit_grouped)} nouvelle(s) faille(s) critique(s), sans attaque connue",
+                          ["Aucune n'est exploitée ni ne touche ton parc pour l'instant : à surveiller, pas d'urgence."]
+                          + [f"• {v['id']} ({v['score']:.1f}) {explain._product(v)}" for v in top], 2, "", ["eyes"])
         if overflow:
             notifier.send(f"VulnWatch : {len(overflow)} autres alertes",
                           ["Détail dans l'Excel (feuille « Journal des alertes »).", ", ".join(overflow[:40])], 4, "", ["warning"])
@@ -1175,7 +1226,7 @@ def run(args) -> int:
                  kev_recent_cache=kev_recent if kev_recent else state.get("kev_recent_cache", []))
     # L'état est sauvegardé dans une branche publique : on n'y garde JAMAIS d'information sur tes actifs
     # (l'inventaire et la liste de surveillance sont relus depuis les secrets à chaque passage).
-    priv = ("assets", "asset_versions", "asset_owner", "asset_crit", "asset_exposed", "watch")
+    priv = ("assets", "asset_versions", "asset_owner", "asset_crit", "asset_exposed", "watch", "version_check")
     write_json(state_dir / "vulns.json", [{k: v for k, v in r.items() if k not in priv} for r in db.values()], compact=True)
     write_json(state_dir / "alerts.json", [sanitize_alert(a) for a in alerts[-5000:]], compact=True)
     write_json(state_dir / "kev_seen.json", sorted(kev_seen), compact=True)
@@ -1184,9 +1235,9 @@ def run(args) -> int:
     # 14. Publication
     meta = {"kev_version": kev_version, "health": health, "inventory": inventory, "stats": state["stats"]}
     private_xlsx = build_outputs(site_dir, list(db.values()), kev_recent, alerts, cfg, meta)
-    tpl = Path(__file__).with_name("site") / "index.html"
-    if tpl.exists():
-        shutil.copy(tpl, site_dir / "index.html")
+    tpl_dir = Path(__file__).with_name("site")
+    if tpl_dir.is_dir():  # publie tout le dossier site/ (page, scripts, images…)
+        shutil.copytree(tpl_dir, site_dir, dirs_exist_ok=True)
 
     # 15. Résumé quotidien : notification push + courriel avec l'Excel en pièce jointe
     local_now = now.astimezone(ZoneInfo(cfg["tz"])) if ZoneInfo else now

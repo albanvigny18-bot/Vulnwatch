@@ -255,3 +255,89 @@ def filter_mitigated(
             remaining.append(h)
     return remaining, len(remaining) == 0, matched_m
 
+
+
+# --------------------------------------------------------------------------- versions installées
+
+def _vtok(v: str) -> list:
+    """Découpe une version en éléments comparables : '7.2.10-build1234' -> [7, 2, 10, 'build', 1234]."""
+    out = []
+    for part in re.findall(r"\d+|[a-z]+", (v or "").lower()):
+        out.append(int(part) if part.isdigit() else part)
+    return out
+
+
+def _vcmp(a: str, b: str) -> int:
+    ta, tb = _vtok(a), _vtok(b)
+    for i in range(max(len(ta), len(tb))):
+        x = ta[i] if i < len(ta) else 0
+        y = tb[i] if i < len(tb) else 0
+        if isinstance(x, int) and isinstance(y, int):
+            if x != y:
+                return -1 if x < y else 1
+        else:
+            x, y = str(x), str(y)
+            if x != y:
+                # « 7.2 » < « 7.2-beta » est ambigu : une étiquette textuelle compte comme antérieure à un nombre
+                if x.isdigit() != y.isdigit():
+                    return 1 if x.isdigit() else -1
+                return -1 if x < y else 1
+    return 0
+
+
+_OPEN = {"", "0", "*", "n/a", "-", "unspecified", "all"}
+
+
+def version_status(installed: str, ranges: list, product_hint: str = "") -> str:
+    """Compare une version installée aux plages vulnérables déclarées par l'éditeur.
+
+    ranges : [[produit, version_basse, opérateur ('<', '<=', '='), borne_haute], ...]
+    Renvoie « touchée », « non touchée » ou « à vérifier » (version absente, plages absentes ou ambiguës).
+    """
+    inst = (installed or "").strip()
+    if not inst or not _vtok(inst) or not ranges:
+        return "à vérifier"
+    hint = _norm(product_hint)
+    rel = [r for r in ranges if hint and (hint in _norm(r[0]) or _norm(r[0]) in hint)] or (ranges if not hint else [])
+    if not rel:
+        return "à vérifier"
+    # Garde-fou : on ne conclut « non touchée » que si la version est écrite dans le même format que celles
+    # de l'éditeur (même premier numéro). Sinon (ex. « 2019 CU14 » contre « 15.2.1544 ») : à vérifier.
+    def _first(x):
+        t = _vtok(x)
+        return t[0] if t and isinstance(t[0], int) else None
+    firsts = {_first(b) for r in rel for b in (r[1], r[3]) if b and b.lower() not in _OPEN} - {None}
+    same_family = _first(inst) in firsts
+    usable = 0
+    for prod, low, op, high in rel:
+        try:
+            if op == "=":
+                if not low or low.lower() in _OPEN:
+                    continue
+                usable += 1
+                if _vcmp(inst, low) == 0 or inst.startswith(low + ".") :
+                    return "touchée"
+                continue
+            if not high or high.lower() in _OPEN:
+                continue
+            usable += 1
+            above_low = (not low or low.lower() in _OPEN) or _vcmp(inst, low) >= 0
+            below_high = _vcmp(inst, high) < 0 if op == "<" else _vcmp(inst, high) <= 0
+            if above_low and below_high:
+                return "touchée"
+        except Exception:  # noqa: BLE001
+            continue
+    return "non touchée" if (usable and same_family) else "à vérifier"
+
+
+def apply_version_check(rec: dict, hits: list[dict]) -> list[dict]:
+    """Retire les actifs dont la version installée est hors des plages vulnérables. Renseigne rec['version_check']."""
+    ranges = rec.get("ranges") or []
+    kept, notes = [], []
+    for h in hits:
+        st = version_status(h.get("version", ""), ranges, h.get("product", ""))
+        notes.append(f"{h['asset']} : {st}" + (f" (version {h['version']})" if h.get("version") else ""))
+        if st != "non touchée":
+            kept.append(h)
+    rec["version_check"] = "; ".join(notes)
+    return kept

@@ -185,3 +185,36 @@ def test_mitigations_only_apply_to_parc():
     rem, full, matched = classify.filter_mitigated("CVE-2026-0002", [vpn], mits, today="2026-11-24")
     assert rem == [vpn] and not full and matched == []
 
+
+
+def test_version_status():
+    rg = [["Fortinet FortiOS", "7.2.0", "<", "7.2.8"], ["Fortinet FortiOS", "7.4.0", "<=", "7.4.3"], ["Fortinet FortiProxy", "7.0.0", "<", "7.0.15"]]
+    assert classify.version_status("7.2.5", rg, "FortiOS") == "touchée"
+    assert classify.version_status("7.2.8", rg, "FortiOS") == "non touchée"
+    assert classify.version_status("7.4.3", rg, "FortiOS") == "touchée"
+    assert classify.version_status("7.6.0", rg, "FortiOS") == "non touchée"
+    assert classify.version_status("", rg, "FortiOS") == "à vérifier"
+    assert classify.version_status("7.2.5", [], "FortiOS") == "à vérifier"
+    assert classify.version_status("10.2.9-h1", [["Palo Alto Networks PAN-OS", "10.2.0", "<", "10.2.9-h1"]], "PAN-OS") == "non touchée"
+    assert classify.version_status("10.2.7", [["Palo Alto Networks PAN-OS", "10.2.0", "<", "10.2.9-h1"]], "PAN-OS") == "touchée"
+    assert classify.version_status("3.1", [["X Y", "0", "<", "*"]], "Y") == "à vérifier"
+
+
+def test_version_check_removes_patched_assets():
+    import json
+    r = vw.parse_nvd(nvd_item(cid="CVE-2024-3400", score=None), NOW)
+    intel.apply_cve5(r, intel.parse_cve5(json.loads((FIX / "CVE-2024-3400.cve5.json").read_text())))
+    assert r["ranges"], "plages structurées attendues"
+    inv = classify.parse_inventory("Actif;Fournisseur;Produit;Version;Criticite;Expose\n"
+                                   "FW-ancien;Palo Alto Networks;PAN-OS;10.2.5;Haute;Oui\n"
+                                   "FW-corrigé;Palo Alto Networks;PAN-OS;10.2.9-h1;Haute;Oui\n"
+                                   "FW-inconnu;Palo Alto Networks;PAN-OS;;Haute;Oui\n")
+    kept = classify.apply_version_check(r, classify.match_inventory(r, inv))
+    assert [h["asset"] for h in kept] == ["FW-ancien", "FW-inconnu"]
+    assert "FW-corrigé : non touchée" in r["version_check"]
+
+
+def test_version_format_mismatch_is_never_hidden():
+    rg = [["Microsoft Exchange Server 2019", "15.02.0", "<", "15.02.1544.014"]]
+    assert classify.version_status("2019 CU14", rg, "Exchange Server") == "à vérifier"
+    assert classify.version_status("23H2", [["Microsoft Windows 11 Version 23H2", "10.0.22631.0", "<", "10.0.22631.4460"]], "Windows 11") == "à vérifier"
